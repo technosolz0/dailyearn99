@@ -1,4 +1,8 @@
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 class Settings:
     PROJECT_NAME: str = "target99"
@@ -12,8 +16,8 @@ class Settings:
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     
-    # Mock Admin credentials
-    ADMIN_USERNAME: str = "admin"
-    ADMIN_PASSWORD: str = "admin99"
+    # Admin credentials
+    ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME", "admin")
+    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "admin99")
 
 settings = Settings()
