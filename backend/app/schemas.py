@@ -48,6 +48,11 @@ class PrizeRuleSchema(BaseModel):
     max_rank: int
     prize: float
 
+class QuestionSchema(BaseModel):
+    text: str
+    options: List[str]
+    correct_answer_index: int
+
 class ContestCreate(BaseModel):
     title: str
     entry_fee: float
@@ -55,6 +60,7 @@ class ContestCreate(BaseModel):
     prize_pool: float
     start_time: datetime
     prize_rules: Optional[List[PrizeRuleSchema]] = None
+    questions: Optional[List[QuestionSchema]] = None
 
 class ContestResponse(BaseModel):
     id: int
@@ -66,10 +72,21 @@ class ContestResponse(BaseModel):
     start_time: datetime
     status: str
     prize_rules: Optional[List[PrizeRuleSchema]] = None
+    questions: Optional[List[QuestionSchema]] = None
 
     @field_validator("prize_rules", mode="before")
     @classmethod
     def parse_prize_rules(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
+
+    @field_validator("questions", mode="before")
+    @classmethod
+    def parse_questions(cls, v):
         if isinstance(v, str):
             try:
                 return json.loads(v)

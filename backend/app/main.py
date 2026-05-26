@@ -36,6 +36,7 @@ def migrate_database():
 
     columns_contests = [
         ("prize_rules", "TEXT"),
+        ("questions", "TEXT"),
     ]
     for col_name, col_type in columns_contests:
         try:
@@ -62,7 +63,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.core.seeds import seed_test_users
+from app.core.seeds import seed_test_users, DEFAULT_QUESTIONS
+import json
 
 # Seed initial mock contests on startup
 @app.on_event("startup")
@@ -74,6 +76,7 @@ def startup_event():
         
         if db.query(Contest).count() == 0:
             now = datetime.now()
+            default_questions_json = json.dumps(DEFAULT_QUESTIONS)
             contests = [
                 Contest(
                     title="⚔️ Mega Quiz Championship",
@@ -82,7 +85,8 @@ def startup_event():
                     joined_slots=0,
                     prize_pool=30000.0,
                     start_time=now + timedelta(hours=2),
-                    status="UPCOMING"
+                    status="UPCOMING",
+                    questions=default_questions_json
                 ),
                 Contest(
                     title="🔥 Super Challenger Battle",
@@ -91,7 +95,8 @@ def startup_event():
                     joined_slots=0,
                     prize_pool=5000.0,
                     start_time=now + timedelta(minutes=30),
-                    status="UPCOMING"
+                    status="UPCOMING",
+                    questions=default_questions_json
                 ),
                 Contest(
                     title="⚡ Blitz Fast Trivia",
@@ -100,7 +105,8 @@ def startup_event():
                     joined_slots=0,
                     prize_pool=100.0,
                     start_time=now + timedelta(minutes=5),
-                    status="UPCOMING"
+                    status="UPCOMING",
+                    questions=default_questions_json
                 ),
                 Contest(
                     title="💎 Diamond High-Stakes Quiz",
@@ -109,7 +115,8 @@ def startup_event():
                     joined_slots=0,
                     prize_pool=10000.0,
                     start_time=now + timedelta(days=1),
-                    status="UPCOMING"
+                    status="UPCOMING",
+                    questions=default_questions_json
                 )
             ]
             db.bulk_save_objects(contests)

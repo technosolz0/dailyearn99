@@ -26,6 +26,34 @@ class PrizeRuleModel {
   }
 }
 
+class QuizQuestionModel {
+  final String text;
+  final List<String> options;
+  final int correctAnswerIndex;
+
+  QuizQuestionModel({
+    required this.text,
+    required this.options,
+    required this.correctAnswerIndex,
+  });
+
+  factory QuizQuestionModel.fromJson(Map<String, dynamic> json) {
+    return QuizQuestionModel(
+      text: json['text'] as String,
+      options: List<String>.from(json['options'] as List),
+      correctAnswerIndex: json['correct_answer_index'] as int,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'text': text,
+      'options': options,
+      'correct_answer_index': correctAnswerIndex,
+    };
+  }
+}
+
 class ContestModel {
   final int id;
   final String title;
@@ -36,6 +64,7 @@ class ContestModel {
   final DateTime startTime;
   final String status;
   final List<PrizeRuleModel>? prizeRules;
+  final List<QuizQuestionModel>? questions;
 
   ContestModel({
     required this.id,
@@ -47,6 +76,7 @@ class ContestModel {
     required this.startTime,
     required this.status,
     this.prizeRules,
+    this.questions,
   });
 
   factory ContestModel.fromJson(Map<String, dynamic> json) {
@@ -64,6 +94,11 @@ class ContestModel {
               .map((item) => PrizeRuleModel.fromJson(item as Map<String, dynamic>))
               .toList()
           : null,
+      questions: json['questions'] != null
+          ? (json['questions'] as List)
+              .map((item) => QuizQuestionModel.fromJson(item as Map<String, dynamic>))
+              .toList()
+          : null,
     );
   }
 
@@ -78,6 +113,7 @@ class ContestModel {
       'start_time': startTime.toIso8601String(),
       'status': status,
       'prize_rules': prizeRules?.map((r) => r.toJson()).toList(),
+      'questions': questions?.map((q) => q.toJson()).toList(),
     };
   }
 

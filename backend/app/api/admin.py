@@ -66,10 +66,18 @@ def ban_user(id: int, ban: bool, db: Session = Depends(get_db)):
 @router.post("/contests", response_model=ContestResponse)
 def create_contest(request: ContestCreate, db: Session = Depends(get_db)):
     import json
+    from app.core.seeds import DEFAULT_QUESTIONS
+
     prize_rules_json = None
     if request.prize_rules:
         prize_rules_json = json.dumps([r.model_dump() for r in request.prize_rules])
         
+    questions_json = None
+    if request.questions:
+        questions_json = json.dumps([q.model_dump() for q in request.questions])
+    else:
+        questions_json = json.dumps(DEFAULT_QUESTIONS)
+
     contest = Contest(
         title=request.title,
         entry_fee=request.entry_fee,
@@ -78,7 +86,8 @@ def create_contest(request: ContestCreate, db: Session = Depends(get_db)):
         start_time=request.start_time,
         joined_slots=0,
         status="UPCOMING",
-        prize_rules=prize_rules_json
+        prize_rules=prize_rules_json,
+        questions=questions_json
     )
     db.add(contest)
     db.commit()

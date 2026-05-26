@@ -24,13 +24,7 @@ class QuizScreen extends StatefulWidget {
 }
 
 class _QuizScreenState extends State<QuizScreen> {
-  final List<QuizQuestion> _questions = [
-    QuizQuestion('Which country won the ICC Men\'s T20 World Cup in 2024?', ['India', 'South Africa', 'Australia', 'England'], 0),
-    QuizQuestion('In computer networking, what does VPN stand for?', ['Virtual Private Network', 'Vector Protocol Node', 'Valued Personal Network', 'Virtual Packet Node'], 0),
-    QuizQuestion('Which programming language is predominantly used to write Flutter apps?', ['Swift', 'Dart', 'Kotlin', 'Rust'], 1),
-    QuizQuestion('What is the national game of India officially/historically?', ['Cricket', 'Kabaddi', 'Field Hockey', 'Football'], 2),
-    QuizQuestion('What is the platform fee target percentage in target99?', ['10-20%', '15-35%', '50-60%', '5%'], 1),
-  ];
+  late final List<QuizQuestion> _questions;
 
   int _currentQuestionIndex = 0;
   int _selectedAnswerIndex = -1;
@@ -42,6 +36,17 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   void initState() {
     super.initState();
+    _questions = widget.contest.questions != null && widget.contest.questions!.isNotEmpty
+        ? widget.contest.questions!
+            .map((q) => QuizQuestion(q.text, q.options, q.correctAnswerIndex))
+            .toList()
+        : [
+            QuizQuestion('Which country won the ICC Men\'s T20 World Cup in 2024?', ['India', 'South Africa', 'Australia', 'England'], 0),
+            QuizQuestion('In computer networking, what does VPN stand for?', ['Virtual Private Network', 'Vector Protocol Node', 'Valued Personal Network', 'Virtual Packet Node'], 0),
+            QuizQuestion('Which programming language is predominantly used to write Flutter apps?', ['Swift', 'Dart', 'Kotlin', 'Rust'], 1),
+            QuizQuestion('What is the national game of India officially/historically?', ['Cricket', 'Kabaddi', 'Field Hockey', 'Football'], 2),
+            QuizQuestion('What is the platform fee target percentage in target99?', ['10-20%', '15-35%', '50-60%', '5%'], 1),
+          ];
     FirebaseAnalytics.instance.logScreenView(screenName: 'QuizScreen');
     _startTimer();
   }
@@ -294,7 +299,7 @@ class _QuizScreenState extends State<QuizScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '$_score / 100',
+                  '$_score / ${_questions.length * 20}',
                   style: TextStyle(fontSize: 36, fontWeight: FontWeight.w800, color: AppTheme.accentCyan),
                 ),
               ],

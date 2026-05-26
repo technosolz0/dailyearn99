@@ -1,6 +1,34 @@
 from sqlalchemy.orm import Session
 from app.models import User
 
+DEFAULT_QUESTIONS = [
+    {
+        "text": "Which country won the ICC Men's T20 World Cup in 2024?",
+        "options": ["India", "South Africa", "Australia", "England"],
+        "correct_answer_index": 0
+    },
+    {
+        "text": "In computer networking, what does VPN stand for?",
+        "options": ["Virtual Private Network", "Vector Protocol Node", "Valued Personal Network", "Virtual Packet Node"],
+        "correct_answer_index": 0
+    },
+    {
+        "text": "Which programming language is predominantly used to write Flutter apps?",
+        "options": ["Swift", "Dart", "Kotlin", "Rust"],
+        "correct_answer_index": 1
+    },
+    {
+        "text": "What is the national game of India officially/historically?",
+        "options": ["Cricket", "Kabaddi", "Field Hockey", "Football"],
+        "correct_answer_index": 2
+    },
+    {
+        "text": "What is the platform fee target percentage in target99?",
+        "options": ["10-20%", "15-35%", "50-60%", "5%"],
+        "correct_answer_index": 1
+    }
+]
+
 def seed_test_users(db: Session):
     # Check if users already exist in the database
     if db.query(User).count() > 0:

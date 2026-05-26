@@ -42,6 +42,7 @@ class Contest(Base):
     start_time = Column(DateTime, nullable=False)
     status = Column(String, default="UPCOMING")  # UPCOMING, ACTIVE, COMPLETED
     prize_rules = Column(String, nullable=True)  # JSON string of rank-wise rules
+    questions = Column(String, nullable=True)  # JSON string of quiz questions
 
     participants = relationship("ContestParticipant", back_populates="contest")
 

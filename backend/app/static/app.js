@@ -41,7 +41,9 @@ const el = {
     get btnCloseModal() { return document.getElementById('btn-close-modal'); },
     get modalContestForm() { return document.getElementById('modal-contest-form'); },
     get btnAddPrizeRule() { return document.getElementById('btn-add-prize-rule'); },
-    get prizeRulesList() { return document.getElementById('prize-rules-list'); }
+    get prizeRulesList() { return document.getElementById('prize-rules-list'); },
+    get btnAddQuestion() { return document.getElementById('btn-add-question'); },
+    get quizQuestionsList() { return document.getElementById('quiz-questions-list'); }
 };
 
 // Initialize Application
@@ -245,9 +247,10 @@ function setupEventHandlers() {
     // Modal Event Handlers
     if (el.btnOpenCreateModal) {
         el.btnOpenCreateModal.addEventListener('click', () => {
-            // Reset form and empty dynamic prize rules
+            // Reset form and empty dynamic prize rules and quiz questions
             el.modalContestForm.reset();
             el.prizeRulesList.innerHTML = '';
+            el.quizQuestionsList.innerHTML = '';
             
             // Set default date-time to 2 hours from now
             const localOffset = new Date().getTimezoneOffset() * 60000; // in ms
@@ -308,6 +311,44 @@ function setupEventHandlers() {
         });
     }
 
+    // Dynamic Quiz Question card adding
+    if (el.btnAddQuestion) {
+        el.btnAddQuestion.addEventListener('click', () => {
+            const card = document.createElement('div');
+            card.className = 'quiz-question-card';
+            card.innerHTML = `
+                <div class="question-header">
+                    <input type="text" placeholder="Question Text (e.g. Which programming language is predominantly used to write Flutter apps?)" class="q-text" required>
+                    <button type="button" class="btn-remove-rule btn-remove-question" title="Remove Question">&times;</button>
+                </div>
+                <div class="question-options-grid">
+                    <input type="text" placeholder="Option A" class="q-opt-0" required>
+                    <input type="text" placeholder="Option B" class="q-opt-1" required>
+                    <input type="text" placeholder="Option C" class="q-opt-2" required>
+                    <input type="text" placeholder="Option D" class="q-opt-3" required>
+                </div>
+                <div class="question-footer">
+                    <div class="correct-select-wrapper">
+                        <span style="font-size:12px; color:var(--text-muted);">Correct Answer:</span>
+                        <select class="q-correct">
+                            <option value="0">Option A</option>
+                            <option value="1">Option B</option>
+                            <option value="2">Option C</option>
+                            <option value="3">Option D</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+            
+            card.querySelector('.btn-remove-question').addEventListener('click', () => {
+                card.remove();
+            });
+            
+            el.quizQuestionsList.appendChild(card);
+            el.quizQuestionsList.scrollTop = el.quizQuestionsList.scrollHeight;
+        });
+    }
+
     if (el.modalContestForm) {
         el.modalContestForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -348,6 +389,29 @@ function setupEventHandlers() {
                     prize: prize
                 });
             }
+
+            // Collect quiz questions
+            const questions = [];
+            const qCards = el.quizQuestionsList.querySelectorAll('.quiz-question-card');
+            for (const card of qCards) {
+                const text = card.querySelector('.q-text').value.trim();
+                const opt0 = card.querySelector('.q-opt-0').value.trim();
+                const opt1 = card.querySelector('.q-opt-1').value.trim();
+                const opt2 = card.querySelector('.q-opt-2').value.trim();
+                const opt3 = card.querySelector('.q-opt-3').value.trim();
+                const correctAnswerIndex = parseInt(card.querySelector('.q-correct').value);
+
+                if (!text || !opt0 || !opt1 || !opt2 || !opt3 || isNaN(correctAnswerIndex)) {
+                    showToast("Please fill all fields in the quiz questions section.", true);
+                    return;
+                }
+
+                questions.push({
+                    text: text,
+                    options: [opt0, opt1, opt2, opt3],
+                    correct_answer_index: correctAnswerIndex
+                });
+            }
             
             try {
                 const response = await fetch(`${API_BASE}/admin/contests`, {
@@ -359,7 +423,8 @@ function setupEventHandlers() {
                         total_slots: totalSlots,
                         prize_pool: prizePool,
                         start_time: startTime,
-                        prize_rules: prizeRules.length > 0 ? prizeRules : null
+                        prize_rules: prizeRules.length > 0 ? prizeRules : null,
+                        questions: questions.length > 0 ? questions : null
                     })
                 });
                 
@@ -548,10 +613,16 @@ function renderContestsTable(contestsList) {
             rulesHtml = `<span style="font-size: 11px; color: var(--text-muted); font-style: italic; margin-top: 5px; display: block;">Standard distribution</span>`;
         }
 
+        const questionsCount = c.questions ? c.questions.length : 0;
+        const questionsHtml = `<div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">📋 ${questionsCount} Questions</div>`;
+
         return `
             <tr>
                 <td>${c.id}</td>
-                <td><strong style="font-size:14px;">${c.title}</strong></td>
+                <td>
+                    <strong style="font-size:14px;">${c.title}</strong>
+                    ${questionsHtml}
+                </td>
                 <td>₹${c.entry_fee.toFixed(2)}</td>
                 <td>
                     <div class="user-cell">
