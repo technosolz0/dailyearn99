@@ -30,6 +30,10 @@ class User(Base):
     participants = relationship("ContestParticipant", back_populates="user")
     transactions = relationship("WalletTransaction", back_populates="user")
 
+    @property
+    def joined_contest_ids(self):
+        return [p.contest_id for p in self.participants]
+
 class Contest(Base):
     __tablename__ = "contests"
 

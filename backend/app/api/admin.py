@@ -5,7 +5,10 @@ from typing import List, Optional
 from datetime import datetime, timezone
 from app.core.database import get_db
 from app.models import User, Contest, WalletTransaction
-from app.schemas import AdminStatsResponse, UserResponse, ContestCreate, ContestResponse, TransactionResponse
+from app.schemas import (
+    AdminStatsResponse, UserResponse, ContestCreate, ContestResponse, TransactionResponse,
+    AdminAdjustBalanceRequest
+)
 from app.core.config import settings
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -61,6 +64,46 @@ def ban_user(id: int, ban: bool, db: Session = Depends(get_db)):
     user.is_banned = ban
     db.commit()
     db.refresh(user)
+    return user
+
+@router.post("/users/{id}/adjust-balance", response_model=UserResponse)
+def adjust_user_balance(id: int, request: AdminAdjustBalanceRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    wallet = request.wallet_type.strip().lower()
+    if wallet == "deposit":
+        user.deposit_balance += request.amount
+    elif wallet == "winning":
+        user.winning_balance += request.amount
+    elif wallet == "bonus":
+        user.bonus_balance += request.amount
+    else:
+        raise HTTPException(status_code=400, detail="Invalid wallet type. Must be 'deposit', 'winning', or 'bonus'")
+        
+    tx_type = "DEPOSIT" if request.amount >= 0 else "WITHDRAWAL"
+    
+    # Log transaction
+    transaction = WalletTransaction(
+        user_id=user.id,
+        type=tx_type,
+        amount=abs(request.amount),
+        status="SUCCESS"
+    )
+    db.add(transaction)
+    db.commit()
+    db.refresh(user)
+    
+    # Send push notification to user
+    from app.core.notifications import send_push_to_user
+    send_push_to_user(
+        db,
+        user.id,
+        title="💰 Wallet Updated by Admin",
+        body=f"Your {wallet.capitalize()} balance has been adjusted by {'+' if request.amount >= 0 else ''}₹{request.amount:.2f}."
+    )
+    
     return user
 
 @router.post("/contests", response_model=ContestResponse)

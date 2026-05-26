@@ -370,6 +370,37 @@
         </div>
     </div>
 
+    <!-- Adjust Balance Modal -->
+    <div id="adjust-balance-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Adjust Wallet Balance</h2>
+                <button class="btn-close" id="btn-close-balance-modal">&times;</button>
+            </div>
+            <form id="modal-adjust-balance-form" class="contest-form">
+                <input type="hidden" id="adj-user-id">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label>User Details</label>
+                    <div id="adj-user-details" style="font-weight: bold; color: var(--primary); margin-top: 5px;">-</div>
+                </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="adj-wallet-type">Wallet Type</label>
+                    <select id="adj-wallet-type" class="form-control" style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit;">
+                        <option value="deposit">Deposit Wallet</option>
+                        <option value="winning">Winning Wallet</option>
+                        <option value="bonus">Bonus Wallet</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="adj-amount">Amount (₹)</label>
+                    <input type="number" id="adj-amount" placeholder="e.g. 100" min="-100000" max="100000" step="any" required style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit;">
+                    <span style="font-size: 10px; color: var(--text-muted); margin-top: 4px; display: block;">Use positive values to add, negative to subtract balance.</span>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 10px;">Update Balance</button>
+            </form>
+        </div>
+    </div>
+
     <!-- Notification Toast -->
     <div id="toast" class="toast-notification"></div>
     <script src="app.js?v=1.0.1"></script>

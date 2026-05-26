@@ -16,6 +16,7 @@ class UserModel {
   final String? bankIfscCode;
   final String? bankAccountHolderName;
   final String? bankName;
+  final List<int> joinedContestIds;
 
   UserModel({
     required this.id,
@@ -35,6 +36,7 @@ class UserModel {
     this.bankIfscCode,
     this.bankAccountHolderName,
     this.bankName,
+    required this.joinedContestIds,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -56,6 +58,10 @@ class UserModel {
       bankIfscCode: json['bank_ifsc_code'] as String?,
       bankAccountHolderName: json['bank_account_holder_name'] as String?,
       bankName: json['bank_name'] as String?,
+      joinedContestIds: (json['joined_contest_ids'] as List<dynamic>?)
+              ?.map((e) => e as int)
+              .toList() ??
+          [],
     );
   }
 
@@ -78,6 +84,7 @@ class UserModel {
       'bank_ifsc_code': bankIfscCode,
       'bank_account_holder_name': bankAccountHolderName,
       'bank_name': bankName,
+      'joined_contest_ids': joinedContestIds,
     };
   }
 

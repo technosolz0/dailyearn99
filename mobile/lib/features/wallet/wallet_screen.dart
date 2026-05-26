@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:target99/core/theme/app_theme.dart';
 import 'package:target99/core/models/user_model.dart';
 import 'package:target99/features/app_bloc.dart';
+import 'package:target99/core/utils/razorpay_service.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -306,7 +307,7 @@ class _WalletScreenState extends State<WalletScreen> {
       builder: (ctx) {
         return AlertDialog(
           backgroundColor: AppTheme.cardBg,
-          title: const Text('Add Money (Mock)'),
+          title: const Text('Add Money'),
           content: TextField(
             controller: _amountController,
             keyboardType: TextInputType.number,
@@ -325,16 +326,23 @@ class _WalletScreenState extends State<WalletScreen> {
                 final amt = double.tryParse(_amountController.text.trim());
                 if (amt != null && amt > 0) {
                   Navigator.pop(ctx);
-                  context.read<AppBloc>().add(DepositMoneyEvent(amt));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Deposited ₹$amt successfully!'),
-                      backgroundColor: AppTheme.accentEmerald,
-                    ),
+                  
+                  // Trigger Razorpay simulated checkout sheet!
+                  RazorpayService.openRazorpayPaymentSheet(
+                    context: context,
+                    amount: amt,
+                    onSuccess: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('₹${amt.toStringAsFixed(2)} added via Razorpay successfully!'),
+                          backgroundColor: AppTheme.accentEmerald,
+                        ),
+                      );
+                    },
                   );
                 }
               },
-              child: const Text('DEPOSIT'),
+              child: const Text('PROCEED TO PAY'),
             ),
           ],
         );

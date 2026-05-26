@@ -39,6 +39,7 @@ class UserResponse(BaseModel):
     bank_ifsc_code: Optional[str] = None
     bank_account_holder_name: Optional[str] = None
     bank_name: Optional[str] = None
+    joined_contest_ids: List[int] = []
 
     class Config:
         from_attributes = True
@@ -167,3 +168,17 @@ class SendUserNotificationRequest(BaseModel):
 class SendAllNotificationRequest(BaseModel):
     title: str
     body: str
+
+class AdminAdjustBalanceRequest(BaseModel):
+    amount: float
+    wallet_type: str = Field(..., description="'deposit', 'winning', or 'bonus'")
+
+class RazorpayCreateOrderRequest(BaseModel):
+    amount: float = Field(..., gt=0)
+
+class RazorpayVerifyPaymentRequest(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+    amount: float
+

@@ -4,6 +4,7 @@ import 'package:target99/core/theme/app_theme.dart';
 import 'package:target99/core/models/contest_model.dart';
 import 'package:target99/features/app_bloc.dart';
 import 'package:target99/features/contest/quiz_screen.dart';
+import 'package:target99/core/utils/razorpay_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -216,7 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   SliverList(
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final contest = state.contests[index];
-                      return _buildContestCard(context, contest, user?.id);
+                      return _buildContestCard(context, contest, user);
                     }, childCount: state.contests.length),
                   ),
 
@@ -258,7 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildContestCard(
     BuildContext context,
     ContestModel contest,
-    int? userId,
+    UserModel? user,
   ) {
     // Check if the current user has joined this contest.
     // In our simplified setup, we can fetch participation records if needed,
@@ -291,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // Let's define a global class `UserSession` in `mobile` that keeps track of joined contest IDs. It is extremely simple and avoids rewriting too much code.
     // Let's define it inside `lib/features/home/home_screen.dart` as a static Set for simplicity and 100% reliability.
 
-    final isJoined = _joinedContestIds.contains(contest.id);
+    final isJoined = user?.joinedContestIds.contains(contest.id) ?? false;
     final fillPercentage = contest.joinedSlots / contest.totalSlots;
 
     return Padding(
@@ -476,6 +477,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showJoinConfirmation(BuildContext context, ContestModel contest) {
+    final user = context.read<AppBloc>().state.currentUser;
+    if (user == null) return;
+
+    final double maxBonusToUse = contest.entryFee * 0.10;
+    final double actualBonusToUse = user.bonusBalance < maxBonusToUse ? user.bonusBalance : maxBonusToUse;
+    final double requiredFromOthers = contest.entryFee - actualBonusToUse;
+    final double totalOthers = user.depositBalance + user.winningBalance;
+    final bool hasSufficientBalance = totalOthers >= requiredFromOthers;
+    final double shortfall = requiredFromOthers - totalOthers;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.cardBg,
@@ -555,23 +566,84 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    context.read<AppBloc>().add(JoinContestEvent(contest.id));
-                    setState(() {
-                      _joinedContestIds.add(contest.id);
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Registered for ${contest.title}!'),
-                        backgroundColor: AppTheme.accentEmerald,
-                      ),
-                    );
-                  },
-                  child: const Text('CONFIRM & REGISTER'),
-                ),
+                const SizedBox(height: 20),
+                if (!hasSufficientBalance) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accentRed.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.accentRed.withOpacity(0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.warning_amber_rounded, color: AppTheme.accentRed, size: 16),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Insufficient Wallet Balance',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.accentRed, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Shortfall: ₹${shortfall.toStringAsFixed(2)}\nYour Usable Balance: ₹${(totalOthers + actualBonusToUse).toStringAsFixed(2)}',
+                          style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      
+                      final depositAmount = shortfall.ceilToDouble();
+                      
+                      RazorpayService.openRazorpayPaymentSheet(
+                        context: context,
+                        amount: depositAmount,
+                        onSuccess: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Deposited ₹${depositAmount.toInt()} successfully! Re-opening registration...'),
+                              backgroundColor: AppTheme.accentEmerald,
+                            ),
+                          );
+                          
+                          Future.delayed(const Duration(milliseconds: 600), () {
+                            if (context.mounted) {
+                              _showJoinConfirmation(context, contest);
+                            }
+                          });
+                        },
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accentCyan,
+                      foregroundColor: Colors.black,
+                    ),
+                    child: Text('ADD ₹${shortfall.ceil()} VIA RAZORPAY'),
+                  ),
+                ] else ...[
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      context.read<AppBloc>().add(JoinContestEvent(contest.id));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Registered for ${contest.title}!'),
+                          backgroundColor: AppTheme.accentEmerald,
+                        ),
+                      );
+                    },
+                    child: const Text('CONFIRM & REGISTER'),
+                  ),
+                ],
               ],
             ),
           ),
@@ -581,5 +653,4 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// Simple static session tracker for local sandbox execution
-final Set<int> _joinedContestIds = {};
+
