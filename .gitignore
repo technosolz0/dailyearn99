@@ -24,8 +24,36 @@ Thumbs.db
 *.swp
 *.swo
 *.iml
-.dart_tool/
-build/
-.flutter-plugins
-.flutter-plugins-dependencies
-.metadata
+
+# Flutter / Dart
+**/build/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.metadata
+**/.packages
+**/.pub/
+**/.pub-cache/
+
+# Android specific
+**/android/local.properties
+**/android/key.properties
+**/*.keystore
+**/*.jks
+
+# iOS/macOS specific
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/flutter_export_environment.plist
+**/ios/Flutter/GeneratedPluginRegistrant.h
+**/ios/Flutter/GeneratedPluginRegistrant.m
+**/ios/Flutter/GeneratedPluginRegistrant.swift
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Podfile.lock
+**/Runner/GeneratedPluginRegistrant.h
+**/Runner/GeneratedPluginRegistrant.m
+**/Runner/GeneratedPluginRegistrant.swift
+**/*.xcworkspace/
+**/*.xcuserdata/
+

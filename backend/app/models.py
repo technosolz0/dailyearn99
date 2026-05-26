@@ -19,6 +19,12 @@ class User(Base):
     is_banned = Column(Boolean, default=False)
     fcm_token = Column(String, nullable=True)
     
+    # Bank Details for Withdrawals
+    bank_account_number = Column(String, nullable=True)
+    bank_ifsc_code = Column(String, nullable=True)
+    bank_account_holder_name = Column(String, nullable=True)
+    bank_name = Column(String, nullable=True)
+    
     participants = relationship("ContestParticipant", back_populates="user")
     transactions = relationship("WalletTransaction", back_populates="user")
 

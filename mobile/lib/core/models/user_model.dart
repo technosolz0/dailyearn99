@@ -10,6 +10,10 @@ class UserModel {
   final double bonusBalance;
   final String kycStatus;
   final bool isBanned;
+  final String? bankAccountNumber;
+  final String? bankIfscCode;
+  final String? bankAccountHolderName;
+  final String? bankName;
 
   UserModel({
     required this.id,
@@ -23,6 +27,10 @@ class UserModel {
     required this.bonusBalance,
     required this.kycStatus,
     required this.isBanned,
+    this.bankAccountNumber,
+    this.bankIfscCode,
+    this.bankAccountHolderName,
+    this.bankName,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -38,6 +46,10 @@ class UserModel {
       bonusBalance: (json['bonus_balance'] as num).toDouble(),
       kycStatus: json['kyc_status'] as String,
       isBanned: json['is_banned'] as bool,
+      bankAccountNumber: json['bank_account_number'] as String?,
+      bankIfscCode: json['bank_ifsc_code'] as String?,
+      bankAccountHolderName: json['bank_account_holder_name'] as String?,
+      bankName: json['bank_name'] as String?,
     );
   }
 
@@ -54,6 +66,10 @@ class UserModel {
       'bonus_balance': bonusBalance,
       'kyc_status': kycStatus,
       'is_banned': isBanned,
+      'bank_account_number': bankAccountNumber,
+      'bank_ifsc_code': bankIfscCode,
+      'bank_account_holder_name': bankAccountHolderName,
+      'bank_name': bankName,
     };
   }
 

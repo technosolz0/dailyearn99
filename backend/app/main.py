@@ -15,6 +15,25 @@ from app.websocket import manager
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
+def migrate_database():
+    from sqlalchemy import text
+    with engine.begin() as conn:
+        columns = [
+            ("bank_account_number", "VARCHAR"),
+            ("bank_ifsc_code", "VARCHAR"),
+            ("bank_account_holder_name", "VARCHAR"),
+            ("bank_name", "VARCHAR"),
+        ]
+        for col_name, col_type in columns:
+            try:
+                conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
+                print(f"Schema Migration: Added column '{col_name}' to users table.")
+            except Exception:
+                # Ignore error (column already exists)
+                pass
+
+migrate_database()
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"

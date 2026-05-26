@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
 from app.models import User, WalletTransaction
-from app.schemas import UserResponse, DepositRequest, WithdrawalRequest, TransactionResponse
+from app.schemas import UserResponse, DepositRequest, WithdrawalRequest, TransactionResponse, SaveBankDetailsRequest
 from app.core.security import get_current_user
 from app.services import WalletService
 
@@ -26,6 +26,13 @@ def withdraw_money(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Enforce bank account details registration
+    if not current_user.bank_account_number or not current_user.bank_ifsc_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Bank details not set. Please save your bank details before initiating a withdrawal."
+        )
+
     pan = request.pan.strip().upper()
     if len(pan) != 10:
         raise HTTPException(
@@ -45,6 +52,21 @@ def withdraw_money(
             detail=str(e)
         )
         
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+@router.post("/bank-details", response_model=UserResponse)
+def save_bank_details(
+    request: SaveBankDetailsRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    current_user.bank_account_number = request.account_number.strip()
+    current_user.bank_ifsc_code = request.ifsc_code.strip().upper()
+    current_user.bank_account_holder_name = request.account_holder_name.strip()
+    current_user.bank_name = request.bank_name.strip()
+    
     db.commit()
     db.refresh(current_user)
     return current_user

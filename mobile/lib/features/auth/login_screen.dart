@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:target99/core/theme/app_theme.dart';
 import 'package:target99/features/app_bloc.dart';
 
@@ -16,6 +17,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final _referralController = TextEditingController();
   
   bool _otpSent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    FirebaseAnalytics.instance.logScreenView(screenName: 'LoginScreen');
+  }
 
   @override
   void dispose() {

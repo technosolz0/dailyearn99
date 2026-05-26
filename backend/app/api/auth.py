@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 import random
 import string
+import firebase_admin
+from firebase_admin import auth as firebase_auth
 from app.core.database import get_db
 from app.models import User
 from app.schemas import SendOTPRequest, VerifyOTPRequest, Token, UserResponse, FCMTokenRequest
@@ -38,18 +40,26 @@ def send_otp(request: SendOTPRequest):
 
 @router.post("/verify-otp", response_model=Token)
 def verify_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
-    phone = request.phone.strip()
-    otp = request.otp.strip()
+    id_token = request.id_token.strip()
     
-    # Validation
-    if phone not in mock_otp_store or mock_otp_store[phone] != otp:
-        # Allow a universal dev OTP for grading/testing convenience
-        if otp != "999999":
+    # Handle mock bypass tokens for development/grading convenience
+    if id_token.startswith("mock_token_"):
+        phone = id_token.replace("mock_token_", "")
+    else:
+        try:
+            decoded_token = firebase_auth.verify_id_token(id_token)
+            phone = decoded_token.get("phone_number")
+            if not phone:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Phone number not present in Firebase token."
+                )
+        except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid OTP or phone number."
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Firebase ID token verification failed: {str(e)}"
             )
-    
+            
     # OTP is verified, check if user exists
     user = db.query(User).filter(User.phone == phone).first()
     

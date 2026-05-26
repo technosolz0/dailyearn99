@@ -10,8 +10,7 @@ class SendOTPRequest(BaseModel):
     phone: str = Field(..., description="10-digit mobile number")
 
 class VerifyOTPRequest(BaseModel):
-    phone: str
-    otp: str
+    id_token: str
     referred_by: Optional[str] = None  # Optional referral code during registration
 
 class UserResponse(BaseModel):
@@ -27,6 +26,10 @@ class UserResponse(BaseModel):
     kyc_status: str
     is_banned: bool
     fcm_token: Optional[str] = None
+    bank_account_number: Optional[str] = None
+    bank_ifsc_code: Optional[str] = None
+    bank_account_holder_name: Optional[str] = None
+    bank_name: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -77,6 +80,12 @@ class TransactionResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class SaveBankDetailsRequest(BaseModel):
+    account_number: str = Field(..., min_length=9, max_length=18)
+    ifsc_code: str = Field(..., min_length=11, max_length=11)
+    account_holder_name: str = Field(..., min_length=2)
+    bank_name: str = Field(..., min_length=2)
 
 class DepositRequest(BaseModel):
     amount: float = Field(..., gt=0)

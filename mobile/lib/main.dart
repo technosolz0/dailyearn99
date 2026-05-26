@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:target99/core/theme/app_theme.dart';
 import 'package:target99/core/utils/dependency_injection.dart';
 import 'package:target99/core/network/api_client.dart';
@@ -80,6 +81,9 @@ class Target99App extends StatelessWidget {
         scaffoldMessengerKey: scaffoldMessengerKey,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
+        navigatorObservers: [
+          FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+        ],
         home: const AuthWrapper(),
       ),
     );
@@ -114,6 +118,13 @@ class MainNavigationLayout extends StatefulWidget {
 class _MainNavigationLayoutState extends State<MainNavigationLayout> {
   int _currentIndex = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    // Log initial screen view
+    FirebaseAnalytics.instance.logScreenView(screenName: 'HomeScreen');
+  }
+
   final List<Widget> _screens = const [
     HomeScreen(),
     WalletScreen(),
@@ -135,6 +146,11 @@ class _MainNavigationLayoutState extends State<MainNavigationLayout> {
             setState(() {
               _currentIndex = index;
             });
+            
+            // Log tab switch in Firebase Analytics
+            final screenNames = ['HomeScreen', 'WalletScreen', 'ReferralScreen', 'ProfileScreen'];
+            FirebaseAnalytics.instance.logScreenView(screenName: screenNames[index]);
+
             // Fetch updates contextually on tab switch
             if (index == 1) {
               context.read<AppBloc>().add(FetchTransactionsEvent());

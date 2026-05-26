@@ -30,6 +30,7 @@ class ApiConstants {
   static const String deposit = '/wallet/deposit';
   static const String withdraw = '/wallet/withdraw';
   static const String transactions = '/wallet/transactions';
+  static const String saveBankDetails = '/wallet/bank-details';
   
   static const String referralDetails = '/referral/details';
   static const String registerFcmToken = '/auth/fcm-token';
