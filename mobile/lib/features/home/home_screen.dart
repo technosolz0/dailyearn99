@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:target99/core/models/user_model.dart';
 import 'package:target99/core/theme/app_theme.dart';
 import 'package:target99/core/models/contest_model.dart';
 import 'package:target99/features/app_bloc.dart';
@@ -481,7 +482,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (user == null) return;
 
     final double maxBonusToUse = contest.entryFee * 0.10;
-    final double actualBonusToUse = user.bonusBalance < maxBonusToUse ? user.bonusBalance : maxBonusToUse;
+    final double actualBonusToUse = user.bonusBalance < maxBonusToUse
+        ? user.bonusBalance
+        : maxBonusToUse;
     final double requiredFromOthers = contest.entryFee - actualBonusToUse;
     final double totalOthers = user.depositBalance + user.winningBalance;
     final bool hasSufficientBalance = totalOthers >= requiredFromOthers;
@@ -529,7 +532,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Fee will be deducted from your Wallet balances.\nBonus Wallet can pay up to 10% of the fee.',
                   style: TextStyle(fontSize: 10, color: AppTheme.textMuted),
                 ),
-                if (contest.prizeRules != null && contest.prizeRules!.isNotEmpty) ...[
+                if (contest.prizeRules != null &&
+                    contest.prizeRules!.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   const Divider(color: AppTheme.borderCol, height: 1),
                   const SizedBox(height: 12),
@@ -556,8 +560,21 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(rankText, style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
-                                Text('₹${rule.prize.toStringAsFixed(0)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.accentEmerald)),
+                                Text(
+                                  rankText,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.textMuted,
+                                  ),
+                                ),
+                                Text(
+                                  '₹${rule.prize.toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.accentEmerald,
+                                  ),
+                                ),
                               ],
                             ),
                           );
@@ -573,25 +590,38 @@ class _HomeScreenState extends State<HomeScreen> {
                     decoration: BoxDecoration(
                       color: AppTheme.accentRed.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.accentRed.withOpacity(0.2)),
+                      border: Border.all(
+                        color: AppTheme.accentRed.withOpacity(0.2),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.warning_amber_rounded, color: AppTheme.accentRed, size: 16),
+                            const Icon(
+                              Icons.warning_amber_rounded,
+                              color: AppTheme.accentRed,
+                              size: 16,
+                            ),
                             const SizedBox(width: 8),
                             const Text(
                               'Insufficient Wallet Balance',
-                              style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.accentRed, fontSize: 12),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.accentRed,
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'Shortfall: ₹${shortfall.toStringAsFixed(2)}\nYour Usable Balance: ₹${(totalOthers + actualBonusToUse).toStringAsFixed(2)}',
-                          style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textMuted,
+                          ),
                         ),
                       ],
                     ),
@@ -600,20 +630,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   ElevatedButton(
                     onPressed: () {
                       Navigator.pop(ctx);
-                      
+
                       final depositAmount = shortfall.ceilToDouble();
-                      
+
                       RazorpayService.openRazorpayPaymentSheet(
                         context: context,
                         amount: depositAmount,
                         onSuccess: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Deposited ₹${depositAmount.toInt()} successfully! Re-opening registration...'),
+                              content: Text(
+                                'Deposited ₹${depositAmount.toInt()} successfully! Re-opening registration...',
+                              ),
                               backgroundColor: AppTheme.accentEmerald,
                             ),
                           );
-                          
+
                           Future.delayed(const Duration(milliseconds: 600), () {
                             if (context.mounted) {
                               _showJoinConfirmation(context, contest);
@@ -652,5 +684,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
-
