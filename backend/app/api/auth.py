@@ -6,8 +6,8 @@ import firebase_admin
 from firebase_admin import auth as firebase_auth
 from app.core.database import get_db
 from app.models import User
-from app.schemas import SendOTPRequest, VerifyOTPRequest, Token, UserResponse, FCMTokenRequest
-from app.core.security import create_access_token, get_current_user
+from app.schemas import SendOTPRequest, VerifyOTPRequest, Token, UserResponse, FCMTokenRequest, TokenRefreshRequest
+from app.core.security import create_access_token, create_refresh_token, verify_refresh_token, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -93,8 +93,39 @@ def verify_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
         db.refresh(user)
         
     access_token = create_access_token(subject=user.id)
+    refresh_token = create_refresh_token(subject=user.id)
     return {
         "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+@router.post("/refresh", response_model=Token)
+def refresh_token_endpoint(request: TokenRefreshRequest, db: Session = Depends(get_db)):
+    ref_token = request.refresh_token.strip()
+    user_id = verify_refresh_token(ref_token)
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token"
+        )
+    user = db.query(User).filter(User.id == int(user_id)).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    if user.is_banned:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been banned by an administrator"
+        )
+    
+    new_access_token = create_access_token(subject=user.id)
+    new_refresh_token = create_refresh_token(subject=user.id)
+    return {
+        "access_token": new_access_token,
+        "refresh_token": new_refresh_token,
         "token_type": "bearer"
     }
 

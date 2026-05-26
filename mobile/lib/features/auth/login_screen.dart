@@ -15,7 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
   final _referralController = TextEditingController();
-  
+
   bool _otpSent = false;
 
   @override
@@ -49,12 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
             );
           }
           if (state.authError != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.authError!),
-                backgroundColor: AppTheme.accentRed,
-              ),
-            );
+            debugPrint("Auth Error: ${state.authError}");
           }
         },
         child: Container(
@@ -82,7 +77,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: LinearGradient(
-                                colors: [AppTheme.accentCyan, AppTheme.accentPurple],
+                                colors: [
+                                  AppTheme.accentCyan,
+                                  AppTheme.accentPurple,
+                                ],
                               ),
                               boxShadow: [
                                 BoxShadow(
@@ -132,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 48),
-                    
+
                     // Glass Card Container
                     Card(
                       child: Padding(
@@ -141,7 +139,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _otpSent ? 'Enter verification code' : 'Welcome to target99',
+                              _otpSent
+                                  ? 'Enter verification code'
+                                  : 'Welcome to target99',
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -158,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                             const SizedBox(height: 24),
-                            
+
                             // Phone Input
                             TextField(
                               controller: _phoneController,
@@ -167,11 +167,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Phone Number',
                                 hintText: 'Enter 10-digit number',
-                                prefixIcon: Icon(Icons.phone_iphone, color: AppTheme.textMuted),
+                                prefixIcon: Icon(
+                                  Icons.phone_iphone,
+                                  color: AppTheme.textMuted,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 16),
-                            
+
                             // OTP input if sent
                             if (_otpSent) ...[
                               TextField(
@@ -180,12 +183,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                 decoration: const InputDecoration(
                                   labelText: '6-digit OTP',
                                   hintText: 'Enter OTP',
-                                  prefixIcon: Icon(Icons.lock_outline, color: AppTheme.textMuted),
+                                  prefixIcon: Icon(
+                                    Icons.lock_outline,
+                                    color: AppTheme.textMuted,
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 16),
                             ],
-                            
+
                             // Referral input (optional during registration)
                             if (!_otpSent) ...[
                               TextField(
@@ -193,55 +199,66 @@ class _LoginScreenState extends State<LoginScreen> {
                                 decoration: const InputDecoration(
                                   labelText: 'Referral Code (Optional)',
                                   hintText: 'e.g. T99_WXYZ',
-                                  prefixIcon: Icon(Icons.card_giftcard, color: AppTheme.textMuted),
+                                  prefixIcon: Icon(
+                                    Icons.card_giftcard,
+                                    color: AppTheme.textMuted,
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 24),
                             ],
-                            
+
                             BlocBuilder<AppBloc, AppState>(
                               builder: (context, state) {
                                 if (state.isAuthLoading) {
                                   return const Center(
-                                    child: CircularProgressIndicator(color: AppTheme.accentCyan),
+                                    child: CircularProgressIndicator(
+                                      color: AppTheme.accentCyan,
+                                    ),
                                   );
                                 }
-                                
+
                                 return ElevatedButton(
                                   onPressed: () {
                                     final phone = _phoneController.text.trim();
                                     if (phone.isEmpty || phone.length < 10) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Please enter a valid phone number'),
-                                          backgroundColor: AppTheme.accentRed,
-                                        ),
+                                      debugPrint(
+                                        'Error: Please enter a valid phone number',
                                       );
                                       return;
                                     }
-                                    
+
                                     if (!_otpSent) {
-                                      context.read<AppBloc>().add(SendOtpEvent(phone));
+                                      context.read<AppBloc>().add(
+                                        SendOtpEvent(phone),
+                                      );
                                     } else {
                                       final otp = _otpController.text.trim();
-                                      final ref = _referralController.text.trim();
+                                      final ref = _referralController.text
+                                          .trim();
                                       context.read<AppBloc>().add(
-                                            VerifyOtpEvent(
-                                              phone,
-                                              otp,
-                                              referredBy: ref.isNotEmpty ? ref : null,
-                                            ),
-                                          );
+                                        VerifyOtpEvent(
+                                          phone,
+                                          otp,
+                                          referredBy: ref.isNotEmpty
+                                              ? ref
+                                              : null,
+                                        ),
+                                      );
                                     }
                                   },
                                   style: ElevatedButton.styleFrom(
                                     minimumSize: const Size.fromHeight(50),
                                   ),
-                                  child: Text(_otpSent ? 'VERIFY & ENTER' : 'GET VERIFICATION CODE'),
+                                  child: Text(
+                                    _otpSent
+                                        ? 'VERIFY & ENTER'
+                                        : 'GET VERIFICATION CODE',
+                                  ),
                                 );
                               },
                             ),
-                            
+
                             if (_otpSent) ...[
                               const SizedBox(height: 16),
                               Center(
@@ -254,11 +271,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                   },
                                   child: const Text(
                                     'Change phone number',
-                                    style: TextStyle(color: AppTheme.accentCyan),
+                                    style: TextStyle(
+                                      color: AppTheme.accentCyan,
+                                    ),
                                   ),
                                 ),
-                              )
-                            ]
+                              ),
+                            ],
                           ],
                         ),
                       ),

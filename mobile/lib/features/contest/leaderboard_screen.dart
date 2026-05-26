@@ -14,18 +14,21 @@ class LeaderboardScreen extends StatefulWidget {
 }
 
 class _LeaderboardScreenState extends State<LeaderboardScreen> {
+  late final AppBloc _appBloc;
+
   @override
   void initState() {
     super.initState();
+    _appBloc = context.read<AppBloc>();
     FirebaseAnalytics.instance.logScreenView(screenName: 'LeaderboardScreen');
     // Subscribe to live websocket updates for this contest
-    context.read<AppBloc>().add(ConnectLeaderboardEvent(widget.contest.id));
+    _appBloc.add(ConnectLeaderboardEvent(widget.contest.id));
   }
 
   @override
   void dispose() {
     // Unsubscribe from websocket channel
-    context.read<AppBloc>().add(DisconnectLeaderboardEvent());
+    _appBloc.add(DisconnectLeaderboardEvent());
     super.dispose();
   }
 
@@ -39,9 +42,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           IconButton(
             icon: const Icon(Icons.refresh, color: AppTheme.accentCyan),
             onPressed: () {
-              context.read<AppBloc>().add(ConnectLeaderboardEvent(widget.contest.id));
+              context.read<AppBloc>().add(
+                ConnectLeaderboardEvent(widget.contest.id),
+              );
             },
-          )
+          ),
         ],
       ),
       body: BlocBuilder<AppBloc, AppState>(
@@ -77,18 +82,34 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         children: [
                           Text(
                             widget.contest.title,
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
-                              _infoSub('Pool', '₹${widget.contest.prizePool.toInt()}', AppTheme.accentEmerald),
-                              _infoSub('Entry', '₹${widget.contest.entryFee.toInt()}', AppTheme.accentCyan),
-                              _infoSub('Status', widget.contest.status, AppTheme.accentAmber),
+                              _infoSub(
+                                'Pool',
+                                '₹${widget.contest.prizePool.toInt()}',
+                                AppTheme.accentEmerald,
+                              ),
+                              _infoSub(
+                                'Entry',
+                                '₹${widget.contest.entryFee.toInt()}',
+                                AppTheme.accentCyan,
+                              ),
+                              _infoSub(
+                                'Status',
+                                widget.contest.status,
+                                AppTheme.accentAmber,
+                              ),
                             ],
                           ),
-                          if (widget.contest.prizeRules != null && widget.contest.prizeRules!.isNotEmpty) ...[
+                          if (widget.contest.prizeRules != null &&
+                              widget.contest.prizeRules!.isNotEmpty) ...[
                             const SizedBox(height: 12),
                             const Divider(color: AppTheme.borderCol, height: 1),
                             const SizedBox(height: 8),
@@ -111,7 +132,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                                     : 'Rank ${rule.minRank}-${rule.maxRank}';
                                 return Text(
                                   '$rankText: ₹${rule.prize.toStringAsFixed(0)}',
-                                  style: const TextStyle(fontSize: 11, color: Colors.white70),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white70,
+                                  ),
                                 );
                               }).toList(),
                             ),
@@ -135,14 +159,22 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                           shape: BoxShape.circle,
                           color: AppTheme.accentEmerald,
                           boxShadow: [
-                            BoxShadow(color: AppTheme.accentEmerald, blurRadius: 8, spreadRadius: 1),
+                            BoxShadow(
+                              color: AppTheme.accentEmerald,
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                            ),
                           ],
                         ),
                       ),
                       const SizedBox(width: 8),
                       const Text(
                         'WS CONNECTED: STREAMING REAL-TIME RANKS',
-                        style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: AppTheme.accentEmerald),
+                        style: TextStyle(
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.accentEmerald,
+                        ),
                       ),
                     ],
                   ),
@@ -155,8 +187,22 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('RANK / PLAYER', style: TextStyle(fontSize: 10, color: AppTheme.textMuted, fontWeight: FontWeight.bold)),
-                      Text('SCORE', style: TextStyle(fontSize: 10, color: AppTheme.textMuted, fontWeight: FontWeight.bold)),
+                      Text(
+                        'RANK / PLAYER',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: AppTheme.textMuted,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'SCORE',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: AppTheme.textMuted,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -173,7 +219,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                           child: Text(
                             'Waiting for scores...\nNo play data submitted yet.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: AppTheme.textMuted, fontStyle: FontStyle.italic),
+                            style: TextStyle(
+                              color: AppTheme.textMuted,
+                              fontStyle: FontStyle.italic,
+                            ),
                           ),
                         )
                       : ListView.builder(
@@ -182,7 +231,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                           itemBuilder: (context, index) {
                             final player = list[index];
                             final isMe = player.userId == user?.id;
-                            
+
                             // Styling for ranks 1, 2, 3
                             Color rankColor = AppTheme.textMuted;
                             String rankText = player.rank.toString();
@@ -200,11 +249,15 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                             }
 
                             return Card(
-                              color: isMe ? AppTheme.accentCyan.withOpacity(0.08) : AppTheme.cardBg,
+                              color: isMe
+                                  ? AppTheme.accentCyan.withOpacity(0.08)
+                                  : AppTheme.cardBg,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 side: BorderSide(
-                                  color: isMe ? AppTheme.accentCyan : AppTheme.borderCol,
+                                  color: isMe
+                                      ? AppTheme.accentCyan
+                                      : AppTheme.borderCol,
                                   width: isMe ? 1.5 : 1,
                                 ),
                               ),
@@ -216,35 +269,64 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                                       ? Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Icon(rankIcon, color: rankColor, size: 18),
+                                            Icon(
+                                              rankIcon,
+                                              color: rankColor,
+                                              size: 18,
+                                            ),
                                             const SizedBox(width: 2),
-                                            Text(rankText, style: TextStyle(color: rankColor, fontWeight: FontWeight.bold)),
+                                            Text(
+                                              rankText,
+                                              style: TextStyle(
+                                                color: rankColor,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
                                           ],
                                         )
                                       : Text(
                                           rankText,
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
                                         ),
                                 ),
                                 title: Text(
                                   player.name,
                                   style: TextStyle(
-                                    fontWeight: isMe ? FontWeight.bold : FontWeight.w500,
-                                    color: isMe ? AppTheme.accentCyan : Colors.white,
+                                    fontWeight: isMe
+                                        ? FontWeight.bold
+                                        : FontWeight.w500,
+                                    color: isMe
+                                        ? AppTheme.accentCyan
+                                        : Colors.white,
                                   ),
                                 ),
                                 subtitle: isMe
-                                    ? const Text('You', style: TextStyle(color: AppTheme.accentCyan, fontSize: 10))
+                                    ? const Text(
+                                        'You',
+                                        style: TextStyle(
+                                          color: AppTheme.accentCyan,
+                                          fontSize: 10,
+                                        ),
+                                      )
                                     : null,
                                 trailing: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withOpacity(0.03),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
                                     '${player.score} pts',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -263,9 +345,23 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   Widget _infoSub(String label, String val, Color color) {
     return Column(
       children: [
-        Text(label.toUpperCase(), style: TextStyle(fontSize: 8, color: AppTheme.textMuted, fontWeight: FontWeight.bold)),
+        Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            fontSize: 8,
+            color: AppTheme.textMuted,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 2),
-        Text(val, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color)),
+        Text(
+          val,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
       ],
     );
   }

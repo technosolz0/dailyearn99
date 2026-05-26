@@ -75,7 +75,7 @@ class Target99App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<AppBloc>(
-      create: (context) => AppBloc(getIt<ApiClient>()),
+      create: (context) => AppBloc(getIt<ApiClient>())..add(AppStartedEvent()),
       child: MaterialApp(
         title: 'target99',
         scaffoldMessengerKey: scaffoldMessengerKey,
@@ -97,6 +97,13 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<AppBloc, AppState>(
       builder: (context, state) {
+        if (state.isAuthLoading && state.currentUser == null) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(color: AppTheme.accentCyan),
+            ),
+          );
+        }
         if (state.token != null && state.currentUser != null) {
           // Authenticated User
           return const MainNavigationLayout();

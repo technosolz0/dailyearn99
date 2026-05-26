@@ -98,6 +98,8 @@ class AppState {
 // --- EVENTS ---
 abstract class AppEvent {}
 
+class AppStartedEvent extends AppEvent {}
+
 class SendOtpEvent extends AppEvent {
   final String phone;
   SendOtpEvent(this.phone);
@@ -108,6 +110,11 @@ class VerifyOtpEvent extends AppEvent {
   final String otp;
   final String? referredBy;
   VerifyOtpEvent(this.phone, this.otp, {this.referredBy});
+}
+
+class VerifyPhoneCredentialEvent extends AppEvent {
+  final PhoneAuthCredential credential;
+  VerifyPhoneCredentialEvent(this.credential);
 }
 
 class LoadProfileEvent extends AppEvent {}
@@ -180,8 +187,10 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   String? _verificationId;
 
   AppBloc(this._apiClient) : super(AppState()) {
+    on<AppStartedEvent>(_onAppStarted);
     on<SendOtpEvent>(_onSendOtp);
     on<VerifyOtpEvent>(_onVerifyOtp);
+    on<VerifyPhoneCredentialEvent>(_onVerifyPhoneCredential);
     on<LoadProfileEvent>(_onLoadProfile);
     on<FetchContestsEvent>(_onFetchContests);
     on<JoinContestEvent>(_onJoinContest);
@@ -199,8 +208,14 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   }
 
   Future<void> _onSendOtp(SendOtpEvent event, Emitter<AppState> emit) async {
-    emit(state.copyWith(isAuthLoading: true, authError: null, otpSentMessage: null));
-    
+    emit(
+      state.copyWith(
+        isAuthLoading: true,
+        authError: null,
+        otpSentMessage: null,
+      ),
+    );
+
     String formattedPhone = event.phone.trim();
     if (!formattedPhone.startsWith('+')) {
       formattedPhone = '+91$formattedPhone';
@@ -209,37 +224,48 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     // Developer/grading mock bypass active for numbers ending with '00'
     if (formattedPhone.endsWith('00')) {
       _verificationId = 'mock_verification_id';
-      emit(state.copyWith(
-        isAuthLoading: false,
-        otpSentMessage: 'OTP sent successfully (Dev Mock Bypass Active, use OTP 999999)',
-      ));
+      emit(
+        state.copyWith(
+          isAuthLoading: false,
+          otpSentMessage:
+              'OTP sent successfully (Dev Mock Bypass Active, use OTP 999999)',
+        ),
+      );
       return;
     }
 
     final completer = Completer<void>();
-    
+
     try {
       await FirebaseAuth.instance.verifyPhoneNumber(
         phoneNumber: formattedPhone,
-        verificationCompleted: (PhoneAuthCredential credential) async {
+        verificationCompleted: (PhoneAuthCredential credential) {
           print("Phone verification completed automatically: $credential");
+          if (!completer.isCompleted) {
+            add(VerifyPhoneCredentialEvent(credential));
+            completer.complete();
+          }
         },
         verificationFailed: (FirebaseAuthException e) {
           if (!completer.isCompleted) {
-            emit(state.copyWith(
-              isAuthLoading: false,
-              authError: e.message ?? e.code,
-            ));
+            emit(
+              state.copyWith(
+                isAuthLoading: false,
+                authError: e.message ?? e.code,
+              ),
+            );
             completer.complete();
           }
         },
         codeSent: (String verificationId, int? resendToken) {
           _verificationId = verificationId;
           if (!completer.isCompleted) {
-            emit(state.copyWith(
-              isAuthLoading: false,
-              otpSentMessage: 'OTP sent successfully to $formattedPhone',
-            ));
+            emit(
+              state.copyWith(
+                isAuthLoading: false,
+                otpSentMessage: 'OTP sent successfully to $formattedPhone',
+              ),
+            );
             completer.complete();
           }
         },
@@ -248,19 +274,75 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         },
         timeout: const Duration(seconds: 60),
       );
-      
-      await completer.future;
+
+      await completer.future.timeout(
+        const Duration(seconds: 60),
+        onTimeout: () {
+          if (!completer.isCompleted) {
+            emit(
+              state.copyWith(
+                isAuthLoading: false,
+                authError:
+                    'Verification timed out. Please check your network and try again.',
+              ),
+            );
+            completer.complete();
+          }
+        },
+      );
     } catch (e) {
       if (!completer.isCompleted) {
-        emit(state.copyWith(
-          isAuthLoading: false,
-          authError: e.toString().replaceAll('Exception: ', ''),
-        ));
+        emit(
+          state.copyWith(
+            isAuthLoading: false,
+            authError: e.toString().replaceAll('Exception: ', ''),
+          ),
+        );
+        completer.complete();
       }
     }
   }
 
-  Future<void> _onVerifyOtp(VerifyOtpEvent event, Emitter<AppState> emit) async {
+  Future<void> _onVerifyPhoneCredential(
+    VerifyPhoneCredentialEvent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(state.copyWith(isAuthLoading: true, authError: null));
+    try {
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(
+        event.credential,
+      );
+      final user = userCredential.user;
+      if (user == null) {
+        throw Exception("Firebase user is null after auto-verification.");
+      }
+      final idToken = await user.getIdToken() ?? '';
+      if (idToken.isEmpty) {
+        throw Exception("Failed to retrieve Firebase ID token.");
+      }
+      final response = await _apiClient.post(
+        ApiConstants.verifyOtp,
+        data: {'id_token': idToken},
+      );
+      final token = response.data['access_token'] as String;
+      final refreshToken = response.data['refresh_token'] as String;
+      await _apiClient.saveTokens(accessToken: token, refreshToken: refreshToken);
+      emit(state.copyWith(token: token, otpSentMessage: null));
+      add(LoadProfileEvent());
+    } catch (e) {
+      emit(
+        state.copyWith(
+          isAuthLoading: false,
+          authError: e.toString().replaceAll('Exception: ', ''),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onVerifyOtp(
+    VerifyOtpEvent event,
+    Emitter<AppState> emit,
+  ) async {
     emit(state.copyWith(isAuthLoading: true, authError: null));
     try {
       String formattedPhone = event.phone.trim();
@@ -269,56 +351,78 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       }
 
       String idToken;
-      
+
       // Developer bypass / grading convenience check
       if (event.otp == '999999' || formattedPhone.endsWith('00')) {
         idToken = 'mock_token_$formattedPhone';
       } else {
         if (_verificationId == null) {
-          throw Exception("Verification ID is missing. Please request OTP first.");
+          throw Exception(
+            "Verification ID is missing. Please request OTP first.",
+          );
         }
-        
+
         final credential = PhoneAuthProvider.credential(
           verificationId: _verificationId!,
           smsCode: event.otp,
         );
-        
-        final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+
+        final userCredential = await FirebaseAuth.instance.signInWithCredential(
+          credential,
+        );
         final user = userCredential.user;
         if (user == null) {
           throw Exception("Firebase user is null after authentication.");
         }
-        
+
         idToken = await user.getIdToken() ?? '';
         if (idToken.isEmpty) {
           throw Exception("Failed to retrieve Firebase ID token.");
         }
       }
 
-      final response = await _apiClient.post(ApiConstants.verifyOtp, data: {
-        'id_token': idToken,
-        'referred_by': event.referredBy?.isNotEmpty == true ? event.referredBy : null,
-      });
+      final response = await _apiClient.post(
+        ApiConstants.verifyOtp,
+        data: {
+          'id_token': idToken,
+          'referred_by': event.referredBy?.isNotEmpty == true
+              ? event.referredBy
+              : null,
+        },
+      );
       final token = response.data['access_token'] as String;
-      _apiClient.setToken(token);
+      final refreshToken = response.data['refresh_token'] as String;
+      await _apiClient.saveTokens(accessToken: token, refreshToken: refreshToken);
       emit(state.copyWith(token: token, otpSentMessage: null));
       add(LoadProfileEvent());
     } catch (e) {
-      emit(state.copyWith(isAuthLoading: false, authError: e.toString().replaceAll('Exception: ', '')));
+      emit(
+        state.copyWith(
+          isAuthLoading: false,
+          authError: e.toString().replaceAll('Exception: ', ''),
+        ),
+      );
     }
   }
 
-  Future<void> _onLoadProfile(LoadProfileEvent event, Emitter<AppState> emit) async {
+  Future<void> _onLoadProfile(
+    LoadProfileEvent event,
+    Emitter<AppState> emit,
+  ) async {
     emit(state.copyWith(isAuthLoading: true));
     try {
       final response = await _apiClient.get(ApiConstants.me);
       final user = UserModel.fromJson(response.data);
       emit(state.copyWith(isAuthLoading: false, currentUser: user));
-      
+
       // Request FCM permission and retrieve token
       try {
         final messaging = FirebaseMessaging.instance;
-        await messaging.requestPermission(alert: true, badge: true, sound: true);
+        await messaging.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
         final fcmToken = await messaging.getToken();
         if (fcmToken != null) {
           add(RegisterFcmTokenEvent(fcmToken));
@@ -327,153 +431,261 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         print("FCM initialization warning: $fcmError");
       }
     } catch (e) {
-      emit(state.copyWith(isAuthLoading: false, authError: e.toString().replaceAll('Exception: ', '')));
+      emit(
+        state.copyWith(
+          isAuthLoading: false,
+          authError: e.toString().replaceAll('Exception: ', ''),
+        ),
+      );
     }
   }
 
-  Future<void> _onRegisterFcmToken(RegisterFcmTokenEvent event, Emitter<AppState> emit) async {
+  Future<void> _onRegisterFcmToken(
+    RegisterFcmTokenEvent event,
+    Emitter<AppState> emit,
+  ) async {
     try {
-      await _apiClient.post(ApiConstants.registerFcmToken, data: {'fcm_token': event.fcmToken});
+      await _apiClient.post(
+        ApiConstants.registerFcmToken,
+        data: {'fcm_token': event.fcmToken},
+      );
     } catch (e) {
       print("Error registering FCM token on backend: $e");
     }
   }
 
-  Future<void> _onFetchContests(FetchContestsEvent event, Emitter<AppState> emit) async {
+  Future<void> _onFetchContests(
+    FetchContestsEvent event,
+    Emitter<AppState> emit,
+  ) async {
     emit(state.copyWith(isContestsLoading: true, contestsError: null));
     try {
       final response = await _apiClient.get(ApiConstants.contests);
-      final contestsList = (response.data as List).map((json) => ContestModel.fromJson(json)).toList();
+      final contestsList = (response.data as List)
+          .map((json) => ContestModel.fromJson(json))
+          .toList();
       emit(state.copyWith(isContestsLoading: false, contests: contestsList));
     } catch (e) {
-      emit(state.copyWith(isContestsLoading: false, contestsError: e.toString().replaceAll('Exception: ', '')));
+      emit(
+        state.copyWith(
+          isContestsLoading: false,
+          contestsError: e.toString().replaceAll('Exception: ', ''),
+        ),
+      );
     }
   }
 
-  Future<void> _onJoinContest(JoinContestEvent event, Emitter<AppState> emit) async {
+  Future<void> _onJoinContest(
+    JoinContestEvent event,
+    Emitter<AppState> emit,
+  ) async {
     emit(state.copyWith(isContestsLoading: true, contestsError: null));
     try {
-      await _apiClient.post(ApiConstants.joinContest, data: {'contest_id': event.contestId});
+      await _apiClient.post(
+        ApiConstants.joinContest,
+        data: {'contest_id': event.contestId},
+      );
       // Refresh user profile for updated balances & refresh contests
       add(LoadProfileEvent());
       add(FetchContestsEvent());
     } catch (e) {
-      emit(state.copyWith(isContestsLoading: false, contestsError: e.toString().replaceAll('Exception: ', '')));
+      emit(
+        state.copyWith(
+          isContestsLoading: false,
+          contestsError: e.toString().replaceAll('Exception: ', ''),
+        ),
+      );
     }
   }
 
-  Future<void> _onSubmitScore(SubmitScoreEvent event, Emitter<AppState> emit) async {
+  Future<void> _onSubmitScore(
+    SubmitScoreEvent event,
+    Emitter<AppState> emit,
+  ) async {
     try {
-      await _apiClient.post(ApiConstants.submitScore, data: {
-        'contest_id': event.contestId,
-        'score': event.score,
-      });
+      await _apiClient.post(
+        ApiConstants.submitScore,
+        data: {'contest_id': event.contestId, 'score': event.score},
+      );
       add(FetchContestsEvent());
     } catch (e) {
-      emit(state.copyWith(contestsError: e.toString().replaceAll('Exception: ', '')));
+      emit(
+        state.copyWith(
+          contestsError: e.toString().replaceAll('Exception: ', ''),
+        ),
+      );
     }
   }
 
-  Future<void> _onFetchTransactions(FetchTransactionsEvent event, Emitter<AppState> emit) async {
+  Future<void> _onFetchTransactions(
+    FetchTransactionsEvent event,
+    Emitter<AppState> emit,
+  ) async {
     emit(state.copyWith(isWalletLoading: true, walletError: null));
     try {
       final response = await _apiClient.get(ApiConstants.transactions);
-      final list = (response.data as List).map((json) => TransactionModel.fromJson(json)).toList();
+      final list = (response.data as List)
+          .map((json) => TransactionModel.fromJson(json))
+          .toList();
       emit(state.copyWith(isWalletLoading: false, transactions: list));
     } catch (e) {
-      emit(state.copyWith(isWalletLoading: false, walletError: e.toString().replaceAll('Exception: ', '')));
+      emit(
+        state.copyWith(
+          isWalletLoading: false,
+          walletError: e.toString().replaceAll('Exception: ', ''),
+        ),
+      );
     }
   }
 
-  Future<void> _onDepositMoney(DepositMoneyEvent event, Emitter<AppState> emit) async {
+  Future<void> _onDepositMoney(
+    DepositMoneyEvent event,
+    Emitter<AppState> emit,
+  ) async {
     emit(state.copyWith(isWalletLoading: true, walletError: null));
     try {
-      await _apiClient.post(ApiConstants.deposit, data: {'amount': event.amount});
+      await _apiClient.post(
+        ApiConstants.deposit,
+        data: {'amount': event.amount},
+      );
       add(LoadProfileEvent());
       add(FetchTransactionsEvent());
     } catch (e) {
-      emit(state.copyWith(isWalletLoading: false, walletError: e.toString().replaceAll('Exception: ', '')));
+      emit(
+        state.copyWith(
+          isWalletLoading: false,
+          walletError: e.toString().replaceAll('Exception: ', ''),
+        ),
+      );
     }
   }
 
-  Future<void> _onWithdrawMoney(WithdrawMoneyEvent event, Emitter<AppState> emit) async {
+  Future<void> _onWithdrawMoney(
+    WithdrawMoneyEvent event,
+    Emitter<AppState> emit,
+  ) async {
     emit(state.copyWith(isWalletLoading: true, walletError: null));
     try {
-      await _apiClient.post(ApiConstants.withdraw, data: {
-        'amount': event.amount,
-        'pan': event.pan,
-      });
+      await _apiClient.post(
+        ApiConstants.withdraw,
+        data: {'amount': event.amount, 'pan': event.pan},
+      );
       add(LoadProfileEvent());
       add(FetchTransactionsEvent());
     } catch (e) {
-      emit(state.copyWith(isWalletLoading: false, walletError: e.toString().replaceAll('Exception: ', '')));
+      emit(
+        state.copyWith(
+          isWalletLoading: false,
+          walletError: e.toString().replaceAll('Exception: ', ''),
+        ),
+      );
     }
   }
 
-  Future<void> _onSaveBankDetails(SaveBankDetailsEvent event, Emitter<AppState> emit) async {
+  Future<void> _onSaveBankDetails(
+    SaveBankDetailsEvent event,
+    Emitter<AppState> emit,
+  ) async {
     emit(state.copyWith(isWalletLoading: true, walletError: null));
     try {
-      await _apiClient.post(ApiConstants.saveBankDetails, data: {
-        'account_number': event.accountNumber,
-        'ifsc_code': event.ifscCode,
-        'account_holder_name': event.accountHolderName,
-        'bank_name': event.bankName,
-      });
+      await _apiClient.post(
+        ApiConstants.saveBankDetails,
+        data: {
+          'account_number': event.accountNumber,
+          'ifsc_code': event.ifscCode,
+          'account_holder_name': event.accountHolderName,
+          'bank_name': event.bankName,
+        },
+      );
       add(LoadProfileEvent());
     } catch (e) {
-      emit(state.copyWith(isWalletLoading: false, walletError: e.toString().replaceAll('Exception: ', '')));
+      emit(
+        state.copyWith(
+          isWalletLoading: false,
+          walletError: e.toString().replaceAll('Exception: ', ''),
+        ),
+      );
     }
   }
 
-  Future<void> _onFetchReferralDetails(FetchReferralDetailsEvent event, Emitter<AppState> emit) async {
+  Future<void> _onFetchReferralDetails(
+    FetchReferralDetailsEvent event,
+    Emitter<AppState> emit,
+  ) async {
     emit(state.copyWith(isReferralLoading: true, referralError: null));
     try {
       final response = await _apiClient.get(ApiConstants.referralDetails);
       final details = ReferralDetailsModel.fromJson(response.data);
       emit(state.copyWith(isReferralLoading: false, referralDetails: details));
     } catch (e) {
-      emit(state.copyWith(isReferralLoading: false, referralError: e.toString().replaceAll('Exception: ', '')));
+      emit(
+        state.copyWith(
+          isReferralLoading: false,
+          referralError: e.toString().replaceAll('Exception: ', ''),
+        ),
+      );
     }
   }
 
-  Future<void> _onConnectLeaderboard(ConnectLeaderboardEvent event, Emitter<AppState> emit) async {
+  Future<void> _onConnectLeaderboard(
+    ConnectLeaderboardEvent event,
+    Emitter<AppState> emit,
+  ) async {
     emit(state.copyWith(isLeaderboardLoading: true, activeLeaderboard: []));
     await _onDisconnectLeaderboard(DisconnectLeaderboardEvent(), emit);
-    
+
     try {
       // 1. Fetch initial HTTP leaderboard
-      final response = await _apiClient.get(ApiConstants.leaderboard(event.contestId));
-      final items = (response.data as List).map((json) => LeaderboardItemModel.fromJson(json)).toList();
-      emit(state.copyWith(isLeaderboardLoading: false, activeLeaderboard: items));
-      
+      final response = await _apiClient.get(
+        ApiConstants.leaderboard(event.contestId),
+      );
+      final items = (response.data as List)
+          .map((json) => LeaderboardItemModel.fromJson(json))
+          .toList();
+      emit(
+        state.copyWith(isLeaderboardLoading: false, activeLeaderboard: items),
+      );
+
       // 2. Open WebSocket Channel
       final uri = Uri.parse('${ApiConstants.wsUrl}/${event.contestId}');
       _wsChannel = WebSocketChannel.connect(uri);
-      
-      _wsSubscription = _wsChannel!.stream.listen((message) {
-        try {
-          final payload = jsonDecode(message);
-          if (payload['type'] == 'leaderboard_update') {
-            final dataList = payload['data'] as List;
-            final updatedItems = dataList.map((json) => LeaderboardItemModel.fromJson(json)).toList();
-            add(UpdateLeaderboardDataEvent(updatedItems));
-          }
-        } catch (_) {}
-      }, onError: (_) {
-        add(DisconnectLeaderboardEvent());
-      }, onDone: () {
-        add(DisconnectLeaderboardEvent());
-      });
+
+      _wsSubscription = _wsChannel!.stream.listen(
+        (message) {
+          try {
+            final payload = jsonDecode(message);
+            if (payload['type'] == 'leaderboard_update') {
+              final dataList = payload['data'] as List;
+              final updatedItems = dataList
+                  .map((json) => LeaderboardItemModel.fromJson(json))
+                  .toList();
+              add(UpdateLeaderboardDataEvent(updatedItems));
+            }
+          } catch (_) {}
+        },
+        onError: (_) {
+          add(DisconnectLeaderboardEvent());
+        },
+        onDone: () {
+          add(DisconnectLeaderboardEvent());
+        },
+      );
     } catch (_) {
       emit(state.copyWith(isLeaderboardLoading: false));
     }
   }
 
-  void _onUpdateLeaderboardData(UpdateLeaderboardDataEvent event, Emitter<AppState> emit) {
+  void _onUpdateLeaderboardData(
+    UpdateLeaderboardDataEvent event,
+    Emitter<AppState> emit,
+  ) {
     emit(state.copyWith(activeLeaderboard: event.items));
   }
 
-  Future<void> _onDisconnectLeaderboard(DisconnectLeaderboardEvent event, Emitter<AppState> emit) async {
+  Future<void> _onDisconnectLeaderboard(
+    DisconnectLeaderboardEvent event,
+    Emitter<AppState> emit,
+  ) async {
     await _wsSubscription?.cancel();
     _wsSubscription = null;
     await _wsChannel?.sink.close();
@@ -481,9 +693,36 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     emit(state.copyWith(activeLeaderboard: []));
   }
 
-  void _onLogout(LogoutEvent event, Emitter<AppState> emit) {
-    _apiClient.setToken(null);
+  Future<void> _onLogout(LogoutEvent event, Emitter<AppState> emit) async {
+    await _apiClient.clearTokens();
     emit(AppState());
+  }
+
+  Future<void> _onAppStarted(AppStartedEvent event, Emitter<AppState> emit) async {
+    emit(state.copyWith(isAuthLoading: true, authError: null));
+    try {
+      await _apiClient.initializeTokens();
+      if (_apiClient.hasToken) {
+        final response = await _apiClient.get(ApiConstants.me);
+        final user = UserModel.fromJson(response.data);
+        emit(state.copyWith(
+          isAuthLoading: false,
+          token: _apiClient.token,
+          currentUser: user,
+        ));
+      } else {
+        emit(state.copyWith(isAuthLoading: false));
+      }
+    } catch (e) {
+      if (!_apiClient.hasToken) {
+        emit(state.copyWith(isAuthLoading: false, token: null, currentUser: null));
+      } else {
+        emit(state.copyWith(
+          isAuthLoading: false,
+          authError: 'Connection error: failed to verify session.',
+        ));
+      }
+    }
   }
 
   @override

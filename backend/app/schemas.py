@@ -5,7 +5,11 @@ import json
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
+
+class TokenRefreshRequest(BaseModel):
+    refresh_token: str
 
 class SendOTPRequest(BaseModel):
     phone: str = Field(..., description="10-digit mobile number")
