@@ -106,7 +106,8 @@ class AppStartedEvent extends AppEvent {}
 
 class SendOtpEvent extends AppEvent {
   final String phone;
-  SendOtpEvent(this.phone);
+  final bool isRegister;
+  SendOtpEvent(this.phone, {required this.isRegister});
 }
 
 class VerifyOtpEvent extends AppEvent {
@@ -232,13 +233,32 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     _pendingCredential = null; // Reset pending credentials
 
     // Dynamically check if the phone is already registered
-    bool showRegistration = false;
+    bool exists = false;
     try {
       final checkResponse = await _apiClient.get('/auth/check-phone/$formattedPhone');
-      final exists = checkResponse.data['exists'] as bool;
-      showRegistration = !exists;
+      exists = checkResponse.data['exists'] as bool;
     } catch (e) {
-      print("Check phone failed, assuming login: $e");
+      print("Check phone failed: $e");
+    }
+
+    if (event.isRegister && exists) {
+      emit(
+        state.copyWith(
+          isAuthLoading: false,
+          authError: 'Phone number already registered. Please login.',
+        ),
+      );
+      return;
+    }
+
+    if (!event.isRegister && !exists) {
+      emit(
+        state.copyWith(
+          isAuthLoading: false,
+          authError: 'Phone number not registered. Please sign up.',
+        ),
+      );
+      return;
     }
 
     // Developer/grading mock bypass active for numbers ending with '00'
@@ -249,7 +269,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
           isAuthLoading: false,
           otpSentMessage:
               'OTP sent successfully (Dev Mock Bypass Active, use OTP 999999)',
-          showRegistrationFields: showRegistration,
+          showRegistrationFields: event.isRegister,
         ),
       );
       return;
@@ -263,7 +283,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         verificationCompleted: (PhoneAuthCredential credential) {
           print("Phone verification completed automatically: $credential");
           if (!completer.isCompleted) {
-            if (showRegistration) {
+            if (event.isRegister) {
               _pendingCredential = credential;
               emit(
                 state.copyWith(
@@ -297,7 +317,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
               state.copyWith(
                 isAuthLoading: false,
                 otpSentMessage: 'OTP sent successfully to $formattedPhone',
-                showRegistrationFields: showRegistration,
+                showRegistrationFields: event.isRegister,
               ),
             );
             completer.complete();

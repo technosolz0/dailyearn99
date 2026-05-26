@@ -3,31 +3,36 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:target99/core/theme/app_theme.dart';
 import 'package:target99/features/app_bloc.dart';
-import 'package:target99/features/auth/register_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
   final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
+  final _referralController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
 
   bool _otpSent = false;
 
   @override
   void initState() {
     super.initState();
-    FirebaseAnalytics.instance.logScreenView(screenName: 'LoginScreen');
+    FirebaseAnalytics.instance.logScreenView(screenName: 'RegisterScreen');
   }
 
   @override
   void dispose() {
     _phoneController.dispose();
     _otpController.dispose();
+    _referralController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     super.dispose();
   }
 
@@ -95,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ],
                             ),
                             child: const Icon(
-                              Icons.sports_esports,
+                              Icons.person_add_alt_1,
                               size: 48,
                               color: Colors.white,
                             ),
@@ -122,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 6),
                           const Text(
-                            'SKILL-BASED REAL MONEY GAMING',
+                            'CREATE A NEW ACCOUNT',
                             style: TextStyle(
                               fontSize: 10,
                               color: AppTheme.textMuted,
@@ -143,9 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _otpSent
-                                  ? 'Enter verification code'
-                                  : 'Log In Account',
+                              _otpSent ? 'Enter verification code' : 'Sign Up',
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -155,13 +158,44 @@ class _LoginScreenState extends State<LoginScreen> {
                             Text(
                               _otpSent
                                   ? 'We sent a 6-digit OTP to your phone'
-                                  : 'Enter your phone number to login',
+                                  : 'Enter details below to register',
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: AppTheme.textMuted,
                               ),
                             ),
                             const SizedBox(height: 24),
+
+                            // First and Last Name Inputs (Only enabled before OTP is sent, or always visible)
+                            TextField(
+                              controller: _firstNameController,
+                              enabled: !_otpSent,
+                              textCapitalization: TextCapitalization.words,
+                              decoration: const InputDecoration(
+                                labelText: 'First Name',
+                                hintText: 'Enter your first name',
+                                prefixIcon: Icon(
+                                  Icons.person_outline,
+                                  color: AppTheme.textMuted,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            TextField(
+                              controller: _lastNameController,
+                              enabled: !_otpSent,
+                              textCapitalization: TextCapitalization.words,
+                              decoration: const InputDecoration(
+                                labelText: 'Last Name',
+                                hintText: 'Enter your last name',
+                                prefixIcon: Icon(
+                                  Icons.person_outline,
+                                  color: AppTheme.textMuted,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
 
                             // Phone Input
                             TextField(
@@ -178,6 +212,22 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                             const SizedBox(height: 16),
+
+                            // Referral Input (optional)
+                            if (!_otpSent) ...[
+                              TextField(
+                                controller: _referralController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Referral Code (Optional)',
+                                  hintText: 'e.g. T99_WXYZ',
+                                  prefixIcon: Icon(
+                                    Icons.card_giftcard,
+                                    color: AppTheme.textMuted,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                            ],
 
                             // OTP input if sent
                             if (_otpSent) ...[
@@ -208,12 +258,37 @@ class _LoginScreenState extends State<LoginScreen> {
 
                                 return ElevatedButton(
                                   onPressed: () {
+                                    final firstName = _firstNameController.text
+                                        .trim();
+                                    final lastName = _lastNameController.text
+                                        .trim();
                                     final phone = _phoneController.text.trim();
-                                    if (phone.isEmpty || phone.length < 10) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+
+                                    if (firstName.isEmpty || lastName.isEmpty) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         const SnackBar(
-                                          content: Text('Please enter a valid 10-digit phone number'),
-                                          backgroundColor: AppTheme.accentPurple,
+                                          content: Text(
+                                            'Please enter both your first and last name',
+                                          ),
+                                          backgroundColor:
+                                              AppTheme.accentPurple,
+                                        ),
+                                      );
+                                      return;
+                                    }
+
+                                    if (phone.isEmpty || phone.length < 10) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Please enter a valid 10-digit phone number',
+                                          ),
+                                          backgroundColor:
+                                              AppTheme.accentPurple,
                                         ),
                                       );
                                       return;
@@ -221,23 +296,36 @@ class _LoginScreenState extends State<LoginScreen> {
 
                                     if (!_otpSent) {
                                       context.read<AppBloc>().add(
-                                        SendOtpEvent(phone, isRegister: false),
+                                        SendOtpEvent(phone, isRegister: true),
                                       );
                                     } else {
                                       final otp = _otpController.text.trim();
+                                      final ref = _referralController.text
+                                          .trim();
                                       if (otp.length < 6) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
                                           const SnackBar(
-                                            content: Text('Please enter a valid 6-digit OTP'),
-                                            backgroundColor: AppTheme.accentPurple,
+                                            content: Text(
+                                              'Please enter a valid 6-digit OTP',
+                                            ),
+                                            backgroundColor:
+                                                AppTheme.accentPurple,
                                           ),
                                         );
                                         return;
                                       }
+
                                       context.read<AppBloc>().add(
                                         VerifyOtpEvent(
                                           phone,
                                           otp,
+                                          referredBy: ref.isNotEmpty
+                                              ? ref
+                                              : null,
+                                          firstName: firstName,
+                                          lastName: lastName,
                                         ),
                                       );
                                     }
@@ -247,7 +335,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                   child: Text(
                                     _otpSent
-                                        ? 'VERIFY & LOG IN'
+                                        ? 'VERIFY & REGISTER'
                                         : 'GET VERIFICATION CODE',
                                   ),
                                 );
@@ -255,29 +343,29 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
 
                             const SizedBox(height: 16),
-                            
+
                             // Switch screen links
                             if (!_otpSent) ...[
                               Center(
                                 child: TextButton(
                                   onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const RegisterScreen(),
-                                      ),
-                                    );
+                                    Navigator.pop(context);
                                   },
                                   child: RichText(
                                     text: const TextSpan(
-                                      style: TextStyle(fontSize: 12, fontFamily: 'Inter'),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontFamily: 'Inter',
+                                      ),
                                       children: [
                                         TextSpan(
-                                          text: "Don't have an account? ",
-                                          style: TextStyle(color: AppTheme.textMuted),
+                                          text: "Already have an account? ",
+                                          style: TextStyle(
+                                            color: AppTheme.textMuted,
+                                          ),
                                         ),
                                         TextSpan(
-                                          text: 'Sign Up',
+                                          text: 'Log In',
                                           style: TextStyle(
                                             color: AppTheme.accentCyan,
                                             fontWeight: FontWeight.bold,
@@ -298,7 +386,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     });
                                   },
                                   child: const Text(
-                                    'Change phone number',
+                                    'Change registration details',
                                     style: TextStyle(
                                       color: AppTheme.accentCyan,
                                     ),
