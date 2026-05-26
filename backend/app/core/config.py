@@ -16,6 +16,26 @@ class Settings:
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     
+    # URL-encode password if it contains special characters
+    if DATABASE_URL.startswith("postgresql"):
+        from urllib.parse import urlparse, urlunparse, quote_plus
+        try:
+            # Check if password is already percent-encoded
+            parsed = urlparse(DATABASE_URL)
+            if parsed.password:
+                # quote_plus encodes special characters, but we only apply it if it hasn't been encoded yet
+                if "%" not in parsed.password:
+                    encoded_password = quote_plus(parsed.password)
+                    new_netloc = parsed.username or ""
+                    if encoded_password:
+                        new_netloc += f":{encoded_password}"
+                    new_netloc += f"@{parsed.hostname}"
+                    if parsed.port:
+                        new_netloc += f":{parsed.port}"
+                    DATABASE_URL = urlunparse(parsed._replace(netloc=new_netloc))
+        except Exception as e:
+            print(f"Warning: Failed to parse/encode DATABASE_URL password: {e}")
+            
     # Admin credentials
     ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME", "admin")
     ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "admin99")
