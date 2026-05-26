@@ -433,7 +433,9 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         }
         idToken = await user.getIdToken() ?? '';
         _pendingCredential = null;
-      } else if (event.otp == '999999' || formattedPhone.endsWith('00')) {
+      } else if (event.otp == '999999' ||
+          formattedPhone.endsWith('00') ||
+          _verificationId == 'mock_verification_id') {
         idToken = 'mock_token_$formattedPhone';
       } else {
         if (_verificationId == null) {
