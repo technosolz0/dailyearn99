@@ -46,5 +46,4 @@ class Settings:
     # Razorpay Keys
     RAZORPAY_KEY_ID: str = os.getenv("RAZORPAY_KEY_ID", "rzp_test_mockkey12345")
     RAZORPAY_KEY_SECRET: str = os.getenv("RAZORPAY_KEY_SECRET", "mocksecret12345")
-
 settings = Settings()

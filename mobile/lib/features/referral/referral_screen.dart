@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:target99/core/theme/app_theme.dart';
 import 'package:target99/features/app_bloc.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:target99/core/network/remote_config_service.dart';
+import 'package:target99/core/utils/dependency_injection.dart';
 
 class ReferralScreen extends StatefulWidget {
   const ReferralScreen({super.key});
@@ -102,7 +105,66 @@ class _ReferralScreenState extends State<ReferralScreen> {
                                 ),
                               ],
                             ),
-                          )
+                          ),
+                          const SizedBox(height: 16),
+                          InkWell(
+                            onTap: details == null
+                                ? null
+                                : () {
+                                    final appLink = getIt<RemoteConfigService>().updateUrl;
+                                    final shareText = "Hey! Join me on Target99, play exciting games, and earn real cash! 🎮💰\n\n"
+                                        "Use my Referral Code: ${details.referralCode} to get a ₹20 sign-up bonus instantly!\n\n"
+                                        "Download the App now: $appLink";
+                                    Share.share(shareText);
+                                  },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                gradient: details == null
+                                    ? null
+                                    : const LinearGradient(
+                                        colors: [
+                                          AppTheme.accentCyan,
+                                          AppTheme.accentPurple,
+                                        ],
+                                        begin: Alignment.centerLeft,
+                                        end: Alignment.centerRight,
+                                      ),
+                                color: details == null ? Colors.white.withOpacity(0.05) : null,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: details == null
+                                    ? null
+                                    : [
+                                        BoxShadow(
+                                          color: AppTheme.accentCyan.withOpacity(0.3),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.share,
+                                    color: details == null ? AppTheme.textMuted : Colors.white,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'SHARE CODE & INVITE',
+                                    style: TextStyle(
+                                      color: details == null ? AppTheme.textMuted : Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),

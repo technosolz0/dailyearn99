@@ -6,10 +6,14 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:target99/core/constants/api_constants.dart';
+import 'package:target99/core/constants/app_constants.dart';
 import 'package:target99/core/models/contest_model.dart';
 import 'package:target99/core/models/user_model.dart';
 import 'package:target99/core/models/spin_model.dart';
 import 'package:target99/core/network/api_client.dart';
+import 'package:target99/core/network/remote_config_service.dart';
+import 'package:target99/core/utils/dependency_injection.dart';
+import 'package:target99/core/utils/version_comparer.dart';
 
 // --- STATES ---
 class AppState {
@@ -21,6 +25,13 @@ class AppState {
   final String? authError;
   final String? otpSentMessage;
   final bool showRegistrationFields;
+
+  // App Update Config
+  final bool updateRequired;
+  final bool updateOptional;
+  final String? updateUrl;
+  final String? serverMinVersion;
+  final String? serverLatestVersion;
 
   // Contests
   final bool isContestsLoading;
@@ -70,6 +81,11 @@ class AppState {
     this.latestSpinResult,
     this.spinHistory = const [],
     this.spinError,
+    this.updateRequired = false,
+    this.updateOptional = false,
+    this.updateUrl,
+    this.serverMinVersion,
+    this.serverLatestVersion,
   });
 
   AppState copyWith({
@@ -95,6 +111,11 @@ class AppState {
     SpinResultModel? latestSpinResult,
     List<SpinResultModel>? spinHistory,
     String? spinError,
+    bool? updateRequired,
+    bool? updateOptional,
+    String? updateUrl,
+    String? serverMinVersion,
+    String? serverLatestVersion,
   }) {
     return AppState(
       isAuthLoading: isAuthLoading ?? this.isAuthLoading,
@@ -120,6 +141,11 @@ class AppState {
       latestSpinResult: latestSpinResult ?? this.latestSpinResult,
       spinHistory: spinHistory ?? this.spinHistory,
       spinError: spinError ?? this.spinError,
+      updateRequired: updateRequired ?? this.updateRequired,
+      updateOptional: updateOptional ?? this.updateOptional,
+      updateUrl: updateUrl ?? this.updateUrl,
+      serverMinVersion: serverMinVersion ?? this.serverMinVersion,
+      serverLatestVersion: serverLatestVersion ?? this.serverLatestVersion,
     );
   }
 }
@@ -824,6 +850,49 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   ) async {
     emit(state.copyWith(isSplashLoading: true, authError: null));
     try {
+      // 1. Fetch version and update configurations from Firebase Remote Config
+      final remoteConfig = getIt<RemoteConfigService>();
+      await remoteConfig.initialize();
+
+      final currentVersion = AppConstants.currentAppVersion;
+      final minVersion = remoteConfig.minVersion;
+      final latestVersion = remoteConfig.latestVersion;
+      final forceUpdate = remoteConfig.forceUpdate;
+      final updateUrl = remoteConfig.updateUrl;
+
+      final needsMandatoryUpdate =
+          forceUpdate ||
+          VersionComparer.compare(currentVersion, minVersion) < 0;
+
+      final needsOptionalUpdate =
+          !needsMandatoryUpdate &&
+          VersionComparer.compare(currentVersion, latestVersion) < 0;
+
+      if (needsMandatoryUpdate) {
+        emit(
+          state.copyWith(
+            isSplashLoading: false,
+            updateRequired: true,
+            updateOptional: false,
+            updateUrl: updateUrl,
+            serverMinVersion: minVersion,
+            serverLatestVersion: latestVersion,
+          ),
+        );
+        return; // Halt startup execution. App is locked by mandatory update.
+      }
+
+      emit(
+        state.copyWith(
+          updateRequired: false,
+          updateOptional: needsOptionalUpdate,
+          updateUrl: updateUrl,
+          serverMinVersion: minVersion,
+          serverLatestVersion: latestVersion,
+        ),
+      );
+
+      // 2. Initialize token security and profile session
       await _apiClient.initializeTokens();
       if (_apiClient.hasToken) {
         final response = await _apiClient.get(ApiConstants.me);
@@ -845,13 +914,14 @@ class AppBloc extends Bloc<AppEvent, AppState> {
             isSplashLoading: false,
             token: null,
             currentUser: null,
+            authError: e.toString().replaceAll('Exception: ', ''),
           ),
         );
       } else {
         emit(
           state.copyWith(
             isSplashLoading: false,
-            authError: 'Connection error: failed to verify session.',
+            authError: e.toString().replaceAll('Exception: ', ''),
           ),
         );
       }
@@ -862,7 +932,13 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     PlaySpinWheelEvent event,
     Emitter<AppState> emit,
   ) async {
-    emit(state.copyWith(isSpinLoading: true, spinError: null, latestSpinResult: null));
+    emit(
+      state.copyWith(
+        isSpinLoading: true,
+        spinError: null,
+        latestSpinResult: null,
+      ),
+    );
     try {
       final response = await _apiClient.post(
         ApiConstants.spinCreate,
@@ -873,18 +949,17 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         },
       );
       final spinResult = SpinResultModel.fromJson(response.data);
-      emit(state.copyWith(
-        isSpinLoading: false,
-        latestSpinResult: spinResult,
-      ));
-      
+      emit(state.copyWith(isSpinLoading: false, latestSpinResult: spinResult));
+
       // Auto-trigger profile reload so wallet balances are synchronized instantly!
       add(LoadProfileEvent());
     } catch (e) {
-      emit(state.copyWith(
-        isSpinLoading: false,
-        spinError: e.toString().replaceAll('Exception: ', ''),
-      ));
+      emit(
+        state.copyWith(
+          isSpinLoading: false,
+          spinError: e.toString().replaceAll('Exception: ', ''),
+        ),
+      );
     }
   }
 
@@ -898,15 +973,14 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       final list = (response.data as List)
           .map((json) => SpinResultModel.fromJson(json))
           .toList();
-      emit(state.copyWith(
-        isSpinLoading: false,
-        spinHistory: list,
-      ));
+      emit(state.copyWith(isSpinLoading: false, spinHistory: list));
     } catch (e) {
-      emit(state.copyWith(
-        isSpinLoading: false,
-        spinError: e.toString().replaceAll('Exception: ', ''),
-      ));
+      emit(
+        state.copyWith(
+          isSpinLoading: false,
+          spinError: e.toString().replaceAll('Exception: ', ''),
+        ),
+      );
     }
   }
 

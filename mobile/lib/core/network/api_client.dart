@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:dio/dio.dart';
 import 'package:target99/core/constants/api_constants.dart';
 import 'package:target99/core/network/secure_storage_service.dart';
@@ -17,6 +19,7 @@ class ApiClient {
             'Accept': 'application/json',
           },
         )) {
+    _dio.interceptors.add(ConnectivityInterceptor());
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
         if (_token != null) {
@@ -136,5 +139,54 @@ class ApiClient {
       }
     }
     return Exception(error.message ?? 'An unknown connection error occurred');
+  }
+}
+
+class ConnectivityInterceptor extends Interceptor {
+  @override
+  Future<void> onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
+    if (!kIsWeb) {
+      try {
+        final interfaces = await NetworkInterface.list();
+        if (interfaces.isEmpty) {
+          return handler.reject(
+            DioException(
+              requestOptions: options,
+              message: 'No internet connection. Please check your network and try again.',
+              type: DioExceptionType.connectionError,
+            ),
+          );
+        }
+      } catch (_) {
+        // Fallback: ignore interface listing errors
+      }
+    }
+    return handler.next(options);
+  }
+
+  @override
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
+    final isConnectionError = err.type == DioExceptionType.connectionError ||
+        err.type == DioExceptionType.connectionTimeout ||
+        err.type == DioExceptionType.sendTimeout ||
+        err.type == DioExceptionType.receiveTimeout;
+
+    if (isConnectionError) {
+      final customError = DioException(
+        requestOptions: err.requestOptions,
+        response: err.response,
+        type: err.type,
+        message: 'No internet connection. Please check your network and try again.',
+        error: err.error,
+      );
+      return handler.next(customError);
+    }
+    return handler.next(err);
   }
 }

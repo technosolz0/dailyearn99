@@ -13,6 +13,8 @@ import 'package:target99/features/spin/spin_wheel_screen.dart';
 import 'package:target99/features/wallet/wallet_screen.dart';
 import 'package:target99/features/referral/referral_screen.dart';
 import 'package:target99/features/profile/profile_screen.dart';
+import 'package:target99/core/constants/app_constants.dart';
+import 'package:target99/features/update/update_required_screen.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
@@ -235,6 +237,14 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<AppBloc, AppState>(
       builder: (context, state) {
+        if (state.updateRequired) {
+          return UpdateRequiredScreen(
+            updateUrl: state.updateUrl ?? '',
+            currentVersion: AppConstants.currentAppVersion,
+            requiredVersion: state.serverMinVersion ?? '1.0.0',
+            isMandatory: true,
+          );
+        }
         if (state.isSplashLoading) {
           return const Scaffold(
             body: Center(
@@ -268,6 +278,94 @@ class _MainNavigationLayoutState extends State<MainNavigationLayout> {
     super.initState();
     // Log initial screen view
     FirebaseAnalytics.instance.logScreenView(screenName: 'HomeScreen');
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final state = context.read<AppBloc>().state;
+      if (state.updateOptional) {
+        _showOptionalUpdateBottomSheet(context, state.updateUrl ?? '', state.serverLatestVersion ?? '');
+      }
+    });
+  }
+
+  void _showOptionalUpdateBottomSheet(BuildContext context, String updateUrl, String latestVersion) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.cardBg,
+      isDismissible: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      '🎉 Update Available!',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.accentCyan),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: AppTheme.textMuted),
+                      onPressed: () => Navigator.pop(ctx),
+                    )
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'A new version (v$latestVersion) of target99 is ready. Update now for new lobbies, faster spins, and updated security!',
+                  style: const TextStyle(color: AppTheme.textMuted, fontSize: 13, height: 1.4),
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    gradient: const LinearGradient(
+                      colors: [AppTheme.accentCyan, AppTheme.accentPurple],
+                    ),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      print("Redirecting user to Play Store/App Store update URL: $updateUrl");
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Navigating to update link:\n$updateUrl', style: const TextStyle(color: Colors.white)),
+                          backgroundColor: AppTheme.accentCyan,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('UPDATE NOW'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppTheme.borderCol),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('MAYBE LATER', style: TextStyle(color: AppTheme.textMuted)),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   final List<Widget> _screens = const [
