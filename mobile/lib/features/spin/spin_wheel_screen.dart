@@ -230,7 +230,7 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                   onPressed: () {
                     final navigator = Navigator.of(context);
                     navigator.pop(); // Close result overlay dialog
-                    navigator.pop(); // Go back to Home
+                    // navigator.pop(); // Go back to Home
                     context.read<AppBloc>().add(
                       ResetSpinEvent(),
                     ); // Clear the spin result
@@ -1217,7 +1217,9 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                           Navigator.pop(ctx);
 
                           // Process manual payment pending deposit with UTR verification
-                          context.read<AppBloc>().add(DepositMoneyEvent(amt, utr: utr));
+                          context.read<AppBloc>().add(
+                            DepositMoneyEvent(amt, utr: utr),
+                          );
 
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(

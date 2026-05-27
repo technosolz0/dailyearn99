@@ -6,6 +6,8 @@ import 'package:target99/core/theme/app_theme.dart';
 import 'package:target99/core/models/contest_model.dart';
 import 'package:target99/features/app_bloc.dart';
 import 'package:target99/features/contest/leaderboard_screen.dart';
+import 'package:target99/core/network/api_client.dart';
+import 'package:target99/core/utils/dependency_injection.dart';
 
 class QuizQuestion {
   final String text;
@@ -17,14 +19,17 @@ class QuizQuestion {
 
 class QuizScreen extends StatefulWidget {
   final ContestModel contest;
-  const QuizScreen({super.key, required this.contest});
+  final String language;
+  const QuizScreen({super.key, required this.contest, this.language = 'en'});
 
   @override
   State<QuizScreen> createState() => _QuizScreenState();
 }
 
 class _QuizScreenState extends State<QuizScreen> {
-  late final List<QuizQuestion> _questions;
+  List<QuizQuestion> _questions = [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
   int _currentQuestionIndex = 0;
   int _selectedAnswerIndex = -1;
@@ -32,27 +37,48 @@ class _QuizScreenState extends State<QuizScreen> {
   int _secondsRemaining = 12;
   Timer? _timer;
   bool _isQuizOver = false;
+  final List<int> _selectedAnswers = [];
 
   @override
   void initState() {
     super.initState();
-    _questions = widget.contest.questions != null && widget.contest.questions!.isNotEmpty
-        ? widget.contest.questions!
-            .map((q) => QuizQuestion(q.text, q.options, q.correctAnswerIndex))
-            .toList()
-        : [
-            QuizQuestion('Which country won the ICC Men\'s T20 World Cup in 2024?', ['India', 'South Africa', 'Australia', 'England'], 0),
-            QuizQuestion('In computer networking, what does VPN stand for?', ['Virtual Private Network', 'Vector Protocol Node', 'Valued Personal Network', 'Virtual Packet Node'], 0),
-            QuizQuestion('Which programming language is predominantly used to write Flutter apps?', ['Swift', 'Dart', 'Kotlin', 'Rust'], 1),
-            QuizQuestion('What is the national game of India officially/historically?', ['Cricket', 'Kabaddi', 'Field Hockey', 'Football'], 2),
-            QuizQuestion('What is the platform fee target percentage in target99?', ['10-20%', '15-35%', '50-60%', '5%'], 1),
-          ];
     FirebaseAnalytics.instance.logScreenView(screenName: 'QuizScreen');
-    _startTimer();
+    _loadQuestions();
+  }
+
+  Future<void> _loadQuestions() async {
+    try {
+      final response = await getIt<ApiClient>().get(
+        '/contests/${widget.contest.id}/questions',
+        queryParameters: {'lang': widget.language},
+      );
+      final data = response.data as List;
+
+      if (mounted) {
+        setState(() {
+          _questions = data.map((json) {
+            return QuizQuestion(
+              json['text'] as String,
+              List<String>.from(json['options'] as List),
+              json['correct_answer_index'] as int,
+            );
+          }).toList();
+          _isLoading = false;
+        });
+        _startTimer();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   void _startTimer() {
-    _secondsRemaining = 12;
+    _secondsRemaining = 6;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
@@ -68,8 +94,12 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   void _nextQuestion() {
+    // Record selected answer
+    _selectedAnswers.add(_selectedAnswerIndex);
+
     // Record score
-    if (_selectedAnswerIndex == _questions[_currentQuestionIndex].correctAnswerIndex) {
+    if (_selectedAnswerIndex ==
+        _questions[_currentQuestionIndex].correctAnswerIndex) {
       _score += 20; // 20 points per question
     }
 
@@ -89,9 +119,11 @@ class _QuizScreenState extends State<QuizScreen> {
     setState(() {
       _isQuizOver = true;
     });
-    
-    // Submit score to FastAPI Backend
-    context.read<AppBloc>().add(SubmitScoreEvent(widget.contest.id, _score));
+
+    // Submit score & answers to FastAPI Backend
+    context.read<AppBloc>().add(
+      SubmitScoreEvent(widget.contest.id, _score, answers: _selectedAnswers),
+    );
   }
 
   @override
@@ -102,8 +134,6 @@ class _QuizScreenState extends State<QuizScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final question = _questions[_currentQuestionIndex];
-    
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.contest.title),
@@ -120,9 +150,55 @@ class _QuizScreenState extends State<QuizScreen> {
         ),
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child: _isQuizOver ? _buildResultView(context) : _buildQuizView(question),
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppTheme.accentCyan),
+                )
+              : _errorMessage != null
+              ? _buildErrorView(context)
+              : _isQuizOver
+              ? _buildResultView(context)
+              : _buildQuizView(_questions[_currentQuestionIndex]),
         ),
       ),
+    );
+  }
+
+  Widget _buildErrorView(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Icon(
+          Icons.error_outline_rounded,
+          size: 72,
+          color: AppTheme.accentRed,
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Failed to Load Quiz',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _errorMessage ??
+              'An error occurred while preparing your quiz session.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+        ),
+        const SizedBox(height: 32),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          child: const Text('GO BACK TO LOBBY'),
+        ),
+      ],
     );
   }
 
@@ -136,15 +212,22 @@ class _QuizScreenState extends State<QuizScreen> {
           children: [
             Text(
               'Question ${_currentQuestionIndex + 1}/${_questions.length}',
-              style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textMuted),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textMuted,
+              ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: _secondsRemaining <= 4 ? AppTheme.accentRed.withOpacity(0.1) : AppTheme.accentCyan.withOpacity(0.1),
+                color: _secondsRemaining <= 4
+                    ? AppTheme.accentRed.withOpacity(0.1)
+                    : AppTheme.accentCyan.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                  color: _secondsRemaining <= 4 ? AppTheme.accentRed.withOpacity(0.3) : AppTheme.accentCyan.withOpacity(0.3),
+                  color: _secondsRemaining <= 4
+                      ? AppTheme.accentRed.withOpacity(0.3)
+                      : AppTheme.accentCyan.withOpacity(0.3),
                 ),
               ),
               child: Row(
@@ -152,14 +235,18 @@ class _QuizScreenState extends State<QuizScreen> {
                   Icon(
                     Icons.timer_outlined,
                     size: 14,
-                    color: _secondsRemaining <= 4 ? AppTheme.accentRed : AppTheme.accentCyan,
+                    color: _secondsRemaining <= 4
+                        ? AppTheme.accentRed
+                        : AppTheme.accentCyan,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     '${_secondsRemaining}s',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: _secondsRemaining <= 4 ? AppTheme.accentRed : AppTheme.accentCyan,
+                      color: _secondsRemaining <= 4
+                          ? AppTheme.accentRed
+                          : AppTheme.accentCyan,
                     ),
                   ),
                 ],
@@ -176,7 +263,7 @@ class _QuizScreenState extends State<QuizScreen> {
           borderRadius: BorderRadius.circular(3),
         ),
         const SizedBox(height: 32),
-        
+
         // Question Text Card
         Card(
           child: Padding(
@@ -184,12 +271,16 @@ class _QuizScreenState extends State<QuizScreen> {
             child: Text(
               question.text,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, height: 1.4),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                height: 1.4,
+              ),
             ),
           ),
         ),
         const SizedBox(height: 24),
-        
+
         // Options Grid
         Expanded(
           child: ListView.builder(
@@ -197,7 +288,7 @@ class _QuizScreenState extends State<QuizScreen> {
             itemBuilder: (context, index) {
               final optionText = question.options[index];
               final isSelected = _selectedAnswerIndex == index;
-              
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12.0),
                 child: InkWell(
@@ -210,9 +301,13 @@ class _QuizScreenState extends State<QuizScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isSelected ? AppTheme.accentCyan.withOpacity(0.08) : AppTheme.cardBg,
+                      color: isSelected
+                          ? AppTheme.accentCyan.withOpacity(0.08)
+                          : AppTheme.cardBg,
                       border: Border.all(
-                        color: isSelected ? AppTheme.accentCyan : AppTheme.borderCol,
+                        color: isSelected
+                            ? AppTheme.accentCyan
+                            : AppTheme.borderCol,
                         width: isSelected ? 1.5 : 1,
                       ),
                       borderRadius: BorderRadius.circular(12),
@@ -225,13 +320,21 @@ class _QuizScreenState extends State<QuizScreen> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: isSelected ? AppTheme.accentCyan : AppTheme.textMuted,
+                              color: isSelected
+                                  ? AppTheme.accentCyan
+                                  : AppTheme.textMuted,
                               width: 2,
                             ),
-                            color: isSelected ? AppTheme.accentCyan : Colors.transparent,
+                            color: isSelected
+                                ? AppTheme.accentCyan
+                                : Colors.transparent,
                           ),
                           child: isSelected
-                              ? const Icon(Icons.check, size: 14, color: Colors.black)
+                              ? const Icon(
+                                  Icons.check,
+                                  size: 14,
+                                  color: Colors.black,
+                                )
                               : null,
                         ),
                         const SizedBox(width: 16),
@@ -240,8 +343,12 @@ class _QuizScreenState extends State<QuizScreen> {
                             optionText,
                             style: TextStyle(
                               fontSize: 14,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              color: isSelected ? Colors.white : AppTheme.textMain,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppTheme.textMain,
                             ),
                           ),
                         ),
@@ -253,11 +360,15 @@ class _QuizScreenState extends State<QuizScreen> {
             },
           ),
         ),
-        
+
         // Next Button
         ElevatedButton(
           onPressed: _selectedAnswerIndex == -1 ? null : _nextQuestion,
-          child: Text(_currentQuestionIndex == _questions.length - 1 ? 'SUBMIT ANSWERS' : 'NEXT QUESTION'),
+          child: Text(
+            _currentQuestionIndex == _questions.length - 1
+                ? 'SUBMIT ANSWERS'
+                : 'NEXT QUESTION',
+          ),
         ),
       ],
     );
@@ -268,53 +379,62 @@ class _QuizScreenState extends State<QuizScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Icon(
+        const Icon(
           Icons.workspace_premium,
           size: 72,
           color: AppTheme.accentAmber,
         ),
         const SizedBox(height: 16),
-        Text(
+        const Text(
           'Quiz Completed!',
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        Text(
+        const Text(
           'Your scores were submitted successfully to the contest engine',
           textAlign: TextAlign.center,
           style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
         ),
         const SizedBox(height: 32),
-        
+
         // Score summary
         Card(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
-                Text(
+                const Text(
                   'YOUR SCORE',
-                  style: TextStyle(fontSize: 10, color: AppTheme.textMuted, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: AppTheme.textMuted,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   '$_score / ${_questions.length * 20}',
-                  style: TextStyle(fontSize: 36, fontWeight: FontWeight.w800, color: AppTheme.accentCyan),
+                  style: const TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.accentCyan,
+                  ),
                 ),
               ],
             ),
           ),
         ),
         const SizedBox(height: 48),
-        
+
         ElevatedButton(
           onPressed: () {
             // Direct user straight to live websocket leaderboard
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => LeaderboardScreen(contest: widget.contest),
+                builder: (context) =>
+                    LeaderboardScreen(contest: widget.contest),
               ),
             );
           },

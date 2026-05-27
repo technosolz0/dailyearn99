@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+import random
+import json
 from typing import List
 from app.core.database import get_db
-from app.models import User, Contest, ContestParticipant
-from app.schemas import ContestResponse, ContestJoinRequest, SubmitScoreRequest, LeaderboardItem
+from app.models import User, Contest, ContestParticipant, Question, UserQuestionHistory
+from app.schemas import ContestResponse, ContestJoinRequest, SubmitScoreRequest, LeaderboardItem, QuestionSchema
 from app.core.security import get_current_user
 from app.services import WalletService, ReferralService, leaderboard_manager
 from app.websocket import manager  # We will implement this websocket manager shortly
@@ -16,11 +18,19 @@ def get_contests(db: Session = Depends(get_db)):
     # Auto start/complete contests based on time if we want to simulate state transitions
     now = datetime.now()
     contests = db.query(Contest).all()
+    
+    response_contests = []
     for c in contests:
         if c.status == "UPCOMING" and c.start_time <= now:
             c.status = "ACTIVE"
             db.commit()
-    return contests
+            
+        # Detach from session to strip questions safely in-memory only (prevents sniffing)
+        db.expunge(c)
+        c.questions = None
+        response_contests.append(c)
+        
+    return response_contests
 
 @router.post("/join", response_model=ContestResponse)
 def join_contest(
@@ -107,6 +117,124 @@ def join_contest(
     
     return contest
 
+@router.get("/{id}/questions", response_model=List[QuestionSchema])
+def get_contest_questions(
+    id: int,
+    lang: str = "en",
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # 1. Check if the user is a registered participant in this contest
+    participant = (
+        db.query(ContestParticipant)
+        .filter(
+            ContestParticipant.contest_id == id,
+            ContestParticipant.user_id == current_user.id
+        )
+        .first()
+    )
+    if not participant:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. You must join this contest to play."
+        )
+
+    # 2. Check if questions are already generated for this session
+    if participant.quiz_questions:
+        try:
+            stored_question_ids = json.loads(participant.quiz_questions)
+            # Fetch stored questions preserving order
+            questions_dict = {
+                q.id: q for q in db.query(Question).filter(Question.id.in_(stored_question_ids)).all()
+            }
+            questions = [questions_dict[qid] for qid in stored_question_ids if qid in questions_dict]
+            
+            parsed_questions = []
+            for q in questions:
+                parsed_questions.append(
+                    QuestionSchema(
+                        text=q.text,
+                        options=json.loads(q.options),
+                        correct_answer_index=q.correct_answer_index
+                    )
+                )
+            return parsed_questions
+        except Exception:
+            # Fall back to regenerating if parsing fails
+            pass
+
+    # 3. Choose a random cutoff threshold between 40 and 60 days
+    cutoff_days = random.randint(40, 60)
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=cutoff_days)
+
+    # 4. Find question IDs seen by the user inside the cutoff window
+    seen_question_ids = [
+        r[0] for r in db.query(UserQuestionHistory.question_id)
+        .filter(UserQuestionHistory.user_id == current_user.id)
+        .filter(UserQuestionHistory.served_at >= cutoff_date)
+        .all()
+    ]
+
+    # 5. Retrieve available question IDs not seen in the cutoff window for the specified language
+    # OPTIMIZED: Query ONLY the id column to avoid fetching full row objects into memory
+    available_question_ids = [
+        r[0] for r in db.query(Question.id)
+        .filter(Question.language == lang)
+        .filter(~Question.id.in_(seen_question_ids))
+        .all()
+    ]
+
+    # 6. Fallback if the pool of unused questions is too small
+    if len(available_question_ids) < 5:
+        available_question_ids = [
+            r[0] for r in db.query(Question.id)
+            .filter(Question.language == lang)
+            .all()
+        ]
+
+    # 7. Randomly sample 5 question IDs
+    if len(available_question_ids) >= 5:
+        selected_ids = random.sample(available_question_ids, 5)
+    else:
+        selected_ids = available_question_ids
+        if not selected_ids:
+            # Absolute fallback to any questions in DB
+            all_backup_ids = [r[0] for r in db.query(Question.id).all()]
+            selected_ids = random.sample(all_backup_ids, min(len(all_backup_ids), 5))
+
+    # 8. Fetch the full question objects for the selected IDs and preserve order
+    selected_questions_dict = {
+        q.id: q for q in db.query(Question).filter(Question.id.in_(selected_ids)).all()
+    }
+    selected_questions = [selected_questions_dict[qid] for qid in selected_ids if qid in selected_questions_dict]
+
+    # 9. Record the generated question IDs in the participant's session
+    selected_ids_actual = [q.id for q in selected_questions]
+    participant.quiz_questions = json.dumps(selected_ids_actual)
+
+    # 10. Log the questions in UserQuestionHistory
+    for q in selected_questions:
+        history_entry = UserQuestionHistory(
+            user_id=current_user.id,
+            question_id=q.id,
+            served_at=datetime.now(timezone.utc)
+        )
+        db.add(history_entry)
+    
+    db.commit()
+
+    # 11. Format and return questions response
+    parsed_questions = []
+    for q in selected_questions:
+        parsed_questions.append(
+            QuestionSchema(
+                text=q.text,
+                options=json.loads(q.options),
+                correct_answer_index=q.correct_answer_index
+            )
+        )
+    return parsed_questions
+
 @router.post("/submit-score")
 async def submit_score(
     request: SubmitScoreRequest,
@@ -134,8 +262,36 @@ async def submit_score(
             detail="You must join the contest first."
         )
         
+    score_to_save = request.score
+
+    # Secure server-side validation if answers are provided
+    if request.answers is not None:
+        if participant.quiz_questions:
+            try:
+                stored_question_ids = json.loads(participant.quiz_questions)
+                # Fetch stored questions preserving order
+                questions_dict = {
+                    q.id: q for q in db.query(Question).filter(Question.id.in_(stored_question_ids)).all()
+                }
+                questions = [questions_dict[qid] for qid in stored_question_ids if qid in questions_dict]
+                
+                calculated_score = 0
+                for idx, q in enumerate(questions):
+                    if idx < len(request.answers):
+                        if request.answers[idx] == q.correct_answer_index:
+                            calculated_score += 20
+                            
+                # Verify score
+                if calculated_score != request.score:
+                    print(f"[SECURITY] Score mismatch detected! User {current_user.phone} submitted {request.score} but verified score is {calculated_score}")
+                
+                # Override with secure server-calculated score
+                score_to_save = calculated_score
+            except Exception as e:
+                print(f"Error during secure score calculation: {e}")
+                
     # Save the score
-    participant.score = request.score
+    participant.score = score_to_save
     db.commit()
     
     # Update in-memory leaderboard
@@ -143,7 +299,7 @@ async def submit_score(
         contest_id=contest.id,
         user_id=current_user.id,
         name=current_user.name or current_user.phone,
-        score=request.score
+        score=score_to_save
     )
     
     # Recalculate ranks in the DB
@@ -164,7 +320,7 @@ async def submit_score(
     # Broadcast updated leaderboard to all WebSocket clients listening to this contest
     await manager.broadcast_leaderboard(contest.id, updated_leaderboard)
     
-    return {"message": "Score submitted successfully.", "score": request.score}
+    return {"message": "Score submitted successfully.", "score": score_to_save}
 
 @router.get("/{id}/leaderboard", response_model=List[LeaderboardItem])
 def get_leaderboard(id: int, db: Session = Depends(get_db)):

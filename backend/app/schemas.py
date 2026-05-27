@@ -104,6 +104,7 @@ class ContestJoinRequest(BaseModel):
 class SubmitScoreRequest(BaseModel):
     contest_id: int
     score: int
+    answers: Optional[List[int]] = None
 
 class LeaderboardItem(BaseModel):
     user_id: int

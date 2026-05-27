@@ -194,7 +194,8 @@ class JoinContestEvent extends AppEvent {
 class SubmitScoreEvent extends AppEvent {
   final int contestId;
   final int score;
-  SubmitScoreEvent(this.contestId, this.score);
+  final List<int>? answers;
+  SubmitScoreEvent(this.contestId, this.score, {this.answers});
 }
 
 class FetchTransactionsEvent extends AppEvent {}
@@ -657,7 +658,11 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     try {
       await _apiClient.post(
         ApiConstants.submitScore,
-        data: {'contest_id': event.contestId, 'score': event.score},
+        data: {
+          'contest_id': event.contestId,
+          'score': event.score,
+          if (event.answers != null) 'answers': event.answers,
+        },
       );
       add(FetchContestsEvent());
     } catch (e) {

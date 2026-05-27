@@ -59,9 +59,11 @@ class ContestParticipant(Base):
     score = Column(Integer, default=0)
     rank = Column(Integer, default=0)
     joined_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    quiz_questions = Column(String, nullable=True)  # JSON string array of generated question IDs
 
     user = relationship("User", back_populates="participants")
     contest = relationship("Contest", back_populates="participants")
+
 
 class WalletTransaction(Base):
     __tablename__ = "wallet_transactions"
@@ -120,4 +122,25 @@ class SpinAuditLog(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User")
+
+
+class Question(Base):
+    __tablename__ = "questions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    text = Column(String, nullable=False)
+    options = Column(String, nullable=False)  # JSON-serialized array of strings
+    correct_answer_index = Column(Integer, nullable=False)
+    language = Column(String, nullable=False, default="en", index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class UserQuestionHistory(Base):
+    __tablename__ = "user_question_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    question_id = Column(Integer, ForeignKey("questions.id"), nullable=False)
+    served_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
 

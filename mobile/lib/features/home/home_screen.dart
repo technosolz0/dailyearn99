@@ -435,19 +435,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: isJoined
                         ? ElevatedButton(
                             onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      QuizScreen(contest: contest),
-                                ),
-                              ).then((_) {
-                                // Refresh when returning
-                                context.read<AppBloc>().add(
-                                  FetchContestsEvent(),
-                                );
-                                context.read<AppBloc>().add(LoadProfileEvent());
-                              });
+                              _showLanguageSelectionSheet(context, contest);
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.accentPurple,
@@ -472,6 +460,206 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showLanguageSelectionSheet(BuildContext context, ContestModel contest) {
+    String selectedLanguage = 'en';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.cardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Select Quiz Language',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: AppTheme.textMuted),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Choose the language you prefer to play this contest in.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    _buildLanguageOptionCard(
+                      label: 'English',
+                      subLabel: 'Standard English',
+                      code: 'en',
+                      isSelected: selectedLanguage == 'en',
+                      onTap: () {
+                        setModalState(() {
+                          selectedLanguage = 'en';
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    _buildLanguageOptionCard(
+                      label: 'हिंदी',
+                      subLabel: 'Hindi language',
+                      code: 'hi',
+                      isSelected: selectedLanguage == 'hi',
+                      onTap: () {
+                        setModalState(() {
+                          selectedLanguage = 'hi';
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    _buildLanguageOptionCard(
+                      label: 'मराठी',
+                      subLabel: 'Marathi language',
+                      code: 'mr',
+                      isSelected: selectedLanguage == 'mr',
+                      onTap: () {
+                        setModalState(() {
+                          selectedLanguage = 'mr';
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    _buildLanguageOptionCard(
+                      label: 'ગુજરાતી',
+                      subLabel: 'Gujarati language',
+                      code: 'gu',
+                      isSelected: selectedLanguage == 'gu',
+                      onTap: () {
+                        setModalState(() {
+                          selectedLanguage = 'gu';
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => QuizScreen(
+                              contest: contest,
+                              language: selectedLanguage,
+                            ),
+                          ),
+                        ).then((_) {
+                          if (context.mounted) {
+                            context.read<AppBloc>().add(FetchContestsEvent());
+                            context.read<AppBloc>().add(LoadProfileEvent());
+                          }
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.accentPurple,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('START QUIZ NOW'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildLanguageOptionCard({
+    required String label,
+    required String subLabel,
+    required String code,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.accentCyan.withOpacity(0.08)
+              : Colors.white.withOpacity(0.02),
+          border: Border.all(
+            color: isSelected ? AppTheme.accentCyan : AppTheme.borderCol,
+            width: isSelected ? 1.5 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? Colors.white : AppTheme.textMain,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subLabel,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppTheme.textMuted,
+                  ),
+                ),
+              ],
+            ),
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? AppTheme.accentCyan : AppTheme.textMuted,
+                  width: 2,
+                ),
+                color: isSelected ? AppTheme.accentCyan : Colors.transparent,
+              ),
+              child: isSelected
+                  ? const Icon(
+                      Icons.check,
+                      size: 12,
+                      color: Colors.black,
+                    )
+                  : null,
+            ),
+          ],
         ),
       ),
     );

@@ -13,6 +13,7 @@ from app.api import auth, contests, wallet, referral, admin, spin
 from app.websocket import manager
 
 # Create database tables
+from app.models import Question, UserQuestionHistory  # Explicitly import to register on Base
 Base.metadata.create_all(bind=engine)
 
 def migrate_database():
@@ -47,6 +48,18 @@ def migrate_database():
             # Ignore error (column already exists)
             pass
 
+    columns_participants = [
+        ("quiz_questions", "TEXT"),
+    ]
+    for col_name, col_type in columns_participants:
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE contest_participants ADD COLUMN {col_name} {col_type}"))
+            print(f"Schema Migration: Added column '{col_name}' to contest_participants table.")
+        except Exception:
+            # Ignore error (column already exists)
+            pass
+
     columns_transactions = [
         ("utr", "VARCHAR UNIQUE"),
     ]
@@ -57,6 +70,23 @@ def migrate_database():
             print(f"Schema Migration: Added column '{col_name}' to wallet_transactions table.")
         except Exception:
             # Ignore error (column already exists)
+            pass
+
+    columns_questions = [
+        ("language", "VARCHAR DEFAULT 'en'"),
+    ]
+    for col_name, col_type in columns_questions:
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE questions ADD COLUMN {col_name} {col_type}"))
+            print(f"Schema Migration: Added column '{col_name}' to questions table.")
+            try:
+                with engine.begin() as conn:
+                    conn.execute(text("CREATE INDEX idx_questions_language ON questions(language)"))
+                print("Schema Migration: Created index on questions(language).")
+            except Exception:
+                pass
+        except Exception:
             pass
 
 migrate_database()
@@ -87,6 +117,18 @@ def startup_event():
         seed_test_users(db)
         seed_rtp_settings(db)
         
+        # Seed central questions pool
+        if db.query(Question).count() == 0:
+            for q_data in DEFAULT_QUESTIONS:
+                q = Question(
+                    text=q_data["text"],
+                    options=json.dumps(q_data["options"]),
+                    correct_answer_index=q_data["correct_answer_index"]
+                )
+                db.add(q)
+            db.commit()
+            print("Database Seeding: Populated central questions table.")
+            
         if db.query(Contest).count() == 0:
             now = datetime.now()
             default_questions_json = json.dumps(DEFAULT_QUESTIONS)
