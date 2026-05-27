@@ -34,7 +34,7 @@ class _QuizScreenState extends State<QuizScreen> {
   int _currentQuestionIndex = 0;
   int _selectedAnswerIndex = -1;
   int _score = 0;
-  int _secondsRemaining = 12;
+  int _secondsRemaining = 10;
   Timer? _timer;
   bool _isQuizOver = false;
   final List<int> _selectedAnswers = [];
@@ -78,7 +78,7 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   void _startTimer() {
-    _secondsRemaining = 6;
+    _secondsRemaining = 10;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
