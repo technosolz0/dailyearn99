@@ -336,14 +336,13 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       return;
     }
 
-    // Developer/grading mock bypass active for numbers ending with '00' or when in debug mode
-    if (formattedPhone.endsWith('00') || kDebugMode) {
+    // Developer/grading mock bypass active for numbers ending with '00'
+    if (formattedPhone.endsWith('00')) {
       _verificationId = 'mock_verification_id';
       emit(
         state.copyWith(
           isAuthLoading: false,
-          otpSentMessage:
-              'OTP sent successfully (Dev Mock Bypass Active, use OTP 999999)',
+          otpSentMessage: 'OTP sent successfully',
           showRegistrationFields: event.isRegister,
         ),
       );
@@ -494,9 +493,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         }
         idToken = await user.getIdToken() ?? '';
         _pendingCredential = null;
-      } else if (event.otp == '999999' ||
-          formattedPhone.endsWith('00') ||
-          _verificationId == 'mock_verification_id') {
+      } else if (_verificationId == 'mock_verification_id') {
         idToken = 'mock_token_$formattedPhone';
       } else {
         if (_verificationId == null) {

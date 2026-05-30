@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:target99/core/theme/app_theme.dart';
 import 'package:target99/core/utils/dependency_injection.dart';
 import 'package:target99/core/network/api_client.dart';
@@ -52,6 +53,20 @@ class _Target99AppState extends State<Target99App> {
     try {
       // 1. Initialize Firebase Core
       await Firebase.initializeApp();
+
+      // Disable app verification for testing (reCAPTCHA / Play Integrity bypass)
+      try {
+        await FirebaseAuth.instance.setSettings(
+          appVerificationDisabledForTesting: true,
+        );
+        print(
+          "Firebase Auth: App verification disabled for testing successfully.",
+        );
+      } catch (authSettingsError) {
+        print(
+          "Firebase Auth Warning: Failed to set auth settings: $authSettingsError",
+        );
+      }
 
       // 2. Set background messaging handler
       FirebaseMessaging.onBackgroundMessage(

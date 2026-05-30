@@ -86,7 +86,12 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
       onTapDown: _onTapDown,
       onTapUp: _onTapUp,
       onTapCancel: _onTapCancel,
-      onTap: isEnabled ? widget.onPressed : null,
+      onTap: isEnabled
+          ? () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              widget.onPressed!();
+            }
+          : null,
       child: AnimatedBuilder(
         animation: _scaleAnimation,
         builder: (context, child) {

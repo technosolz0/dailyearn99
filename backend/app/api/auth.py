@@ -58,6 +58,11 @@ def verify_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
     # Handle mock bypass tokens for development/grading convenience
     if id_token.startswith("mock_token_"):
         phone = id_token.replace("mock_token_", "")
+        if not phone.endswith("00"):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Mock token bypass is only allowed for test numbers ending in '00'."
+            )
     else:
         try:
             decoded_token = firebase_auth.verify_id_token(id_token)

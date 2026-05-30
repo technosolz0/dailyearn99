@@ -2,12 +2,14 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ApiConstants {
-  static const bool useLocalBackend = true;
+  static const bool useLocalBackend = false;
 
   static String get baseUrl {
     if (useLocalBackend) {
       if (kIsWeb) return 'http://127.0.0.1:8000/api';
-      return Platform.isAndroid ? 'http://10.0.2.2:8000/api' : 'http://127.0.0.1:8000/api';
+      return Platform.isAndroid
+          ? 'http://10.0.2.2:8000/api'
+          : 'http://127.0.0.1:8000/api';
     }
     if (kIsWeb) {
       return 'http://target99api.serwex.in/api';
@@ -21,7 +23,9 @@ class ApiConstants {
   static String get wsUrl {
     if (useLocalBackend) {
       if (kIsWeb) return 'ws://127.0.0.1:8000/ws/leaderboard';
-      return Platform.isAndroid ? 'ws://10.0.2.2:8000/ws/leaderboard' : 'ws://127.0.0.1:8000/ws/leaderboard';
+      return Platform.isAndroid
+          ? 'ws://10.0.2.2:8000/ws/leaderboard'
+          : 'ws://127.0.0.1:8000/ws/leaderboard';
     }
     if (kIsWeb) {
       return 'ws://target99api.serwex.in/ws/leaderboard';
@@ -57,7 +61,8 @@ class ApiConstants {
   static const String puzzleContests = '/puzzle/contests';
   static String puzzleStart(int contestId) => '/puzzle/start/$contestId';
   static const String puzzleSubmit = '/puzzle/submit-score';
-  static String puzzleLeaderboard(int contestId) => '/puzzle/leaderboard/$contestId';
+  static String puzzleLeaderboard(int contestId) =>
+      '/puzzle/leaderboard/$contestId';
   static String puzzleWs(int contestId) {
     if (useLocalBackend) {
       if (kIsWeb) return 'ws://127.0.0.1:8000/ws/puzzle/leaderboard/$contestId';
@@ -78,7 +83,8 @@ class ApiConstants {
   static const String wordJoin = '/word-game/join';
   static String wordStart(int contestId) => '/word-game/start/$contestId';
   static const String wordSubmit = '/word-game/submit';
-  static String wordLeaderboard(int contestId) => '/word-game/leaderboard/$contestId';
+  static String wordLeaderboard(int contestId) =>
+      '/word-game/leaderboard/$contestId';
   static String wordWs(int contestId) {
     if (useLocalBackend) {
       if (kIsWeb) return 'ws://127.0.0.1:8000/ws/word/leaderboard/$contestId';
@@ -99,7 +105,8 @@ class ApiConstants {
   static const String fruitJoin = '/fruit-game/join';
   static String fruitStart(int contestId) => '/fruit-game/start/$contestId';
   static const String fruitSubmit = '/fruit-game/submit';
-  static String fruitLeaderboard(int contestId) => '/fruit-game/leaderboard/$contestId';
+  static String fruitLeaderboard(int contestId) =>
+      '/fruit-game/leaderboard/$contestId';
   static String fruitWs(int contestId) {
     if (useLocalBackend) {
       if (kIsWeb) return 'ws://127.0.0.1:8000/ws/fruit/leaderboard/$contestId';
@@ -115,4 +122,3 @@ class ApiConstants {
         : 'ws://target99api.serwex.in/ws/fruit/leaderboard/$contestId';
   }
 }
-

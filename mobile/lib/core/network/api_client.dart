@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:dio/dio.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:target99/core/constants/api_constants.dart';
 import 'package:target99/core/network/secure_storage_service.dart';
 
@@ -148,21 +149,21 @@ class ConnectivityInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    if (!kIsWeb) {
-      try {
-        final interfaces = await NetworkInterface.list();
-        if (interfaces.isEmpty) {
-          return handler.reject(
-            DioException(
-              requestOptions: options,
-              message: 'No internet connection. Please check your network and try again.',
-              type: DioExceptionType.connectionError,
-            ),
-          );
-        }
-      } catch (_) {
-        // Fallback: ignore interface listing errors
+    try {
+      final connectivityResult = await Connectivity().checkConnectivity();
+      final hasConnection = connectivityResult.any((result) => result != ConnectivityResult.none);
+      if (!hasConnection) {
+        return handler.reject(
+          DioException(
+            requestOptions: options,
+            type: DioExceptionType.connectionError,
+            message: 'No internet connection. Please connect to Wi-Fi or mobile data and try again.',
+          ),
+        );
       }
+    } catch (e) {
+      // If connectivity check fails, let the request proceed to be safe
+      print('Connectivity check error: $e');
     }
     return handler.next(options);
   }
@@ -178,11 +179,24 @@ class ConnectivityInterceptor extends Interceptor {
         err.type == DioExceptionType.receiveTimeout;
 
     if (isConnectionError) {
+      String message = 'Failed to connect to the server. Please check your network and try again.';
+      try {
+        final connectivityResult = await Connectivity().checkConnectivity();
+        final hasConnection = connectivityResult.any((result) => result != ConnectivityResult.none);
+        if (!hasConnection) {
+          message = 'No internet connection. Please connect to Wi-Fi or mobile data and try again.';
+        } else {
+          message = 'Server is unreachable. Please verify the backend server is running and try again.';
+        }
+      } catch (e) {
+        print('Connectivity check error in onError: $e');
+      }
+
       final customError = DioException(
         requestOptions: err.requestOptions,
         response: err.response,
         type: err.type,
-        message: 'No internet connection. Please check your network and try again.',
+        message: message,
         error: err.error,
       );
       return handler.next(customError);
