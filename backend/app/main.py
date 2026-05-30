@@ -117,7 +117,9 @@ import json
 
 # Seed initial mock contests on startup
 @app.on_event("startup")
-def startup_event():
+async def startup_event():
+    from app.core.redis import init_redis
+    init_redis()
     db = next(get_db())
     try:
         # Seed test users

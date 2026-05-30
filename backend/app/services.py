@@ -853,57 +853,7 @@ class WordAntiCheatService:
         return hmac.compare_digest(expected, signature)
 
 
-class WordLeaderboardManager:
-    def __init__(self):
-        self._lock = threading.Lock()
-        # Format: {contest_id: {user_id: (score, completion_time, user_name)}}
-        self._scores: Dict[int, Dict[int, Tuple[int, float, str]]] = {}
-
-    def update_score(self, contest_id: int, user_id: int, name: str, score: int, completion_time: float):
-        with self._lock:
-            if contest_id not in self._scores:
-                self._scores[contest_id] = {}
-            self._scores[contest_id][user_id] = (score, completion_time, name)
-
-    def get_leaderboard(self, contest_id: int) -> List[Dict]:
-        with self._lock:
-            if contest_id not in self._scores:
-                return []
-            
-            # Sort players: highest score first, then lowest completion time
-            sorted_players = sorted(
-                self._scores[contest_id].items(),
-                key=lambda x: (-x[1][0], x[1][1])
-            )
-            
-            leaderboard = []
-            for rank, (u_id, (score, comp_time, name)) in enumerate(sorted_players, start=1):
-                leaderboard.append({
-                    "user_id": u_id,
-                    "name": name,
-                    "score": score,
-                    "completion_time_seconds": comp_time,
-                    "rank": rank
-                })
-            return leaderboard
-
-    def load_from_db(self, db: Session, contest_id: int):
-        attempts = (
-            db.query(WordAttempt)
-            .join(User, WordAttempt.user_id == User.id)
-            .filter(WordAttempt.contest_id == contest_id, WordAttempt.status == "SUBMITTED")
-            .all()
-        )
-        with self._lock:
-            self._scores[contest_id] = {}
-            for a in attempts:
-                self._scores[contest_id][a.user_id] = (
-                    a.total_score,
-                    a.completion_time_seconds or 0.0,
-                    a.user.name or a.user.phone
-                )
-
-word_leaderboard_manager = WordLeaderboardManager()
+from app.websocket import word_leaderboard_manager
 
 
 class WordGameService:
