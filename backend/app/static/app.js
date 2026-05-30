@@ -143,13 +143,15 @@ function updateHeaders(tab) {
 
 // Event Handlers Setup
 function setupEventHandlers() {
-    el.btnRefresh.addEventListener('click', () => {
-        el.btnRefresh.classList.add('spinning');
-        loadDashboardData().then(() => {
-            setTimeout(() => el.btnRefresh.classList.remove('spinning'), 500);
-            showToast("System metrics synchronized.");
+    if (el.btnRefresh) {
+        el.btnRefresh.addEventListener('click', () => {
+            el.btnRefresh.classList.add('spinning');
+            loadDashboardData().then(() => {
+                setTimeout(() => el.btnRefresh.classList.remove('spinning'), 500);
+                showToast("System metrics synchronized.");
+            });
         });
-    });
+    }
 
     // Quick Contest Form Submission
     if (el.quickContestForm) {
@@ -267,10 +269,12 @@ function setupEventHandlers() {
     }
 
     // Search Filter
-    el.userSearch.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
-        filterUsersTable(query);
-    });
+    if (el.userSearch) {
+        el.userSearch.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            filterUsersTable(query);
+        });
+    }
 
     // Modal Event Handlers
     if (el.btnOpenCreateModal) {
@@ -1865,6 +1869,10 @@ async function loadFruitManager() {
         }
     } catch (err) {
         showToast(err.message, true);
+        const tbody = document.getElementById('fruit-contests-table-body');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="8" class="table-placeholder" style="color: var(--error);">Failed to load Fruit Slicing contests: ${err.message}</td></tr>`;
+        }
     }
 }
 
@@ -1968,6 +1976,10 @@ async function loadPuzzleManager() {
         }
     } catch (err) {
         showToast(err.message, true);
+        const tbody = document.getElementById('puzzle-contests-table-body');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="8" class="table-placeholder" style="color: var(--error);">Failed to load Image Puzzle contests: ${err.message}</td></tr>`;
+        }
     }
 }
 
@@ -2087,6 +2099,10 @@ async function loadWordManager() {
         }
     } catch (err) {
         showToast(err.message, true);
+        const tbody = document.getElementById('word-contests-table-body');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="8" class="table-placeholder" style="color: var(--error);">Failed to load Word Guessing contests: ${err.message}</td></tr>`;
+        }
     }
 }
 
@@ -2223,15 +2239,21 @@ function addWQCQuestionRow(id = null, gameType = 'UNSCRAMBLE', difficulty = 'EAS
 }
 
 function addPrizeRuleRow(listContainerId) {
+    console.log("addPrizeRuleRow called for:", listContainerId);
     const listEl = document.getElementById(listContainerId);
-    if (!listEl) return;
+    if (!listEl) {
+        console.error("List container element not found:", listContainerId);
+        return;
+    }
     const rows = listEl.querySelectorAll('.prize-rule-row');
     let nextMin = 1;
     if (rows.length > 0) {
         const lastMaxInput = rows[rows.length - 1].querySelector('.rule-max-rank');
-        const lastMax = parseInt(lastMaxInput.value);
-        if (!isNaN(lastMax)) {
-            nextMin = lastMax + 1;
+        if (lastMaxInput) {
+            const lastMax = parseInt(lastMaxInput.value);
+            if (!isNaN(lastMax)) {
+                nextMin = lastMax + 1;
+            }
         }
     }
 
@@ -2251,16 +2273,19 @@ function addPrizeRuleRow(listContainerId) {
 
     const minInput = row.querySelector('.rule-min-rank');
     const maxInput = row.querySelector('.rule-max-rank');
-    minInput.addEventListener('input', () => {
-        if (maxInput.value === minInput.dataset.prevMin || maxInput.value === '') {
-            maxInput.value = minInput.value;
-        }
+    if (minInput && maxInput) {
+        minInput.addEventListener('input', () => {
+            if (maxInput.value === minInput.dataset.prevMin || maxInput.value === '') {
+                maxInput.value = minInput.value;
+            }
+            minInput.dataset.prevMin = minInput.value;
+        });
         minInput.dataset.prevMin = minInput.value;
-    });
-    minInput.dataset.prevMin = minInput.value;
+    }
 
     listEl.appendChild(row);
     listEl.scrollTop = listEl.scrollHeight;
+    console.log("Successfully appended new prize rule row to", listContainerId);
 }
 
 

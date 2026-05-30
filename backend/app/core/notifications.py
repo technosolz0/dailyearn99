@@ -72,7 +72,13 @@ def send_push_to_user(db: Session, user_id: int, title: str, body: str, data: di
     """
     user = db.query(User).filter(User.id == user_id).first()
     if user and user.fcm_token:
-        return send_push_to_token(user.fcm_token, title, body, data)
+        import threading
+        threading.Thread(
+            target=send_push_to_token,
+            args=(user.fcm_token, title, body, data),
+            daemon=True
+        ).start()
+        return True
     else:
         user_name = user.name or user.phone if user else f"ID {user_id}"
         print(f"\n⚠️ [MOCK PUSH NOTIFICATION] (User '{user_name}' has no registered FCM token)\n   Title: {title}\n   Body: {body}\n")

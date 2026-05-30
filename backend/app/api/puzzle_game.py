@@ -19,26 +19,25 @@ router = APIRouter(prefix="/puzzle", tags=["puzzle"])
 @router.get("/contests", response_model=List[ImagePuzzleContestResponse])
 def get_puzzle_contests(db: Session = Depends(get_db)):
     now = datetime.now(timezone.utc)
-    # Automatically start or complete contests based on time
-    contests = db.query(ImagePuzzleContest).all()
-    response_contests = []
     
-    for c in contests:
-        c_naive_start = c.start_time.replace(tzinfo=timezone.utc)
-        
-        if c.status == "UPCOMING" and c_naive_start <= now:
-            c.status = "ACTIVE"
-            db.commit()
-            
-        if c.status == "ACTIVE" and c.end_time:
-            c_naive_end = c.end_time.replace(tzinfo=timezone.utc)
-            if c_naive_end <= now:
-                PuzzleRewardService.complete_contest_rewards(db, c.id)
-                db.refresh(c)
-                
-        response_contests.append(c)
-        
-    return response_contests
+    # 1. Bulk transition UPCOMING to ACTIVE
+    db.query(ImagePuzzleContest).filter(
+        ImagePuzzleContest.status == "UPCOMING",
+        ImagePuzzleContest.start_time <= now
+    ).update({ImagePuzzleContest.status: "ACTIVE"}, synchronize_session=False)
+    db.commit()
+
+    # 2. Selectively process rewards only for expired ACTIVE contests
+    expired_contests = db.query(ImagePuzzleContest).filter(
+        ImagePuzzleContest.status == "ACTIVE",
+        ImagePuzzleContest.end_time <= now
+    ).all()
+
+    for c in expired_contests:
+        PuzzleRewardService.complete_contest_rewards(db, c.id)
+
+    # 3. Retrieve all contests
+    return db.query(ImagePuzzleContest).all()
 
 @router.post("/start/{contest_id}", response_model=PuzzleStartSessionResponse)
 def start_puzzle_session(

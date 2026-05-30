@@ -26,25 +26,25 @@ def get_fruit_contests(db: Session = Depends(get_db)):
     to ACTIVE and completes expired contests payouts.
     """
     now = datetime.now(timezone.utc)
-    contests = db.query(FruitContest).all()
-    response_contests = []
+    
+    # 1. Bulk transition UPCOMING to ACTIVE
+    db.query(FruitContest).filter(
+        FruitContest.status == "UPCOMING",
+        FruitContest.start_time <= now
+    ).update({FruitContest.status: "ACTIVE"}, synchronize_session=False)
+    db.commit()
 
-    for c in contests:
-        c_naive_start = c.start_time.replace(tzinfo=timezone.utc)
+    # 2. Selectively process rewards only for expired ACTIVE contests
+    expired_contests = db.query(FruitContest).filter(
+        FruitContest.status == "ACTIVE",
+        FruitContest.end_time <= now
+    ).all()
 
-        if c.status == "UPCOMING" and c_naive_start <= now:
-            c.status = "ACTIVE"
-            db.commit()
+    for c in expired_contests:
+        FruitRewardService.complete_contest_rewards(db, c.id)
 
-        if c.status == "ACTIVE" and c.end_time:
-            c_naive_end = c.end_time.replace(tzinfo=timezone.utc)
-            if c_naive_end <= now:
-                FruitRewardService.complete_contest_rewards(db, c.id)
-                db.refresh(c)
-
-        response_contests.append(c)
-
-    return response_contests
+    # 3. Retrieve all contests
+    return db.query(FruitContest).all()
 
 
 @router.post("/join", response_model=JoinFruitContestResponse)

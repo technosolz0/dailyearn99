@@ -108,7 +108,6 @@ class WalletService:
             status="SUCCESS"
         )
         db.add(transaction)
-        db.commit()
         
         # Send push notification
         from app.core.notifications import send_push_to_user
