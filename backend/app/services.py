@@ -1,9 +1,17 @@
+from app.models import FruitLeaderboard
+from app.models import FruitScore
+from app.models import FruitContest
+from app.models import FruitMatch
+from app.models import ImagePuzzleLeaderboard
+from app.models import ImagePuzzleContest
+from app.models import ImagePuzzleAttempt
+from app.models import ImagePuzzleGame
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 import threading
 from typing import List, Dict, Tuple
-from app.models import User, Contest, ContestParticipant, WalletTransaction, Referral, Spin
+from app.models import User, Contest, ContestParticipant, WalletTransaction, Referral, Spin, WordContest, WordQuestion, WordAttempt, WordAnswer, WordLeaderboard
 
 # Thread-safe in-memory Leaderboard Manager mimicking Redis Sorted Sets
 class LeaderboardManager:
@@ -534,5 +542,1007 @@ class ContestService:
                 
         db.commit()
         return {"message": f"Contest completed. {payouts_made} winners paid out.", "payouts": payouts_made}
+
+
+import hmac
+import hashlib
+import json
+import random
+import uuid
+
+class PuzzleAntiCheatService:
+    SECRET_KEY = b"PUZZLE_ANTI_CHEAT_SECRET_KEY_12345"
+
+    @classmethod
+    def generate_signature(cls, session_id: str, contest_id: int, user_id: int) -> str:
+        payload = f"{session_id}:{contest_id}:{user_id}".encode()
+        return hmac.new(cls.SECRET_KEY, payload, hashlib.sha256).hexdigest()
+
+    @classmethod
+    def verify_signature(cls, session_id: str, contest_id: int, user_id: int, signature: str) -> bool:
+        expected = cls.generate_signature(session_id, contest_id, user_id)
+        return hmac.compare_digest(expected, signature)
+
+    @classmethod
+    def validate_and_playback_session(
+        cls,
+        shuffled_layout: list,
+        grid_size: int,
+        telemetry: list,
+        reported_time: float,
+        reported_moves: int,
+        started_at: datetime
+    ) -> bool:
+        # Check overall duration mismatch against actual wall clock
+        actual_elapsed = (datetime.now(timezone.utc) - started_at).total_seconds()
+        if reported_time > actual_elapsed + 3.0:
+            return False
+            
+        if len(telemetry) != reported_moves:
+            return False
+
+        current_state = list(shuffled_layout)
+        pieces_count = grid_size * grid_size
+
+        prev_dt = 0
+        for i, move in enumerate(telemetry):
+            from_idx = move.get("from_index")
+            to_idx = move.get("to_index")
+            dt = move.get("dt")
+
+            # Physical limit checks (minimum 100ms between swaps)
+            if i > 0:
+                if (dt - prev_dt) < 100:
+                    return False
+            prev_dt = dt
+
+            if not (0 <= from_idx < pieces_count) or not (0 <= to_idx < pieces_count):
+                return False
+
+            current_state[from_idx], current_state[to_idx] = current_state[to_idx], current_state[from_idx]
+
+        expected_solved = list(range(pieces_count))
+        return current_state == expected_solved
+
+
+class PuzzleGameService:
+    @staticmethod
+    def start_puzzle_session(db: Session, user: User, contest_id: int, device_fingerprint: str, ip_address: str) -> dict:
+        contest = db.query(ImagePuzzleContest).filter(ImagePuzzleContest.id == contest_id).first()
+        if not contest:
+            raise ValueError("Contest not found.")
+        if contest.status != "ACTIVE" and contest.status != "UPCOMING":
+            raise ValueError("Contest is not active.")
+        if contest.joined_slots >= contest.total_slots:
+            raise ValueError("Contest is full.")
+
+        existing_attempt = db.query(ImagePuzzleAttempt).filter(
+            ImagePuzzleAttempt.contest_id == contest_id,
+            ImagePuzzleAttempt.user_id == user.id
+        ).first()
+        if existing_attempt:
+            raise ValueError("You have already started or joined this contest.")
+
+        # Deduct entry fee using the central WalletService
+        WalletService.deduct_entry_fee(db, user, contest.entry_fee)
+        contest.joined_slots += 1
+
+        puzzle_game = db.query(ImagePuzzleGame).filter(ImagePuzzleGame.contest_id == contest_id).first()
+        if not puzzle_game:
+            n = contest.grid_size * contest.grid_size
+            indices = list(range(n))
+            while indices == list(range(n)):
+                random.shuffle(indices)
+            puzzle_game = ImagePuzzleGame(
+                contest_id=contest_id,
+                shuffled_layout=json.dumps(indices),
+                solution_hash=hashlib.sha256(json.dumps(list(range(n))).encode()).hexdigest()
+            )
+            db.add(puzzle_game)
+            db.flush()
+
+        session_id = str(uuid.uuid4())
+        started_at = datetime.now(timezone.utc)
+
+        attempt = ImagePuzzleAttempt(
+            contest_id=contest_id,
+            user_id=user.id,
+            score=0,
+            completion_seconds=0.0,
+            moves=0,
+            hints_used=0,
+            move_sequence="[]",
+            is_verified=False,
+            device_fingerprint=device_fingerprint,
+            session_id=session_id,
+            ip_address=ip_address,
+            started_at=started_at,
+            submitted_at=started_at,
+            status="IN_PROGRESS"
+        )
+        db.add(attempt)
+        db.commit()
+
+        signature = PuzzleAntiCheatService.generate_signature(session_id, contest_id, user.id)
+
+        return {
+            "session_id": session_id,
+            "shuffled_layout": json.loads(puzzle_game.shuffled_layout),
+            "started_at": started_at,
+            "grid_size": contest.grid_size,
+            "duration_seconds": contest.duration_seconds,
+            "image_url": contest.image_url,
+            "signature": signature
+        }
+
+    @staticmethod
+    def calculate_score(seconds: float, moves: int, hints: int) -> int:
+        score = 10000 - (seconds * 5) - (moves * 2) - (hints * 100)
+        return max(0, int(score))
+
+    @classmethod
+    def submit_puzzle_score(cls, db: Session, user: User, data) -> dict:
+        attempt = db.query(ImagePuzzleAttempt).filter(
+            ImagePuzzleAttempt.session_id == data.session_id,
+            ImagePuzzleAttempt.user_id == user.id
+        ).with_for_update().first()
+
+        if not attempt:
+            raise ValueError("Puzzle session not found.")
+        if attempt.status != "IN_PROGRESS":
+            raise ValueError("Score already submitted or session closed.")
+
+        if not PuzzleAntiCheatService.verify_signature(data.session_id, data.contest_id, user.id, data.signature):
+            attempt.status = "SUSPICIOUS"
+            db.commit()
+            raise ValueError("Invalid session signature.")
+
+        contest = db.query(ImagePuzzleContest).filter(ImagePuzzleContest.id == data.contest_id).first()
+        puzzle_game = db.query(ImagePuzzleGame).filter(ImagePuzzleGame.contest_id == data.contest_id).first()
+        shuffled_layout = json.loads(puzzle_game.shuffled_layout)
+
+        telemetry_dicts = [{"from_index": t.from_index, "to_index": t.to_index, "dt": t.dt} for t in data.telemetry]
+        is_legit = PuzzleAntiCheatService.validate_and_playback_session(
+            shuffled_layout=shuffled_layout,
+            grid_size=contest.grid_size,
+            telemetry=telemetry_dicts,
+            reported_time=data.completion_seconds,
+            reported_moves=data.moves,
+            started_at=attempt.started_at
+        )
+
+        if not is_legit:
+            attempt.status = "SUSPICIOUS"
+            db.commit()
+            raise ValueError("Anti-Cheat validation failed.")
+
+        score = cls.calculate_score(data.completion_seconds, data.moves, data.hints_used)
+
+        attempt.score = score
+        attempt.completion_seconds = data.completion_seconds
+        attempt.moves = data.moves
+        attempt.hints_used = data.hints_used
+        attempt.move_sequence = json.dumps(telemetry_dicts)
+        attempt.is_verified = True
+        attempt.status = "VERIFIED"
+        attempt.submitted_at = datetime.now(timezone.utc)
+        db.commit()
+
+        leaderboard_entry = db.query(ImagePuzzleLeaderboard).filter(
+            ImagePuzzleLeaderboard.contest_id == data.contest_id,
+            ImagePuzzleLeaderboard.user_id == user.id
+        ).first()
+
+        if not leaderboard_entry:
+            leaderboard_entry = ImagePuzzleLeaderboard(
+                contest_id=data.contest_id,
+                user_id=user.id,
+                score=score,
+                completion_seconds=data.completion_seconds,
+                rank=9999
+            )
+            db.add(leaderboard_entry)
+        else:
+            if score > leaderboard_entry.score:
+                leaderboard_entry.score = score
+                leaderboard_entry.completion_seconds = data.completion_seconds
+        db.commit()
+
+        try:
+            from app.websocket import puzzle_leaderboard_manager
+            puzzle_leaderboard_manager.update_score(data.contest_id, user.id, user.name or user.phone, score, data.completion_seconds)
+            leaderboard = puzzle_leaderboard_manager.get_leaderboard(data.contest_id)
+            import asyncio
+            from app.websocket import puzzle_ws_manager
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.run_coroutine_threadsafe(
+                    puzzle_ws_manager.broadcast_leaderboard(data.contest_id, leaderboard),
+                    loop
+                )
+        except Exception as e:
+            print(f"Puzzle leaderboard WS broadcast error: {e}")
+
+        return {"status": "SUCCESS", "score": score}
+
+
+class PuzzleRewardService:
+    @staticmethod
+    def complete_contest_rewards(db: Session, contest_id: int) -> dict:
+        contest = db.query(ImagePuzzleContest).filter(ImagePuzzleContest.id == contest_id).with_for_update().first()
+        if not contest:
+            return {"error": "Contest not found"}
+        if contest.status == "COMPLETED":
+            return {"message": "Contest is already completed"}
+
+        contest.status = "COMPLETED"
+        db.commit()
+
+        attempts = db.query(ImagePuzzleAttempt).filter(
+            ImagePuzzleAttempt.contest_id == contest_id,
+            ImagePuzzleAttempt.status == "VERIFIED"
+        ).order_by(
+            ImagePuzzleAttempt.score.desc(),
+            ImagePuzzleAttempt.completion_seconds.asc(),
+            ImagePuzzleAttempt.moves.asc(),
+            ImagePuzzleAttempt.hints_used.asc()
+        ).all()
+
+        payout_rules = []
+        if contest.prize_rules:
+            try:
+                payout_rules = json.loads(contest.prize_rules)
+            except Exception:
+                pass
+
+        payouts_made = 0
+        for rank_idx, att in enumerate(attempts, start=1):
+            db_leaderboard = db.query(ImagePuzzleLeaderboard).filter(
+                ImagePuzzleLeaderboard.contest_id == contest_id,
+                ImagePuzzleLeaderboard.user_id == att.user_id
+            ).first()
+            if db_leaderboard:
+                db_leaderboard.rank = rank_idx
+            
+            user = db.query(User).filter(User.id == att.user_id).first()
+            if not user:
+                continue
+
+            payout_amount = 0.0
+            if payout_rules:
+                for rule in payout_rules:
+                    if rule.get("min_rank") <= rank_idx <= rule.get("max_rank"):
+                        payout_amount = float(rule.get("prize", 0.0))
+                        break
+            else:
+                pcts = {1: 0.5, 2: 0.3, 3: 0.2}
+                if rank_idx in pcts:
+                    payout_amount = contest.prize_pool * pcts[rank_idx]
+
+            if payout_amount > 0:
+                WalletService.credit_prize(db, user, payout_amount)
+                payouts_made += 1
+            else:
+                from app.core.notifications import send_push_to_user
+                send_push_to_user(
+                    db,
+                    user.id,
+                    title="🏁 Puzzle Contest Completed",
+                    body=f"'{contest.title}' has finished! You placed Rank #{rank_idx}. Better luck next time!"
+                )
+
+        db.commit()
+        return {"status": "SUCCESS", "payouts_made": payouts_made}
+
+
+import hmac
+import hashlib
+import uuid
+import json
+
+class WordAntiCheatService:
+    SECRET_KEY = b"WORD_PUZZLE_ANTI_CHEAT_SECRET_KEY_12345"
+
+    @classmethod
+    def generate_signature(cls, session_id: str, user_id: int) -> str:
+        payload = f"{session_id}:{user_id}".encode()
+        return hmac.new(cls.SECRET_KEY, payload, hashlib.sha256).hexdigest()
+
+    @classmethod
+    def verify_signature(cls, session_id: str, user_id: int, signature: str) -> bool:
+        expected = cls.generate_signature(session_id, user_id)
+        return hmac.compare_digest(expected, signature)
+
+
+class WordLeaderboardManager:
+    def __init__(self):
+        self._lock = threading.Lock()
+        # Format: {contest_id: {user_id: (score, completion_time, user_name)}}
+        self._scores: Dict[int, Dict[int, Tuple[int, float, str]]] = {}
+
+    def update_score(self, contest_id: int, user_id: int, name: str, score: int, completion_time: float):
+        with self._lock:
+            if contest_id not in self._scores:
+                self._scores[contest_id] = {}
+            self._scores[contest_id][user_id] = (score, completion_time, name)
+
+    def get_leaderboard(self, contest_id: int) -> List[Dict]:
+        with self._lock:
+            if contest_id not in self._scores:
+                return []
+            
+            # Sort players: highest score first, then lowest completion time
+            sorted_players = sorted(
+                self._scores[contest_id].items(),
+                key=lambda x: (-x[1][0], x[1][1])
+            )
+            
+            leaderboard = []
+            for rank, (u_id, (score, comp_time, name)) in enumerate(sorted_players, start=1):
+                leaderboard.append({
+                    "user_id": u_id,
+                    "name": name,
+                    "score": score,
+                    "completion_time_seconds": comp_time,
+                    "rank": rank
+                })
+            return leaderboard
+
+    def load_from_db(self, db: Session, contest_id: int):
+        attempts = (
+            db.query(WordAttempt)
+            .join(User, WordAttempt.user_id == User.id)
+            .filter(WordAttempt.contest_id == contest_id, WordAttempt.status == "SUBMITTED")
+            .all()
+        )
+        with self._lock:
+            self._scores[contest_id] = {}
+            for a in attempts:
+                self._scores[contest_id][a.user_id] = (
+                    a.total_score,
+                    a.completion_time_seconds or 0.0,
+                    a.user.name or a.user.phone
+                )
+
+word_leaderboard_manager = WordLeaderboardManager()
+
+
+class WordGameService:
+    @staticmethod
+    def join_word_contest(db: Session, user: User, contest_id: int, device_fingerprint: str, ip_address: str) -> dict:
+        contest = db.query(WordContest).filter(WordContest.id == contest_id).with_for_update().first()
+        if not contest:
+            raise ValueError("Contest not found.")
+        if contest.status != "UPCOMING":
+            raise ValueError("Contest has already started or completed.")
+        if contest.joined_slots >= contest.total_slots:
+            raise ValueError("Contest is full.")
+
+        existing_attempt = db.query(WordAttempt).filter(
+            WordAttempt.contest_id == contest_id,
+            WordAttempt.user_id == user.id
+        ).first()
+        if existing_attempt:
+            raise ValueError("You have already joined this contest.")
+
+        # Deduct entry fee using central WalletService
+        WalletService.deduct_entry_fee(db, user, contest.entry_fee)
+        contest.joined_slots += 1
+
+        session_id = str(uuid.uuid4())
+        started_at = datetime.now(timezone.utc)
+
+        attempt = WordAttempt(
+            contest_id=contest_id,
+            user_id=user.id,
+            total_score=0,
+            completion_time_seconds=0.0,
+            hints_used=0,
+            wrong_attempts=0,
+            device_fingerprint=device_fingerprint,
+            session_id=session_id,
+            ip_address=ip_address,
+            started_at=started_at,
+            submitted_at=None,
+            status="JOINED"
+        )
+        db.add(attempt)
+        db.commit()
+
+        return {
+            "session_id": session_id,
+            "entry_fee_deducted": contest.entry_fee,
+            "status": "SUCCESS"
+        }
+
+    @staticmethod
+    def start_word_contest(db: Session, user: User, contest_id: int, session_id: str) -> dict:
+        attempt = db.query(WordAttempt).filter(
+            WordAttempt.session_id == session_id,
+            WordAttempt.user_id == user.id
+        ).with_for_update().first()
+
+        if not attempt or attempt.contest_id != contest_id:
+            raise ValueError("Invalid session or contest pairing.")
+        if attempt.status != "JOINED":
+            raise ValueError("Session already started or processed.")
+
+        contest = db.query(WordContest).filter(WordContest.id == contest_id).first()
+        if not contest:
+            raise ValueError("Contest not found.")
+
+        # Sanity check start/end time
+        now = datetime.now(timezone.utc)
+        if now < contest.start_time.replace(tzinfo=timezone.utc) or now > contest.end_time.replace(tzinfo=timezone.utc):
+            raise ValueError("Contest is not active.")
+
+        # Fetch questions
+        questions = db.query(WordQuestion).filter(WordQuestion.contest_id == contest_id).all()
+        
+        # Strip answers to prevent inspection
+        stripped_questions = []
+        for q in questions:
+            try:
+                p_data = json.loads(q.puzzle_data)
+            except Exception:
+                p_data = q.puzzle_data
+
+            try:
+                clues_data = json.loads(q.clues) if q.clues else None
+            except Exception:
+                clues_data = q.clues
+
+            stripped_questions.append({
+                "id": q.id,
+                "game_type": q.game_type,
+                "puzzle_data": p_data,
+                "clues": clues_data,
+                "points_reward": q.points_reward
+            })
+
+        attempt.status = "IN_PROGRESS"
+        attempt.started_at = now
+        db.commit()
+
+        signature = WordAntiCheatService.generate_signature(session_id, user.id)
+
+        return {
+            "questions": stripped_questions,
+            "duration_seconds": contest.duration_seconds,
+            "started_at": attempt.started_at,
+            "signature": signature
+        }
+
+    @staticmethod
+    def submit_word_answer(db: Session, user: User, data) -> dict:
+        attempt = db.query(WordAttempt).filter(
+            WordAttempt.session_id == data.session_id,
+            WordAttempt.user_id == user.id
+        ).with_for_update().first()
+
+        if not attempt:
+            raise ValueError("Attempt session not found.")
+        if attempt.status != "IN_PROGRESS":
+            raise ValueError("Session is not in progress.")
+
+        # Cryptographic signature validation
+        if not WordAntiCheatService.verify_signature(data.session_id, user.id, data.signature):
+            attempt.status = "DISQUALIFIED"
+            db.commit()
+            raise ValueError("Session integrity verification failed. Disqualified.")
+
+        # Time drift validation
+        actual_elapsed = (datetime.now(timezone.utc) - attempt.started_at.replace(tzinfo=timezone.utc)).total_seconds()
+        if abs(actual_elapsed - data.elapsed_time_seconds) > 5.0: # Allow max 5s network latency buffer
+            attempt.status = "DISQUALIFIED"
+            db.commit()
+            raise ValueError("Unusual clock delay/drift detected. Disqualified.")
+
+        # Fetch Question
+        question = db.query(WordQuestion).filter(WordQuestion.id == data.question_id).first()
+        if not question:
+            raise ValueError("Question not found.")
+
+        # Answer check
+        is_correct = (question.correct_answer.strip().lower() == data.answer.strip().lower())
+        
+        points = 0
+        penalty = 0
+
+        if is_correct:
+            points = question.points_reward
+            # Fast completion bonus (completed under 15 seconds)
+            if data.time_taken_seconds < 15.0:
+                points += 50
+        else:
+            penalty += 10 # -10 points wrong attempt
+            attempt.wrong_attempts += 1
+
+        if data.used_hint:
+            penalty += 20 # -20 points hint usage
+            attempt.hints_used += 1
+
+        net_points = points - penalty
+        attempt.total_score = max(0, attempt.total_score + net_points)
+
+        # Log WordAnswer detail
+        db_answer = WordAnswer(
+            attempt_id=attempt.id,
+            question_id=data.question_id,
+            is_correct=is_correct,
+            answer_submitted=data.answer,
+            points_awarded=net_points,
+            hints_used=1 if data.used_hint else 0,
+            attempts_count=1,
+            time_taken_seconds=data.time_taken_seconds,
+            telemetry_data=data.telemetry
+        )
+        db.add(db_answer)
+
+        # Update attempt completion seconds to current total elapsed
+        attempt.completion_time_seconds = actual_elapsed
+
+        # Check if all questions of the contest are answered
+        total_questions = db.query(WordQuestion).filter(WordQuestion.contest_id == attempt.contest_id).count()
+        answered_questions = db.query(WordAnswer).filter(WordAnswer.attempt_id == attempt.id).count()
+
+        if answered_questions >= total_questions:
+            attempt.status = "SUBMITTED"
+            attempt.submitted_at = datetime.now(timezone.utc)
+
+        db.commit()
+
+        # Update WebSocket/Realtime leaderboard cache
+        try:
+            word_leaderboard_manager.update_score(
+                attempt.contest_id,
+                user.id,
+                user.name or user.phone,
+                attempt.total_score,
+                attempt.completion_time_seconds
+            )
+            
+            # Broadcast updated scores to contest WebSockets
+            leaderboard = word_leaderboard_manager.get_leaderboard(attempt.contest_id)
+            import asyncio
+            from app.websocket import word_ws_manager
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.run_coroutine_threadsafe(
+                    word_ws_manager.broadcast_leaderboard(attempt.contest_id, leaderboard),
+                    loop
+                )
+        except Exception as e:
+            print(f"Word leaderboard WS broadcast error: {e}")
+
+        return {
+            "is_correct": is_correct,
+            "net_points": net_points,
+            "accumulated_score": attempt.total_score,
+            "server_elapsed_seconds": actual_elapsed
+        }
+
+
+class WordRewardService:
+    @staticmethod
+    def complete_contest_rewards(db: Session, contest_id: int) -> dict:
+        contest = db.query(WordContest).filter(WordContest.id == contest_id).with_for_update().first()
+        if not contest:
+            return {"error": "Contest not found"}
+        if contest.status == "COMPLETED":
+            return {"message": "Contest already completed."}
+
+        contest.status = "COMPLETED"
+        db.commit()
+
+        # Transition any remaining IN_PROGRESS attempts to SUBMITTED
+        in_progress_attempts = db.query(WordAttempt).filter(
+            WordAttempt.contest_id == contest_id,
+            WordAttempt.status == "IN_PROGRESS"
+        ).all()
+        for att in in_progress_attempts:
+            att.status = "SUBMITTED"
+            if att.completion_time_seconds is None:
+                att.completion_time_seconds = float(contest.duration_seconds or 300)
+            if att.submitted_at is None:
+                att.submitted_at = datetime.now(timezone.utc)
+        if in_progress_attempts:
+            db.commit()
+
+        # Gather all attempts and rank them by:
+        # 1. Total Score (desc)
+        # 2. Completion Time (asc)
+        attempts = db.query(WordAttempt).filter(
+            WordAttempt.contest_id == contest_id,
+            WordAttempt.status == "SUBMITTED"
+        ).order_by(
+            WordAttempt.total_score.desc(),
+            WordAttempt.completion_time_seconds.asc()
+        ).all()
+
+        payout_rules = []
+        if contest.prize_rules:
+            try:
+                payout_rules = json.loads(contest.prize_rules)
+            except Exception:
+                pass
+
+        payouts_made = 0
+        for rank_idx, att in enumerate(attempts, start=1):
+            # Save or update entry in Leaderboard
+            leaderboard_entry = db.query(WordLeaderboard).filter(
+                WordLeaderboard.contest_id == contest_id,
+                WordLeaderboard.user_id == att.user_id
+            ).first()
+
+            payout_amount = 0.0
+            if payout_rules:
+                for rule in payout_rules:
+                    if rule.get("min_rank") <= rank_idx <= rule.get("max_rank"):
+                        payout_amount = float(rule.get("prize", 0.0))
+                        break
+            else:
+                pcts = {1: 0.5, 2: 0.3, 3: 0.2}
+                if rank_idx in pcts:
+                    payout_amount = contest.prize_pool * pcts[rank_idx]
+
+            if not leaderboard_entry:
+                leaderboard_entry = WordLeaderboard(
+                    contest_id=contest_id,
+                    user_id=att.user_id,
+                    score=att.total_score,
+                    completion_time_seconds=att.completion_time_seconds or 0.0,
+                    rank=rank_idx,
+                    prize_amount=payout_amount,
+                    is_paid=payout_amount > 0.0,
+                    paid_at=datetime.now(timezone.utc) if payout_amount > 0.0 else None
+                )
+                db.add(leaderboard_entry)
+            else:
+                leaderboard_entry.rank = rank_idx
+                leaderboard_entry.prize_amount = payout_amount
+                leaderboard_entry.is_paid = payout_amount > 0.0
+                leaderboard_entry.paid_at = datetime.now(timezone.utc) if payout_amount > 0.0 else None
+
+            user = db.query(User).filter(User.id == att.user_id).first()
+            if not user:
+                continue
+
+            if payout_amount > 0.0:
+                WalletService.credit_prize(db, user, payout_amount)
+                payouts_made += 1
+            else:
+                from app.core.notifications import send_push_to_user
+                send_push_to_user(
+                    db,
+                    user.id,
+                    title="🏁 Word Contest Completed",
+                    body=f"'{contest.title}' has finished! You placed Rank #{rank_idx}. Better luck next time!"
+                )
+
+        db.commit()
+        return {"status": "SUCCESS", "payouts_made": payouts_made}
+
+
+class FruitAntiCheatService:
+    SECRET_KEY = b"FRUIT_SLICING_TOURNAMENT_ANTI_CHEAT_SECRET_KEY_9988"
+
+    @classmethod
+    def generate_signature(cls, session_id: str, contest_id: int, user_id: int) -> str:
+        payload = f"{session_id}:{contest_id}:{user_id}".encode()
+        return hmac.new(cls.SECRET_KEY, payload, hashlib.sha256).hexdigest()
+
+    @classmethod
+    def verify_signature(cls, session_id: str, contest_id: int, user_id: int, signature: str) -> bool:
+        expected = cls.generate_signature(session_id, contest_id, user_id)
+        return hmac.compare_digest(expected, signature)
+
+    @classmethod
+    def validate_telemetry_kinematics(
+        cls,
+        telemetry: List[dict],
+        reported_score: int,
+        reported_combo: int,
+        reported_misses: int,
+        reported_bombs: int,
+        started_at: datetime
+    ) -> bool:
+        """
+        Validates physics velocity sweeps, chronological swipes, score maths, and timing limitations.
+        """
+        # Rule 1: Overall timing check
+        actual_elapsed = (datetime.now(timezone.utc) - started_at.replace(tzinfo=timezone.utc)).total_seconds()
+        if actual_elapsed > 68.0:  # 60s match duration + 8s network/grace buffer
+            return False
+
+        calculated_score = 0
+        current_combo_streak = 0
+        calculated_max_combo = 0
+        calculated_bombs = 0
+        last_swipe_timestamp = -1
+
+        for swipe in telemetry:
+            t_ms = swipe.get("timestamp_ms")
+            path = swipe.get("path", [])
+            sliced_items = swipe.get("sliced_items", [])
+            is_bomb_hit = swipe.get("is_bomb_hit", False)
+
+            # Rule 2: Chronological ordering
+            if t_ms <= last_swipe_timestamp:
+                return False
+            
+            # Rule 3: Swipe velocity physics (bot/clicker detection)
+            if len(path) >= 2:
+                # Calculate absolute pixels traveled in coordinates space
+                dist = 0.0
+                for idx in range(1, len(path)):
+                    dx = path[idx]["x"] - path[idx-1]["x"]
+                    dy = path[idx]["y"] - path[idx-1]["y"]
+                    dist += (dx**2 + dy**2)**0.5
+                
+                # Assume a fixed delta timing of 16-100ms or use t parameter
+                p1_t = path[0].get("t")
+                p2_t = path[-1].get("t")
+                duration_sec = (p2_t - p1_t) / 1000.0 if (p1_t is not None and p2_t is not None and p2_t > p1_t) else 0.1
+                
+                velocity = dist / max(0.005, duration_sec)
+                # Humans slice between 100 and 15,000 pixels/sec. Anything outside is script/macro.
+                if velocity > 25000.0:
+                    return False
+
+            # Rule 4: Reconstruct scoring
+            if is_bomb_hit:
+                calculated_bombs += 1
+                calculated_score -= 100
+                current_combo_streak = 0
+            else:
+                slice_count = len(sliced_items)
+                if slice_count > 0:
+                    calculated_score += (slice_count * 10)
+                    
+                    # Combos
+                    if slice_count >= 5:
+                        calculated_score += 50
+                        current_combo_streak = max(current_combo_streak, 5)
+                    elif slice_count >= 3:
+                        calculated_score += 20
+                        current_combo_streak = max(current_combo_streak, 3)
+                else:
+                    current_combo_streak = 0
+            
+            calculated_max_combo = max(calculated_max_combo, current_combo_streak)
+            last_swipe_timestamp = t_ms
+
+        # Deduct misses
+        calculated_score -= (reported_misses * 5)
+        calculated_score = max(0, calculated_score)
+
+        # Rule 5: Compare results strictly
+        if calculated_score != reported_score:
+            return False
+        if calculated_max_combo != reported_combo:
+            return False
+        if calculated_bombs != reported_bombs:
+            return False
+
+        return True
+
+
+class FruitGameService:
+    @staticmethod
+    def start_fruit_session(db: Session, user: User, contest_id: int, device_fingerprint: str, ip_address: str) -> dict:
+        contest = db.query(FruitContest).filter(FruitContest.id == contest_id).with_for_update().first()
+        if not contest:
+            raise ValueError("Contest not found.")
+        if contest.status != "ACTIVE" and contest.status != "UPCOMING":
+            raise ValueError("Contest is not active.")
+        if contest.joined_slots >= contest.total_slots:
+            raise ValueError("Contest is full.")
+
+        existing_attempt = db.query(FruitMatch).filter(
+            FruitMatch.contest_id == contest_id,
+            FruitMatch.user_id == user.id
+        ).first()
+        if existing_attempt:
+            raise ValueError("You have already started or joined this contest.")
+
+        # Deduct wallet entry fee via existing central WalletService
+        WalletService.deduct_entry_fee(db, user, contest.entry_fee)
+        contest.joined_slots += 1
+
+        session_id = str(uuid.uuid4())
+        started_at = datetime.now(timezone.utc)
+
+        match_record = FruitMatch(
+            contest_id=contest_id,
+            user_id=user.id,
+            session_id=session_id,
+            status="IN_PROGRESS",
+            device_fingerprint=device_fingerprint,
+            ip_address=ip_address,
+            started_at=started_at,
+            signature=FruitAntiCheatService.generate_signature(session_id, contest_id, user.id)
+        )
+        db.add(match_record)
+        db.commit()
+
+        return {
+            "session_id": session_id,
+            "seed": contest.seed,
+            "duration_seconds": contest.duration_seconds,
+            "started_at": started_at,
+            "signature": match_record.signature
+        }
+
+    @staticmethod
+    def submit_fruit_score(db: Session, user: User, data) -> dict:
+        match_record = db.query(FruitMatch).filter(
+            FruitMatch.session_id == data.session_id,
+            FruitMatch.user_id == user.id
+        ).with_for_update().first()
+
+        if not match_record:
+            raise ValueError("Fruit match session not found.")
+        if match_record.status != "IN_PROGRESS":
+            raise ValueError("Score already submitted or session closed.")
+
+        # Verify signature
+        if not FruitAntiCheatService.verify_signature(data.session_id, data.contest_id, user.id, data.signature):
+            match_record.status = "SUSPICIOUS"
+            db.commit()
+            raise ValueError("Invalid session signature.")
+
+        contest = db.query(FruitContest).filter(FruitContest.id == data.contest_id).first()
+        
+        # Telemetry verification
+        telemetry_dicts = []
+        for swipe in data.telemetry:
+            telemetry_dicts.append({
+                "timestamp_ms": swipe.timestamp_ms,
+                "path": [{"x": p.x, "y": p.y, "t": p.t} for p in swipe.path],
+                "sliced_items": [{"id": item.id, "item_type": item.item_type, "slice_angle": item.slice_angle} for item in swipe.sliced_items],
+                "is_bomb_hit": swipe.is_bomb_hit
+            })
+
+        is_legit = FruitAntiCheatService.validate_telemetry_kinematics(
+            telemetry=telemetry_dicts,
+            reported_score=data.score,
+            reported_combo=data.max_combo,
+            reported_misses=data.miss_count,
+            reported_bombs=data.bomb_hit_count,
+            started_at=match_record.started_at
+        )
+
+        if not is_legit:
+            match_record.status = "SUSPICIOUS"
+            db.commit()
+            raise ValueError("Anti-Cheat validation failed.")
+
+        # Save match score records
+        score_record = FruitScore(
+            match_id=match_record.id,
+            user_id=user.id,
+            contest_id=data.contest_id,
+            score=data.score,
+            max_combo=data.max_combo,
+            miss_count=data.miss_count,
+            bomb_hit_count=data.bomb_hit_count,
+            is_verified=True
+        )
+        db.add(score_record)
+
+        match_record.status = "SUBMITTED"
+        match_record.submitted_at = datetime.now(timezone.utc)
+        db.commit()
+
+        # Update in-memory WebSocket leaderboard Standings
+        try:
+            from app.websocket import fruit_leaderboard_manager, fruit_ws_manager
+            name = user.name or user.phone
+            fruit_leaderboard_manager.update_score(
+                contest_id=data.contest_id,
+                user_id=user.id,
+                name=name,
+                score=data.score,
+                max_combo=data.max_combo,
+                miss_count=data.miss_count,
+                submitted_at=match_record.submitted_at
+            )
+            leaderboard = fruit_leaderboard_manager.get_leaderboard(data.contest_id)
+            
+            # Broadcast updates asynchronously
+            import asyncio
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.run_coroutine_threadsafe(
+                    fruit_ws_manager.broadcast_leaderboard(data.contest_id, leaderboard),
+                    loop
+                )
+        except Exception as e:
+            print(f"Fruit live leaderboard WS broadcast failure: {e}")
+
+        return {"status": "SUCCESS", "score": data.score}
+
+
+class FruitRewardService:
+    @staticmethod
+    def complete_contest_rewards(db: Session, contest_id: int) -> dict:
+        contest = db.query(FruitContest).filter(FruitContest.id == contest_id).with_for_update().first()
+        if not contest:
+            return {"error": "Contest not found"}
+        if contest.status == "COMPLETED":
+            return {"message": "Contest already completed."}
+
+        contest.status = "COMPLETED"
+        db.commit()
+
+        # Ranks evaluation based on score desc, combo desc, miss asc, early submit asc
+        scores = (
+            db.query(FruitScore)
+            .filter(FruitScore.contest_id == contest_id)
+            .filter(FruitScore.is_verified == True)
+            .order_by(
+                FruitScore.score.desc(),
+                FruitScore.max_combo.desc(),
+                FruitScore.miss_count.asc(),
+                FruitScore.created_at.asc()
+            )
+            .all()
+        )
+
+        payout_rules = []
+        if contest.prize_rules:
+            try:
+                payout_rules = json.loads(contest.prize_rules)
+            except Exception:
+                pass
+
+        payouts_made = 0
+        for rank_idx, s in enumerate(scores, start=1):
+            payout_amount = 0.0
+            if payout_rules:
+                for rule in payout_rules:
+                    if rule.get("min_rank") <= rank_idx <= rule.get("max_rank"):
+                        payout_amount = float(rule.get("prize", 0.0))
+                        break
+            else:
+                pcts = {1: 0.5, 2: 0.3, 3: 0.2}
+                if rank_idx in pcts:
+                    payout_amount = contest.prize_pool * pcts[rank_idx]
+
+            leaderboard_entry = FruitLeaderboard(
+                contest_id=contest_id,
+                user_id=s.user_id,
+                score=s.score,
+                max_combo=s.max_combo,
+                miss_count=s.miss_count,
+                rank=rank_idx,
+                prize_amount=payout_amount,
+                is_paid=payout_amount > 0.0,
+                paid_at=datetime.now(timezone.utc) if payout_amount > 0.0 else None
+            )
+            db.add(leaderboard_entry)
+
+            user = db.query(User).filter(User.id == s.user_id).first()
+            if not user:
+                continue
+
+            if payout_amount > 0.0:
+                WalletService.credit_prize(db, user, payout_amount)
+                payouts_made += 1
+            else:
+                from app.core.notifications import send_push_to_user
+                send_push_to_user(
+                    db,
+                    user.id,
+                    title="🏁 Fruit Tournament Completed",
+                    body=f"'{contest.title}' has finished! You placed Rank #{rank_idx}. Better luck next time!"
+                )
+
+        db.commit()
+        return {"status": "SUCCESS", "payouts_made": payouts_made}
+
+
+
 
 

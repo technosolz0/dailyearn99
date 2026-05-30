@@ -150,3 +150,230 @@ class UserQuestionHistory(Base):
     served_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
+class ImagePuzzleContest(Base):
+    __tablename__ = "image_puzzle_contests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    entry_fee = Column(Float, nullable=False)
+    total_slots = Column(Integer, nullable=False)
+    joined_slots = Column(Integer, default=0)
+    prize_pool = Column(Float, nullable=False)
+    start_time = Column(DateTime, nullable=False)
+    end_time = Column(DateTime, nullable=True)
+    status = Column(String, default="UPCOMING")  # UPCOMING, ACTIVE, COMPLETED, CANCELLED
+    prize_rules = Column(String, nullable=True)  # JSON string of rank-wise rules
+    image_url = Column(String, nullable=False)
+    grid_size = Column(Integer, default=3)  # 3 for 3x3, 4 for 4x4, etc.
+    duration_seconds = Column(Integer, default=300)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ImagePuzzleGame(Base):
+    __tablename__ = "image_puzzle_games"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contest_id = Column(Integer, ForeignKey("image_puzzle_contests.id"), nullable=False, unique=True)
+    shuffled_layout = Column(String, nullable=False)  # JSON-serialized array of indices/coordinates
+    solution_hash = Column(String, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ImagePuzzleAttempt(Base):
+    __tablename__ = "image_puzzle_attempts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contest_id = Column(Integer, ForeignKey("image_puzzle_contests.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    score = Column(Integer, default=0)
+    completion_seconds = Column(Float, nullable=False)
+    moves = Column(Integer, default=0)
+    hints_used = Column(Integer, default=0)
+    move_sequence = Column(String, nullable=False)  # JSON-serialized MoveTelemetry list
+    is_verified = Column(Boolean, default=False)
+    device_fingerprint = Column(String, nullable=False)
+    session_id = Column(String, unique=True, nullable=False)
+    ip_address = Column(String, nullable=False)
+    started_at = Column(DateTime, nullable=False)
+    submitted_at = Column(DateTime, nullable=False)
+    status = Column(String, default="IN_PROGRESS")  # IN_PROGRESS, SUBMITTED, VERIFIED, SUSPICIOUS
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ImagePuzzleLeaderboard(Base):
+    __tablename__ = "image_puzzle_leaderboard"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contest_id = Column(Integer, ForeignKey("image_puzzle_contests.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    score = Column(Integer, nullable=False)
+    completion_seconds = Column(Float, nullable=False)
+    rank = Column(Integer, nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class WordContest(Base):
+    __tablename__ = "word_contests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    entry_fee = Column(Float, nullable=False, default=0.0)
+    total_slots = Column(Integer, nullable=False)
+    joined_slots = Column(Integer, default=0)
+    prize_pool = Column(Float, nullable=False, default=0.0)
+    difficulty = Column(String, nullable=False) # 'EASY', 'MEDIUM', 'HARD'
+    status = Column(String, default="UPCOMING")  # UPCOMING, ACTIVE, COMPLETED, CANCELLED
+    prize_rules = Column(String, nullable=False)  # JSON string
+    duration_seconds = Column(Integer, default=300)
+    start_time = Column(DateTime, nullable=False)
+    end_time = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class WordQuestion(Base):
+    __tablename__ = "word_questions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contest_id = Column(Integer, ForeignKey("word_contests.id", ondelete="CASCADE"), nullable=True)
+    game_type = Column(String, nullable=False) # 'WORD_SEARCH', 'UNSCRAMBLE', 'MISSING_LETTERS', 'CROSSWORD'
+    difficulty = Column(String, nullable=False) # 'EASY', 'MEDIUM', 'HARD'
+    puzzle_data = Column(String, nullable=False) # JSON string
+    clues = Column(String, nullable=True) # JSON string
+    correct_answer = Column(String, nullable=False)
+    points_reward = Column(Integer, default=100)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class WordAttempt(Base):
+    __tablename__ = "word_attempts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contest_id = Column(Integer, ForeignKey("word_contests.id", ondelete="RESTRICT"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    session_id = Column(String, unique=True, index=True, nullable=False)
+    total_score = Column(Integer, default=0)
+    completion_time_seconds = Column(Float, nullable=True)
+    hints_used = Column(Integer, default=0)
+    wrong_attempts = Column(Integer, default=0)
+    device_fingerprint = Column(String, nullable=False)
+    ip_address = Column(String, nullable=False)
+    status = Column(String, default="IN_PROGRESS") # 'IN_PROGRESS', 'SUBMITTED', 'VERIFIED', 'DISQUALIFIED'
+    started_at = Column(DateTime, nullable=False)
+    submitted_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class WordAnswer(Base):
+    __tablename__ = "word_answers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    attempt_id = Column(Integer, ForeignKey("word_attempts.id", ondelete="CASCADE"), nullable=False)
+    question_id = Column(Integer, ForeignKey("word_questions.id", ondelete="RESTRICT"), nullable=False)
+    is_correct = Column(Boolean, nullable=False)
+    answer_submitted = Column(String, nullable=True)
+    points_awarded = Column(Integer, default=0)
+    hints_used = Column(Integer, default=0)
+    attempts_count = Column(Integer, default=1)
+    time_taken_seconds = Column(Float, nullable=False)
+    telemetry_data = Column(String, nullable=True) # JSON string
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class WordLeaderboard(Base):
+    __tablename__ = "word_leaderboards"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contest_id = Column(Integer, ForeignKey("word_contests.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    score = Column(Integer, nullable=False)
+    completion_time_seconds = Column(Float, nullable=False)
+    rank = Column(Integer, nullable=False)
+    prize_amount = Column(Float, default=0.0)
+    is_paid = Column(Boolean, default=False)
+    paid_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class FruitContest(Base):
+    __tablename__ = "fruit_contests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    entry_fee = Column(Float, nullable=False, default=0.0)
+    total_slots = Column(Integer, nullable=False)
+    joined_slots = Column(Integer, default=0)
+    prize_pool = Column(Float, nullable=False, default=0.0)
+    status = Column(String, default="UPCOMING")  # UPCOMING, ACTIVE, COMPLETED, CANCELLED
+    prize_rules = Column(String, nullable=False)  # JSON string of rank-wise rules
+    seed = Column(String, nullable=False)  # Random seed for fruit spawner sequence
+    duration_seconds = Column(Integer, default=60)
+    start_time = Column(DateTime, nullable=False)
+    end_time = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class FruitMatch(Base):
+    __tablename__ = "fruit_matches"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contest_id = Column(Integer, ForeignKey("fruit_contests.id", ondelete="RESTRICT"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    session_id = Column(String, unique=True, index=True, nullable=False)
+    status = Column(String, default="JOINED")  # JOINED, IN_PROGRESS, SUBMITTED, VERIFIED, SUSPICIOUS
+    device_fingerprint = Column(String, nullable=False)
+    ip_address = Column(String, nullable=False)
+    started_at = Column(DateTime, nullable=False)
+    submitted_at = Column(DateTime, nullable=True)
+    signature = Column(String, nullable=False)  # Cryptographic validation hash
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class FruitEvent(Base):
+    __tablename__ = "fruit_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    match_id = Column(Integer, ForeignKey("fruit_matches.id", ondelete="CASCADE"), nullable=False)
+    event_type = Column(String, nullable=False)  # SWIPE, BOMB_HIT, MISS
+    timestamp_ms = Column(Integer, nullable=False)
+    coordinates = Column(String, nullable=True)  # JSON-serialized array of swipe coordinates
+    sliced_items = Column(String, nullable=True)  # JSON-serialized array of sliced fruit details
+    points_delta = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class FruitScore(Base):
+    __tablename__ = "fruit_scores"
+
+    id = Column(Integer, primary_key=True, index=True)
+    match_id = Column(Integer, ForeignKey("fruit_matches.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    contest_id = Column(Integer, ForeignKey("fruit_contests.id", ondelete="RESTRICT"), nullable=False)
+    score = Column(Integer, default=0)
+    max_combo = Column(Integer, default=0)
+    miss_count = Column(Integer, default=0)
+    bomb_hit_count = Column(Integer, default=0)
+    is_verified = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class FruitLeaderboard(Base):
+    __tablename__ = "fruit_leaderboards"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contest_id = Column(Integer, ForeignKey("fruit_contests.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    score = Column(Integer, nullable=False)
+    max_combo = Column(Integer, nullable=False)
+    miss_count = Column(Integer, nullable=False)
+    rank = Column(Integer, nullable=False)
+    prize_amount = Column(Float, default=0.0)
+    is_paid = Column(Boolean, default=False)
+    paid_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+
+
+

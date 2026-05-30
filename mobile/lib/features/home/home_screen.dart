@@ -7,6 +7,9 @@ import 'package:target99/core/models/contest_model.dart';
 import 'package:target99/features/app_bloc.dart';
 import 'package:target99/features/contest/quiz_screen.dart';
 import 'package:target99/core/widgets/deposit_bottom_sheet.dart';
+import 'package:target99/features/image_puzzle/screens/puzzle_lobby_screen.dart';
+import 'package:target99/features/word_puzzle/screens/word_lobby_screen.dart';
+import 'package:target99/features/fruit_slicing/screens/fruit_lobby_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -166,6 +169,291 @@ class _HomeScreenState extends State<HomeScreen> {
                               ],
                             ),
                           ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Image Puzzle Challenge Quick Launch Banner Card
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0,
+                      vertical: 8.0,
+                    ),
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PuzzleLobbyScreen(),
+                          ),
+                        ).then((_) {
+                          context.read<AppBloc>().add(LoadProfileEvent());
+                        });
+                      },
+                      child: Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: AppTheme.accentPurple.withOpacity(0.5), width: 1.5),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  const Color(0xFF151030),
+                                  const Color(0xFF2E1A47).withOpacity(0.8),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            padding: const EdgeInsets.all(20),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.accentPurple.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: const Text(
+                                          'NEW GAME MODE',
+                                          style: TextStyle(
+                                            fontSize: 8,
+                                            color: AppTheme.accentPurple,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 1.0,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        '🧩 Image Puzzle Challenge',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      const Text(
+                                        'Rearrange pieces against the timer to win real cash prizes!',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: AppTheme.textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Icon(
+                                  Icons.chevron_right,
+                                  color: AppTheme.accentPurple,
+                                  size: 28,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Word Puzzle Challenge Quick Launch Banner Card
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0,
+                      vertical: 8.0,
+                    ),
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const WordLobbyScreen(),
+                          ),
+                        ).then((_) {
+                          context.read<AppBloc>().add(LoadProfileEvent());
+                        });
+                      },
+                      child: Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: AppTheme.accentCyan.withOpacity(0.5), width: 1.5),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  const Color(0xFF0F1B29),
+                                  const Color(0xFF132A44).withOpacity(0.8),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            padding: const EdgeInsets.all(20),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.accentCyan.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: const Text(
+                                          'NEW GAME MODE',
+                                          style: TextStyle(
+                                            fontSize: 8,
+                                            color: AppTheme.accentCyan,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 1.0,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        '🔤 Word Puzzle Challenge',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      const Text(
+                                        'Solve word puzzles, unscramble, and missing letters to win real cash prizes!',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: AppTheme.textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Icon(
+                                  Icons.chevron_right,
+                                  color: AppTheme.accentCyan,
+                                  size: 28,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Fruit Slicing Tournament Quick Launch Banner Card
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0,
+                      vertical: 8.0,
+                    ),
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const FruitLobbyScreen(),
+                          ),
+                        ).then((_) {
+                          context.read<AppBloc>().add(LoadProfileEvent());
+                        });
+                      },
+                      child: Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: const Color(0xFFFF4500).withOpacity(0.5), width: 1.5),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  const Color(0xFF2C0A02),
+                                  const Color(0xFF4A190C).withOpacity(0.8),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            padding: const EdgeInsets.all(20),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFF4500).withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: const Text(
+                                          'NEW GAME MODE',
+                                          style: TextStyle(
+                                            fontSize: 8,
+                                            color: Color(0xFFFF4500),
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 1.0,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        '🍓 Fruit Slicing Tournament',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      const Text(
+                                        'Slice high-scoring fruits, dodge bombs, and compete on the live leaderboard!',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: AppTheme.textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Icon(
+                                  Icons.chevron_right,
+                                  color: Color(0xFFFF4500),
+                                  size: 28,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
