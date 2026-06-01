@@ -8,6 +8,7 @@ import 'package:dailyearn99/core/widgets/custom_text_field.dart';
 import 'package:dailyearn99/core/widgets/premium_background.dart';
 import 'package:dailyearn99/core/widgets/custom_otp_pin_field.dart';
 import 'package:dailyearn99/core/widgets/otp_countdown_timer.dart';
+import 'package:dailyearn99/core/widgets/terms_dialog.dart';
 import 'package:dailyearn99/features/app_bloc.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -26,6 +27,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _otpFocusNode = FocusNode();
 
   bool _otpSent = false;
+  bool _termsAccepted = false;
 
   @override
   void initState() {
@@ -131,7 +133,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             children: [
               Container(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(
@@ -141,16 +143,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.accentCyan.withOpacity(0.35),
-                      blurRadius: 25,
-                      spreadRadius: 2,
+                      color: AppTheme.accentCyan.withOpacity(0.3),
+                      blurRadius: 20,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 4),
+                    ),
+                    BoxShadow(
+                      color: AppTheme.accentPurple.withOpacity(0.2),
+                      blurRadius: 20,
+                      spreadRadius: 1,
+                      offset: const Offset(0, -4),
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.person_add_alt_1_rounded,
-                  size: 46,
-                  color: Colors.white,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppTheme.cardBg,
+                  ),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/app_logo.png',
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -267,6 +286,70 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 24),
 
+                // Terms & Conditions Checkbox Row
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Theme(
+                      data: Theme.of(
+                        context,
+                      ).copyWith(unselectedWidgetColor: AppTheme.textMuted),
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Checkbox(
+                          value: _termsAccepted,
+                          activeColor: AppTheme.accentCyan,
+                          checkColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          onChanged: (value) {
+                            setState(() {
+                              _termsAccepted = value ?? false;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () async {
+                          final accepted = await TermsDialog.show(context);
+                          if (accepted) {
+                            setState(() {
+                              _termsAccepted = true;
+                            });
+                          }
+                        },
+                        child: RichText(
+                          text: TextSpan(
+                            style: GoogleFonts.inter(
+                              fontSize: 12.5,
+                              color: AppTheme.textMuted,
+                              height: 1.4,
+                            ),
+                            children: const [
+                              TextSpan(text: 'I agree to the '),
+                              TextSpan(
+                                text: 'Terms & Conditions',
+                                style: TextStyle(
+                                  color: AppTheme.accentCyan,
+                                  fontWeight: FontWeight.bold,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                              TextSpan(text: ' & confirm I am 18+'),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+
                 // Submit Button
                 BlocBuilder<AppBloc, AppState>(
                   builder: (context, state) {
@@ -320,13 +403,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
         const SizedBox(height: 32),
 
         // Restricted States Legal text
-        Text(
-          'By continuing, you agree that you are 18+ years of age.\nRestricted states include Assam, Odisha, Sikkim, Nagaland.',
-          textAlign: TextAlign.center,
-          style: GoogleFonts.inter(
-            fontSize: 10,
-            color: AppTheme.textMuted,
-            height: 1.6,
+        GestureDetector(
+          onTap: () async {
+            final accepted = await TermsDialog.show(context);
+            if (accepted) {
+              setState(() {
+                _termsAccepted = true;
+              });
+            }
+          },
+          child: RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: GoogleFonts.inter(
+                fontSize: 10.5,
+                color: AppTheme.textMuted,
+                height: 1.6,
+              ),
+              children: const [
+                TextSpan(text: 'By continuing, you agree to our '),
+                TextSpan(
+                  text: 'Terms & Conditions',
+                  style: TextStyle(
+                    color: AppTheme.accentCyan,
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+                TextSpan(
+                  text:
+                      ' & age/state limits.\nRestricted States: Assam, Odisha, Sikkim, Nagaland.',
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -486,7 +595,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   // ── Helper Actions ─────────────────────────────────────────────────────────
 
-  void _requestOtp(BuildContext context) {
+  void _requestOtp(BuildContext context) async {
     final firstName = _firstNameController.text.trim();
     final lastName = _lastNameController.text.trim();
     final phone = _phoneController.text.trim();
@@ -511,6 +620,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
       return;
+    }
+
+    if (!_termsAccepted) {
+      final accepted = await TermsDialog.show(context);
+      if (accepted) {
+        setState(() {
+          _termsAccepted = true;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'You must agree to the Terms & Conditions to proceed',
+            ),
+            backgroundColor: AppTheme.accentRed,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
     }
 
     context.read<AppBloc>().add(SendOtpEvent(phone, isRegister: true));

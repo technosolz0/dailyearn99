@@ -210,9 +210,13 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
           ),
           const SizedBox(width: 8),
         ],
-        Text(
-          widget.text,
-          style: textStyle,
+        Flexible(
+          child: Text(
+            widget.text,
+            style: textStyle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         if (widget.trailingIcon != null) ...[
           const SizedBox(width: 8),

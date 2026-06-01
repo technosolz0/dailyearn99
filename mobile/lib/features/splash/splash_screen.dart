@@ -24,24 +24,48 @@ class SplashScreen extends StatelessWidget {
             children: [
               // Premium branding logo
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(
                     colors: [AppTheme.accentCyan, AppTheme.accentPurple],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: AppTheme.accentCyan.withOpacity(0.3),
-                      blurRadius: 25,
-                      spreadRadius: 3,
+                      blurRadius: 20,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 4),
+                    ),
+                    BoxShadow(
+                      color: AppTheme.accentPurple.withOpacity(0.2),
+                      blurRadius: 20,
+                      spreadRadius: 1,
+                      offset: const Offset(0, -4),
+                    ),
+                    BoxShadow(
+                      color: AppTheme.accentCyan.withOpacity(0.15),
+                      blurRadius: 30,
+                      spreadRadius: 4,
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.sports_esports,
-                  size: 56,
-                  color: Colors.white,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppTheme.cardBg,
+                  ),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/app_logo.png',
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
