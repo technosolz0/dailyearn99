@@ -45,6 +45,11 @@ class _WordGameScreenState extends State<WordGameScreen> {
         listener: (context, state) {
           if (state is WordPuzzleCompletedState) {
             _showSuccessDialog(context, state.finalScore, state.completionTime);
+          } else if (state is WordPuzzleLobbyJoinedState) {
+            // Automatically launch game session and start play instantly!
+            BlocProvider.of<WordPuzzleBloc>(context).add(
+              StartWordContestEvent(widget.contestId, state.sessionId),
+            );
           } else if (state is WordPuzzleErrorState) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

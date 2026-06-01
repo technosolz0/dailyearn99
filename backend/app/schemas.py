@@ -41,6 +41,12 @@ class UserResponse(BaseModel):
     bank_name: Optional[str] = None
     joined_contest_ids: List[int] = []
     completed_contest_ids: List[int] = []
+    joined_word_contest_ids: List[int] = []
+    completed_word_contest_ids: List[int] = []
+    joined_puzzle_contest_ids: List[int] = []
+    completed_puzzle_contest_ids: List[int] = []
+    joined_fruit_contest_ids: List[int] = []
+    completed_fruit_contest_ids: List[int] = []
 
     class Config:
         from_attributes = True

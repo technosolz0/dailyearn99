@@ -38,6 +38,60 @@ class User(Base):
     def completed_contest_ids(self):
         return [p.contest_id for p in self.participants if p.completed]
 
+    @property
+    def joined_word_contest_ids(self):
+        from app.models import WordAttempt
+        from sqlalchemy.orm import object_session
+        session = object_session(self)
+        if session:
+            return [a.contest_id for a in session.query(WordAttempt).filter(WordAttempt.user_id == self.id).all()]
+        return []
+
+    @property
+    def completed_word_contest_ids(self):
+        from app.models import WordAttempt
+        from sqlalchemy.orm import object_session
+        session = object_session(self)
+        if session:
+            return [a.contest_id for a in session.query(WordAttempt).filter(WordAttempt.user_id == self.id, WordAttempt.status.in_(["SUBMITTED", "VERIFIED"])).all()]
+        return []
+
+    @property
+    def joined_puzzle_contest_ids(self):
+        from app.models import ImagePuzzleAttempt
+        from sqlalchemy.orm import object_session
+        session = object_session(self)
+        if session:
+            return [a.contest_id for a in session.query(ImagePuzzleAttempt).filter(ImagePuzzleAttempt.user_id == self.id).all()]
+        return []
+
+    @property
+    def completed_puzzle_contest_ids(self):
+        from app.models import ImagePuzzleAttempt
+        from sqlalchemy.orm import object_session
+        session = object_session(self)
+        if session:
+            return [a.contest_id for a in session.query(ImagePuzzleAttempt).filter(ImagePuzzleAttempt.user_id == self.id, ImagePuzzleAttempt.status.in_(["SUBMITTED", "VERIFIED"])).all()]
+        return []
+
+    @property
+    def joined_fruit_contest_ids(self):
+        from app.models import FruitMatch
+        from sqlalchemy.orm import object_session
+        session = object_session(self)
+        if session:
+            return [m.contest_id for m in session.query(FruitMatch).filter(FruitMatch.user_id == self.id).all()]
+        return []
+
+    @property
+    def completed_fruit_contest_ids(self):
+        from app.models import FruitMatch
+        from sqlalchemy.orm import object_session
+        session = object_session(self)
+        if session:
+            return [m.contest_id for m in session.query(FruitMatch).filter(FruitMatch.user_id == self.id, FruitMatch.status.in_(["SUBMITTED", "VERIFIED"])).all()]
+        return []
+
 class Contest(Base):
     __tablename__ = "contests"
 
