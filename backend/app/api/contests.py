@@ -31,6 +31,11 @@ def get_contests(db: Session = Depends(get_db)):
             ContestService.complete_contest(db, c.id)
             db.refresh(c)
             
+        # Omit completed contests that ended more than 24 hours ago
+        if c.status == "COMPLETED" and c.end_time:
+            if (now - c.end_time).total_seconds() > 24 * 3600:
+                continue
+            
         # Detach from session to strip questions safely in-memory only (prevents sniffing)
         db.expunge(c)
         c.questions = None

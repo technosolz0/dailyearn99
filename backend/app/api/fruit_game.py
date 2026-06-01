@@ -43,8 +43,17 @@ def get_fruit_contests(db: Session = Depends(get_db)):
     for c in expired_contests:
         FruitRewardService.complete_contest_rewards(db, c.id)
 
-    # 3. Retrieve all contests
-    return db.query(FruitContest).all()
+    # 3. Retrieve all contests and filter completed ones > 24 hours
+    contests = db.query(FruitContest).all()
+    filtered_contests = []
+    for c in contests:
+        if c.status == "COMPLETED" and c.end_time:
+            c_end_utc = c.end_time.replace(tzinfo=timezone.utc) if c.end_time.tzinfo is None else c.end_time
+            if (now - c_end_utc).total_seconds() > 24 * 3600:
+                continue
+        filtered_contests.append(c)
+    return filtered_contests
+
 
 
 @router.post("/join", response_model=JoinFruitContestResponse)
