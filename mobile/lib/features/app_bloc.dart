@@ -5,16 +5,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:target99/core/constants/api_constants.dart';
-import 'package:target99/core/constants/app_constants.dart';
-import 'package:target99/core/models/contest_model.dart';
-import 'package:target99/core/models/user_model.dart';
-import 'package:target99/core/models/spin_model.dart';
-import 'package:target99/core/network/api_client.dart';
-import 'package:target99/core/network/secure_storage_service.dart';
-import 'package:target99/core/network/remote_config_service.dart';
-import 'package:target99/core/utils/dependency_injection.dart';
-import 'package:target99/core/utils/version_comparer.dart';
+import 'package:dailyearn99/core/constants/api_constants.dart';
+import 'package:dailyearn99/core/constants/app_constants.dart';
+import 'package:dailyearn99/core/models/contest_model.dart';
+import 'package:dailyearn99/core/models/user_model.dart';
+import 'package:dailyearn99/core/models/spin_model.dart';
+import 'package:dailyearn99/core/network/api_client.dart';
+import 'package:dailyearn99/core/network/secure_storage_service.dart';
+import 'package:dailyearn99/core/network/remote_config_service.dart';
+import 'package:dailyearn99/core/utils/dependency_injection.dart';
+import 'package:dailyearn99/core/utils/version_comparer.dart';
+import 'package:dailyearn99/core/utils/error_handler.dart';
 
 // --- STATES ---
 class AppState {
@@ -378,7 +379,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
             emit(
               state.copyWith(
                 isAuthLoading: false,
-                authError: e.message ?? e.code,
+                authError: ErrorHandler.handle(e),
               ),
             );
             completer.complete();
@@ -418,12 +419,12 @@ class AppBloc extends Bloc<AppEvent, AppState> {
           }
         },
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!completer.isCompleted) {
         emit(
           state.copyWith(
             isAuthLoading: false,
-            authError: e.toString().replaceAll('Exception: ', ''),
+            authError: ErrorHandler.handle(e, stackTrace),
           ),
         );
         completer.complete();
@@ -460,11 +461,11 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       );
       emit(state.copyWith(token: token, otpSentMessage: null));
       add(LoadProfileEvent());
-    } catch (e) {
+    } catch (e, stackTrace) {
       emit(
         state.copyWith(
           isAuthLoading: false,
-          authError: e.toString().replaceAll('Exception: ', ''),
+          authError: ErrorHandler.handle(e, stackTrace),
         ),
       );
     }
@@ -544,11 +545,11 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       );
       emit(state.copyWith(token: token, otpSentMessage: null));
       add(LoadProfileEvent());
-    } catch (e) {
+    } catch (e, stackTrace) {
       emit(
         state.copyWith(
           isAuthLoading: false,
-          authError: e.toString().replaceAll('Exception: ', ''),
+          authError: ErrorHandler.handle(e, stackTrace),
         ),
       );
     }
@@ -580,11 +581,11 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       } catch (fcmError) {
         print("FCM initialization warning: $fcmError");
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       emit(
         state.copyWith(
           isAuthLoading: false,
-          authError: e.toString().replaceAll('Exception: ', ''),
+          authError: ErrorHandler.handle(e, stackTrace),
         ),
       );
     }
@@ -615,11 +616,11 @@ class AppBloc extends Bloc<AppEvent, AppState> {
           .map((json) => ContestModel.fromJson(json))
           .toList();
       emit(state.copyWith(isContestsLoading: false, contests: contestsList));
-    } catch (e) {
+    } catch (e, stackTrace) {
       emit(
         state.copyWith(
           isContestsLoading: false,
-          contestsError: e.toString().replaceAll('Exception: ', ''),
+          contestsError: ErrorHandler.handle(e, stackTrace),
         ),
       );
     }
@@ -638,11 +639,11 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       // Refresh user profile for updated balances & refresh contests
       add(LoadProfileEvent());
       add(FetchContestsEvent());
-    } catch (e) {
+    } catch (e, stackTrace) {
       emit(
         state.copyWith(
           isContestsLoading: false,
-          contestsError: e.toString().replaceAll('Exception: ', ''),
+          contestsError: ErrorHandler.handle(e, stackTrace),
         ),
       );
     }
@@ -662,10 +663,10 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         },
       );
       add(FetchContestsEvent());
-    } catch (e) {
+    } catch (e, stackTrace) {
       emit(
         state.copyWith(
-          contestsError: e.toString().replaceAll('Exception: ', ''),
+          contestsError: ErrorHandler.handle(e, stackTrace),
         ),
       );
     }
@@ -682,11 +683,11 @@ class AppBloc extends Bloc<AppEvent, AppState> {
           .map((json) => TransactionModel.fromJson(json))
           .toList();
       emit(state.copyWith(isWalletLoading: false, transactions: list));
-    } catch (e) {
+    } catch (e, stackTrace) {
       emit(
         state.copyWith(
           isWalletLoading: false,
-          walletError: e.toString().replaceAll('Exception: ', ''),
+          walletError: ErrorHandler.handle(e, stackTrace),
         ),
       );
     }
@@ -704,11 +705,11 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       );
       add(LoadProfileEvent());
       add(FetchTransactionsEvent());
-    } catch (e) {
+    } catch (e, stackTrace) {
       emit(
         state.copyWith(
           isWalletLoading: false,
-          walletError: e.toString().replaceAll('Exception: ', ''),
+          walletError: ErrorHandler.handle(e, stackTrace),
         ),
       );
     }
@@ -726,11 +727,11 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       );
       add(LoadProfileEvent());
       add(FetchTransactionsEvent());
-    } catch (e) {
+    } catch (e, stackTrace) {
       emit(
         state.copyWith(
           isWalletLoading: false,
-          walletError: e.toString().replaceAll('Exception: ', ''),
+          walletError: ErrorHandler.handle(e, stackTrace),
         ),
       );
     }
@@ -752,11 +753,11 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         },
       );
       add(LoadProfileEvent());
-    } catch (e) {
+    } catch (e, stackTrace) {
       emit(
         state.copyWith(
           isWalletLoading: false,
-          walletError: e.toString().replaceAll('Exception: ', ''),
+          walletError: ErrorHandler.handle(e, stackTrace),
         ),
       );
     }
@@ -771,11 +772,11 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       final response = await _apiClient.get(ApiConstants.referralDetails);
       final details = ReferralDetailsModel.fromJson(response.data);
       emit(state.copyWith(isReferralLoading: false, referralDetails: details));
-    } catch (e) {
+    } catch (e, stackTrace) {
       emit(
         state.copyWith(
           isReferralLoading: false,
-          referralError: e.toString().replaceAll('Exception: ', ''),
+          referralError: ErrorHandler.handle(e, stackTrace),
         ),
       );
     }
@@ -928,7 +929,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
               currentUser: user,
             ),
           );
-        } catch (e) {
+        } catch (e, stackTrace) {
           // If we had no cached user, show startup loading failure.
           // Otherwise, allow user to keep using the app with cached details.
           if (cachedUser == null) {
@@ -937,7 +938,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
                 isSplashLoading: false,
                 token: null,
                 currentUser: null,
-                authError: e.toString().replaceAll('Exception: ', ''),
+                authError: ErrorHandler.handle(e, stackTrace),
               ),
             );
           }
@@ -945,21 +946,21 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       } else {
         emit(state.copyWith(isSplashLoading: false));
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!_apiClient.hasToken) {
         emit(
           state.copyWith(
             isSplashLoading: false,
             token: null,
             currentUser: null,
-            authError: e.toString().replaceAll('Exception: ', ''),
+            authError: ErrorHandler.handle(e, stackTrace),
           ),
         );
       } else {
         emit(
           state.copyWith(
             isSplashLoading: false,
-            authError: e.toString().replaceAll('Exception: ', ''),
+            authError: ErrorHandler.handle(e, stackTrace),
           ),
         );
       }
@@ -991,11 +992,11 @@ class AppBloc extends Bloc<AppEvent, AppState> {
 
       // Auto-trigger profile reload so wallet balances are synchronized instantly!
       add(LoadProfileEvent());
-    } catch (e) {
+    } catch (e, stackTrace) {
       emit(
         state.copyWith(
           isSpinLoading: false,
-          spinError: e.toString().replaceAll('Exception: ', ''),
+          spinError: ErrorHandler.handle(e, stackTrace),
         ),
       );
     }
@@ -1012,11 +1013,11 @@ class AppBloc extends Bloc<AppEvent, AppState> {
           .map((json) => SpinResultModel.fromJson(json))
           .toList();
       emit(state.copyWith(isSpinLoading: false, spinHistory: list));
-    } catch (e) {
+    } catch (e, stackTrace) {
       emit(
         state.copyWith(
           isSpinLoading: false,
-          spinError: e.toString().replaceAll('Exception: ', ''),
+          spinError: ErrorHandler.handle(e, stackTrace),
         ),
       );
     }

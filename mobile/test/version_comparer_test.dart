@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:target99/core/utils/version_comparer.dart';
+import 'package:dailyearn99/core/utils/version_comparer.dart';
 
 void main() {
   group('VersionComparer Unit Tests', () {

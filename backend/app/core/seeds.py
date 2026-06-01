@@ -23,7 +23,7 @@ DEFAULT_QUESTIONS = [
         "correct_answer_index": 2
     },
     {
-        "text": "What is the platform fee target percentage in target99?",
+        "text": "What is the platform fee target percentage in dailyearn99?",
         "options": ["10-20%", "15-35%", "50-60%", "5%"],
         "correct_answer_index": 1
     }

@@ -8,9 +8,9 @@ env_path = os.path.join(backend_dir, ".env")
 load_dotenv(dotenv_path=env_path)
 
 class Settings:
-    PROJECT_NAME: str = "target99"
+    PROJECT_NAME: str = "dailyearn99"
     API_V1_STR: str = "/api"
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "target99_super_secret_signing_key_for_jwt_tokens_2026")
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "dailyearn99_super_secret_signing_key_for_jwt_tokens_2026")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60  # 1 hour
     

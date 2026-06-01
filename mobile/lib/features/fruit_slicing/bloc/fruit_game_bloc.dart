@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/fruit_models.dart';
 import '../repository/fruit_repository.dart';
+import 'package:dailyearn99/core/utils/error_handler.dart';
 
 // --- EVENTS ---
 abstract class FruitGameEvent {}
@@ -185,8 +186,8 @@ class FruitGameBloc extends Bloc<FruitGameEvent, FruitGameState> {
           ));
         }
       });
-    } catch (e) {
-      emit(FruitGameErrorState(e.toString().replaceAll('Exception: ', '')));
+    } catch (e, stackTrace) {
+      emit(FruitGameErrorState(ErrorHandler.handle(e, stackTrace)));
     }
   }
 
@@ -290,8 +291,8 @@ class FruitGameBloc extends Bloc<FruitGameEvent, FruitGameState> {
         signature: _signature!,
       );
       emit(FruitGameSuccessState(result['score'] as int));
-    } catch (e) {
-      emit(FruitGameErrorState(e.toString().replaceAll('Exception: ', '')));
+    } catch (e, stackTrace) {
+      emit(FruitGameErrorState(ErrorHandler.handle(e, stackTrace)));
     }
   }
 

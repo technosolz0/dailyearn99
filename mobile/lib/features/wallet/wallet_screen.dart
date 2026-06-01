@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:target99/core/theme/app_theme.dart';
-import 'package:target99/core/models/user_model.dart';
-import 'package:target99/features/app_bloc.dart';
-import 'package:target99/core/widgets/deposit_bottom_sheet.dart';
+import 'package:dailyearn99/core/theme/app_theme.dart';
+import 'package:dailyearn99/core/models/user_model.dart';
+import 'package:dailyearn99/features/app_bloc.dart';
+import 'package:dailyearn99/core/widgets/deposit_bottom_sheet.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});

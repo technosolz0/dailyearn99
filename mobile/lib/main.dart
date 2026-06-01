@@ -4,19 +4,19 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:target99/core/theme/app_theme.dart';
-import 'package:target99/core/utils/dependency_injection.dart';
-import 'package:target99/core/network/api_client.dart';
-import 'package:target99/features/app_bloc.dart';
-import 'package:target99/features/auth/login_screen.dart';
-import 'package:target99/features/home/home_screen.dart';
-import 'package:target99/features/spin/spin_wheel_screen.dart';
-import 'package:target99/features/wallet/wallet_screen.dart';
-import 'package:target99/features/referral/referral_screen.dart';
-import 'package:target99/features/profile/profile_screen.dart';
-import 'package:target99/core/constants/app_constants.dart';
-import 'package:target99/features/update/update_required_screen.dart';
-import 'package:target99/features/splash/splash_screen.dart';
+import 'package:dailyearn99/core/theme/app_theme.dart';
+import 'package:dailyearn99/core/utils/dependency_injection.dart';
+import 'package:dailyearn99/core/network/api_client.dart';
+import 'package:dailyearn99/features/app_bloc.dart';
+import 'package:dailyearn99/features/auth/login_screen.dart';
+import 'package:dailyearn99/features/home/home_screen.dart';
+import 'package:dailyearn99/features/spin/spin_wheel_screen.dart';
+import 'package:dailyearn99/features/wallet/wallet_screen.dart';
+import 'package:dailyearn99/features/referral/referral_screen.dart';
+import 'package:dailyearn99/features/profile/profile_screen.dart';
+import 'package:dailyearn99/core/constants/app_constants.dart';
+import 'package:dailyearn99/features/update/update_required_screen.dart';
+import 'package:dailyearn99/features/splash/splash_screen.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
@@ -29,17 +29,17 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const Target99App());
+  runApp(const DailyEarn99App());
 }
 
-class Target99App extends StatefulWidget {
-  const Target99App({super.key});
+class DailyEarn99App extends StatefulWidget {
+  const DailyEarn99App({super.key});
 
   @override
-  State<Target99App> createState() => _Target99AppState();
+  State<DailyEarn99App> createState() => _DailyEarn99AppState();
 }
 
-class _Target99AppState extends State<Target99App> {
+class _DailyEarn99AppState extends State<DailyEarn99App> {
   bool _isInitialized = false;
   String? _error;
 
@@ -130,7 +130,7 @@ class _Target99AppState extends State<Target99App> {
   Widget build(BuildContext context) {
     if (!_isInitialized) {
       return MaterialApp(
-        title: 'Target99',
+        title: 'DailyEarn99',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         home: SplashScreen(
@@ -148,7 +148,7 @@ class _Target99AppState extends State<Target99App> {
     return BlocProvider<AppBloc>(
       create: (context) => AppBloc(getIt<ApiClient>())..add(AppStartedEvent()),
       child: MaterialApp(
-        title: 'Target99',
+        title: 'DailyEarn99',
         scaffoldMessengerKey: scaffoldMessengerKey,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
@@ -257,7 +257,7 @@ class _MainNavigationLayoutState extends State<MainNavigationLayout> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'A new version (v$latestVersion) of target99 is ready. Update now for new lobbies, faster spins, and updated security!',
+                  'A new version (v$latestVersion) of dailyearn99 is ready. Update now for new lobbies, faster spins, and updated security!',
                   style: const TextStyle(
                     color: AppTheme.textMuted,
                     fontSize: 13,

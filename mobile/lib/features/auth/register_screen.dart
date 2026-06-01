@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:target99/core/theme/app_theme.dart';
-import 'package:target99/core/widgets/custom_button.dart';
-import 'package:target99/core/widgets/custom_text_field.dart';
-import 'package:target99/core/widgets/premium_background.dart';
-import 'package:target99/core/widgets/custom_otp_pin_field.dart';
-import 'package:target99/core/widgets/otp_countdown_timer.dart';
-import 'package:target99/features/app_bloc.dart';
+import 'package:dailyearn99/core/theme/app_theme.dart';
+import 'package:dailyearn99/core/widgets/custom_button.dart';
+import 'package:dailyearn99/core/widgets/custom_text_field.dart';
+import 'package:dailyearn99/core/widgets/premium_background.dart';
+import 'package:dailyearn99/core/widgets/custom_otp_pin_field.dart';
+import 'package:dailyearn99/core/widgets/otp_countdown_timer.dart';
+import 'package:dailyearn99/features/app_bloc.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -163,7 +163,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   children: const [
                     TextSpan(
-                      text: 'target',
+                      text: 'DailyEarn',
                       style: TextStyle(color: AppTheme.accentCyan),
                     ),
                     TextSpan(

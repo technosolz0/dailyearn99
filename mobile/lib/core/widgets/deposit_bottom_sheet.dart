@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:target99/core/theme/app_theme.dart';
-import 'package:target99/core/network/remote_config_service.dart';
-import 'package:target99/core/utils/dependency_injection.dart';
-import 'package:target99/features/app_bloc.dart';
+import 'package:dailyearn99/core/theme/app_theme.dart';
+import 'package:dailyearn99/core/network/remote_config_service.dart';
+import 'package:dailyearn99/core/utils/dependency_injection.dart';
+import 'package:dailyearn99/features/app_bloc.dart';
 
 class DepositBottomSheet extends StatefulWidget {
   final double? defaultAmount;

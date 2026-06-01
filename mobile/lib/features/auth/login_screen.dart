@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:target99/core/theme/app_theme.dart';
-import 'package:target99/core/widgets/custom_button.dart';
-import 'package:target99/core/widgets/custom_text_field.dart';
-import 'package:target99/core/widgets/premium_background.dart';
-import 'package:target99/core/widgets/custom_otp_pin_field.dart';
-import 'package:target99/core/widgets/otp_countdown_timer.dart';
-import 'package:target99/features/app_bloc.dart';
-import 'package:target99/features/auth/register_screen.dart';
+import 'package:dailyearn99/core/theme/app_theme.dart';
+import 'package:dailyearn99/core/widgets/custom_button.dart';
+import 'package:dailyearn99/core/widgets/custom_text_field.dart';
+import 'package:dailyearn99/core/widgets/premium_background.dart';
+import 'package:dailyearn99/core/widgets/custom_otp_pin_field.dart';
+import 'package:dailyearn99/core/widgets/otp_countdown_timer.dart';
+import 'package:dailyearn99/features/app_bloc.dart';
+import 'package:dailyearn99/features/auth/register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -76,16 +76,29 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Center(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 16.0,
+                ),
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 500),
                   transitionBuilder: (child, anim) {
-                    final isOtp = child.key == const ValueKey("otp_verification_view");
-                    final beginOffset = isOtp ? const Offset(0.8, 0.0) : const Offset(-0.8, 0.0);
+                    final isOtp =
+                        child.key == const ValueKey("otp_verification_view");
+                    final beginOffset = isOtp
+                        ? const Offset(0.8, 0.0)
+                        : const Offset(-0.8, 0.0);
                     return SlideTransition(
-                      position: Tween<Offset>(begin: beginOffset, end: Offset.zero).animate(
-                        CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
-                      ),
+                      position:
+                          Tween<Offset>(
+                            begin: beginOffset,
+                            end: Offset.zero,
+                          ).animate(
+                            CurvedAnimation(
+                              parent: anim,
+                              curve: Curves.easeOutCubic,
+                            ),
+                          ),
                       child: FadeTransition(opacity: anim, child: child),
                     );
                   },
@@ -145,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   children: const [
                     TextSpan(
-                      text: 'target',
+                      text: 'DailyEarn',
                       style: TextStyle(color: AppTheme.accentCyan),
                     ),
                     TextSpan(
@@ -204,10 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   hintText: 'Enter 10-digit number',
                   keyboardType: TextInputType.phone,
                   enabled: true,
-                  prefixIcon: const Icon(
-                    Icons.phone_iphone_rounded,
-                    size: 20,
-                  ),
+                  prefixIcon: const Icon(Icons.phone_iphone_rounded, size: 20),
                 ),
                 const SizedBox(height: 24),
 
@@ -237,7 +247,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                     style: TextButton.styleFrom(
                       foregroundColor: AppTheme.accentCyan,
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 16,
+                      ),
                     ),
                     child: RichText(
                       text: TextSpan(
@@ -289,9 +302,7 @@ class _LoginScreenState extends State<LoginScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Centered Pulsing Security Badge
-        const Center(
-          child: _PulsingSecurityIcon(),
-        ),
+        const Center(child: _PulsingSecurityIcon()),
         const SizedBox(height: 32),
 
         // Header Labels
@@ -409,7 +420,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                     style: TextButton.styleFrom(
                       foregroundColor: AppTheme.accentCyan,
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 16,
+                      ),
                     ),
                     child: Text(
                       'Change phone number',
@@ -443,23 +457,17 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       return;
     }
-    context.read<AppBloc>().add(
-          SendOtpEvent(phone, isRegister: false),
-        );
+    context.read<AppBloc>().add(SendOtpEvent(phone, isRegister: false));
   }
 
   void _verifyOtp(BuildContext context, String otp) {
     final phone = _phoneController.text.trim();
-    context.read<AppBloc>().add(
-          VerifyOtpEvent(phone, otp),
-        );
+    context.read<AppBloc>().add(VerifyOtpEvent(phone, otp));
   }
 
   void _resendOtp(BuildContext context) {
     final phone = _phoneController.text.trim();
-    context.read<AppBloc>().add(
-          SendOtpEvent(phone, isRegister: false),
-        );
+    context.read<AppBloc>().add(SendOtpEvent(phone, isRegister: false));
   }
 }
 
@@ -483,9 +491,10 @@ class _PulsingSecurityIconState extends State<_PulsingSecurityIcon>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    _pulse = Tween<double>(begin: 0.94, end: 1.06).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _pulse = Tween<double>(
+      begin: 0.94,
+      end: 1.06,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override

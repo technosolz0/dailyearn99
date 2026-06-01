@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:target99/core/models/user_model.dart';
+import 'package:dailyearn99/core/models/user_model.dart';
 
 class SecureStorageService {
   final FlutterSecureStorage _storage;

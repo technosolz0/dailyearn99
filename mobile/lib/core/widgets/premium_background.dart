@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:target99/core/theme/app_theme.dart';
+import 'package:dailyearn99/core/theme/app_theme.dart';
 
 class PremiumBackground extends StatefulWidget {
   final Widget child;

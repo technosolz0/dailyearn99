@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:dio/dio.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:target99/core/constants/api_constants.dart';
-import 'package:target99/core/network/secure_storage_service.dart';
+import 'package:dailyearn99/core/constants/api_constants.dart';
+import 'package:dailyearn99/core/network/secure_storage_service.dart';
 
 class ApiClient {
   final Dio _dio;

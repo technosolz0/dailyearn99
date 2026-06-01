@@ -33,7 +33,7 @@ BASE_QUESTIONS = {
             "correct_answer_index": 2
         },
         {
-            "text": "What is the platform fee target percentage in target99?",
+            "text": "What is the platform fee target percentage in dailyearn99?",
             "options": ["10-20%", "15-35%", "50-60%", "5%"],
             "correct_answer_index": 1
         },
@@ -95,7 +95,7 @@ BASE_QUESTIONS = {
             "correct_answer_index": 2
         },
         {
-            "text": "target99 में प्लेटफॉर्म शुल्क का लक्ष्य प्रतिशत क्या है?",
+            "text": "dailyearn99 में प्लेटफॉर्म शुल्क का लक्ष्य प्रतिशत क्या है?",
             "options": ["10-20%", "15-35%", "50-60%", "5%"],
             "correct_answer_index": 1
         },
@@ -157,7 +157,7 @@ BASE_QUESTIONS = {
             "correct_answer_index": 2
         },
         {
-            "text": "target99 मध्ये प्लॅटफॉर्म फीचे लक्ष्य टक्केवारी काय आहे?",
+            "text": "dailyearn99 मध्ये प्लॅटफॉर्म फीचे लक्ष्य टक्केवारी काय आहे?",
             "options": ["10-20%", "15-35%", "50-60%", "5%"],
             "correct_answer_index": 1
         },
@@ -219,7 +219,7 @@ BASE_QUESTIONS = {
             "correct_answer_index": 2
         },
         {
-            "text": "target99 માં પ્લેટફોર્મ ફીની લક્ષ્ય ટકાવારી શું છે?",
+            "text": "dailyearn99 માં પ્લેટફોર્મ ફીની લક્ષ્ય ટકાવારી શું છે?",
             "options": ["10-20%", "15-35%", "50-60%", "5%"],
             "correct_answer_index": 1
         },

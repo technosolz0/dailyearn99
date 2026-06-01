@@ -1,4 +1,4 @@
-package com.target99.target99
+package com.dailyearn99.dailyearn99
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -2,12 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:target99/core/theme/app_theme.dart';
-import 'package:target99/core/models/contest_model.dart';
-import 'package:target99/features/app_bloc.dart';
-import 'package:target99/features/contest/leaderboard_screen.dart';
-import 'package:target99/core/network/api_client.dart';
-import 'package:target99/core/utils/dependency_injection.dart';
+import 'package:dailyearn99/core/theme/app_theme.dart';
+import 'package:dailyearn99/core/models/contest_model.dart';
+import 'package:dailyearn99/features/app_bloc.dart';
+import 'package:dailyearn99/features/contest/leaderboard_screen.dart';
+import 'package:dailyearn99/core/network/api_client.dart';
+import 'package:dailyearn99/core/utils/dependency_injection.dart';
 
 class QuizQuestion {
   final String text;

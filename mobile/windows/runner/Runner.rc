@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.target99" "\0"
-            VALUE "FileDescription", "target99" "\0"
+            VALUE "CompanyName", "com.dailyearn99" "\0"
+            VALUE "FileDescription", "DailyEarn99" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "target99" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.target99. All rights reserved." "\0"
-            VALUE "OriginalFilename", "target99.exe" "\0"
-            VALUE "ProductName", "target99" "\0"
+            VALUE "InternalName", "dailyearn99" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 com.dailyearn99. All rights reserved." "\0"
+            VALUE "OriginalFilename", "dailyearn99.exe" "\0"
+            VALUE "ProductName", "DailyEarn99" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

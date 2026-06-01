@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/word_puzzle_models.dart';
 import '../repository/word_puzzle_repository.dart';
+import 'package:dailyearn99/core/utils/error_handler.dart';
 
 // --- EVENTS ---
 abstract class WordPuzzleEvent {}
@@ -146,8 +147,8 @@ class WordPuzzleBloc extends Bloc<WordPuzzleEvent, WordPuzzleState> {
         sessionId: joinResult.sessionId,
         feeDeducted: joinResult.entryFeeDeducted,
       ));
-    } catch (e) {
-      emit(WordPuzzleErrorState(e.toString().replaceAll('Exception: ', '')));
+    } catch (e, stackTrace) {
+      emit(WordPuzzleErrorState(ErrorHandler.handle(e, stackTrace)));
     }
   }
 
@@ -214,8 +215,8 @@ class WordPuzzleBloc extends Bloc<WordPuzzleEvent, WordPuzzleState> {
         liveLeaderboard: _liveLeaderboard,
         isSubmittingAnswer: false,
       ));
-    } catch (e) {
-      emit(WordPuzzleErrorState(e.toString().replaceAll('Exception: ', '')));
+    } catch (e, stackTrace) {
+      emit(WordPuzzleErrorState(ErrorHandler.handle(e, stackTrace)));
     }
   }
 
@@ -308,10 +309,10 @@ class WordPuzzleBloc extends Bloc<WordPuzzleEvent, WordPuzzleState> {
           feedbackMessage: "Incorrect answer. Penalty applied! Try again.",
         ));
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       emit(currentState.copyWith(
         isSubmittingAnswer: false,
-        feedbackMessage: "Error submitting answer: $e",
+        feedbackMessage: ErrorHandler.handle(e, stackTrace),
       ));
     }
   }

@@ -19,7 +19,7 @@ keystores = [
     "/Users/anjitaitsolutions/Downloads/HP.jks",
     "/Users/anjitaitsolutions/Downloads/she-keystore.jks",
     "/Users/anjitaitsolutions/Downloads/gratefykey.jks",
-    "/Volumes/Untitled/aitest/target99/mobile/android/app/target99.jks"
+    "/Volumes/Untitled/aitest/target99/mobile/android/app/dailyearn99.jks"
 ]
 
 properties_files = [
@@ -38,7 +38,7 @@ properties_files = [
     "/Volumes/Untitled/aitest/target99/mobile/android/key.properties"
 ]
 
-passwords = {"Target@99", "android", "target99", "admin", "123456", "password"}
+passwords = {"Target@99", "android", "target99", "dailyearn99", "admin", "123456", "password"}
 
 # Extract passwords from property files
 for pf in properties_files:

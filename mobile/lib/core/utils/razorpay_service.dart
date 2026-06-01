@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:target99/core/theme/app_theme.dart';
-import 'package:target99/core/network/api_client.dart';
-import 'package:target99/core/utils/dependency_injection.dart';
-import 'package:target99/features/app_bloc.dart';
+import 'package:dailyearn99/core/theme/app_theme.dart';
+import 'package:dailyearn99/core/network/api_client.dart';
+import 'package:dailyearn99/core/utils/dependency_injection.dart';
+import 'package:dailyearn99/features/app_bloc.dart';
 
 class RazorpayService {
   static void openRazorpayPaymentSheet({

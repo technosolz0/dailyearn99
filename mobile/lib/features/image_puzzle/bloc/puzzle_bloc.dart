@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/puzzle_models.dart';
 import '../repository/puzzle_repository.dart';
+import 'package:dailyearn99/core/utils/error_handler.dart';
 
 // --- EVENTS ---
 abstract class PuzzleEvent {}
@@ -126,7 +127,9 @@ class PuzzleBloc extends Bloc<PuzzleEvent, PuzzleState> {
       _liveLeaderboard = [];
 
       try {
-        final initialRanks = await _repository.fetchLeaderboard(event.contestId);
+        final initialRanks = await _repository.fetchLeaderboard(
+          event.contestId,
+        );
         _liveLeaderboard = initialRanks;
       } catch (err) {
         print("Failed to fetch initial leaderboard: $err");
@@ -167,8 +170,8 @@ class PuzzleBloc extends Bloc<PuzzleEvent, PuzzleState> {
           elapsedSeconds: 0.0,
         ),
       );
-    } catch (e) {
-      emit(PuzzleErrorState(e.toString().replaceAll('Exception: ', '')));
+    } catch (e, stackTrace) {
+      emit(PuzzleErrorState(ErrorHandler.handle(e, stackTrace)));
     }
   }
 
@@ -278,8 +281,8 @@ class PuzzleBloc extends Bloc<PuzzleEvent, PuzzleState> {
         signature: _signature!,
       );
       emit(PuzzleSuccessState(result['score'] as int));
-    } catch (e) {
-      emit(PuzzleErrorState(e.toString().replaceAll('Exception: ', '')));
+    } catch (e, stackTrace) {
+      emit(PuzzleErrorState(ErrorHandler.handle(e, stackTrace)));
     }
   }
 

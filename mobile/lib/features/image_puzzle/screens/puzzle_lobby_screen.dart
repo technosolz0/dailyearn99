@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:target99/core/network/api_client.dart';
-import 'package:target99/core/utils/dependency_injection.dart';
+import 'package:dailyearn99/core/network/api_client.dart';
+import 'package:dailyearn99/core/utils/dependency_injection.dart';
 import '../bloc/puzzle_bloc.dart';
 import '../models/puzzle_models.dart';
 import '../repository/puzzle_repository.dart';

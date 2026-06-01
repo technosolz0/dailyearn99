@@ -1,15 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:target99/core/models/user_model.dart';
-import 'package:target99/core/theme/app_theme.dart';
-import 'package:target99/core/models/contest_model.dart';
-import 'package:target99/features/app_bloc.dart';
-import 'package:target99/features/contest/quiz_screen.dart';
-import 'package:target99/core/widgets/deposit_bottom_sheet.dart';
-import 'package:target99/features/image_puzzle/screens/puzzle_lobby_screen.dart';
-import 'package:target99/features/word_puzzle/screens/word_lobby_screen.dart';
-import 'package:target99/features/fruit_slicing/screens/fruit_lobby_screen.dart';
+import 'package:dailyearn99/core/models/user_model.dart';
+import 'package:dailyearn99/core/theme/app_theme.dart';
+import 'package:dailyearn99/core/models/contest_model.dart';
+import 'package:dailyearn99/features/app_bloc.dart';
+import 'package:dailyearn99/features/contest/quiz_screen.dart';
+import 'package:dailyearn99/core/widgets/deposit_bottom_sheet.dart';
+import 'package:dailyearn99/features/image_puzzle/screens/puzzle_lobby_screen.dart';
+import 'package:dailyearn99/features/word_puzzle/screens/word_lobby_screen.dart';
+import 'package:dailyearn99/features/fruit_slicing/screens/fruit_lobby_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

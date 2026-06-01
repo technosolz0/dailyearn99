@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:target99/core/constants/api_constants.dart';
-import 'package:target99/core/network/api_client.dart';
+import 'package:dailyearn99/core/constants/api_constants.dart';
+import 'package:dailyearn99/core/network/api_client.dart';
 import '../models/puzzle_models.dart';
 
 class PuzzleRepository {

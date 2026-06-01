@@ -135,7 +135,7 @@ def create_razorpay_order(
         "key_id": settings.RAZORPAY_KEY_ID,
         "currency": "INR",
         "user_phone": current_user.phone,
-        "user_email": current_user.email or f"{current_user.phone}@target99.com"
+        "user_email": current_user.email or f"{current_user.phone}@dailyearn99.com"
     }
 
 @router.post("/razorpay/verify-payment", response_model=UserResponse)
