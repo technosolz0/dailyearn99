@@ -571,7 +571,10 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                       height: 52.0,
                       onPressed: () {
                         final shortfall = betVal - totalUsable;
-                        DepositBottomSheet.show(context, defaultAmount: shortfall);
+                        DepositBottomSheet.show(
+                          context,
+                          defaultAmount: shortfall,
+                        );
                       },
                     ),
                   ] else ...[
@@ -749,8 +752,6 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
       },
     );
   }
-
-
 }
 
 // Custom Painter to draw Wheel wedges cleanly
@@ -826,12 +827,14 @@ class WheelPainter extends CustomPainter {
       textPainter.layout();
 
       // Position label inside the wedge radially
-      final double offsetRadius = radius * 0.65;
-      canvas.translate(offsetRadius, -textPainter.height / 2);
+      final double offsetRadius = radius * 0.62;
+      canvas.translate(offsetRadius, 0);
 
-      // Rotate label to align outwards
-      canvas.rotate(pi / 2);
-      textPainter.paint(canvas, Offset(-textPainter.width / 2, 0));
+      // Paint text centered at local origin (no rotation so it flows radially outwards)
+      textPainter.paint(
+        canvas,
+        Offset(-textPainter.width / 2, -textPainter.height / 2),
+      );
 
       canvas.restore();
     }
