@@ -58,6 +58,27 @@ def start_puzzle_session(
         )
         return session_data
     except ValueError as e:
+        if str(e) == "You have already started or joined this contest.":
+            from app.models import ImagePuzzleAttempt, ImagePuzzleGame
+            import json
+            att = db.query(ImagePuzzleAttempt).filter(
+                ImagePuzzleAttempt.contest_id == contest_id,
+                ImagePuzzleAttempt.user_id == current_user.id
+            ).first()
+            puzzle_game = db.query(ImagePuzzleGame).filter(ImagePuzzleGame.contest_id == contest_id).first()
+            contest = db.query(ImagePuzzleContest).filter(ImagePuzzleContest.id == contest_id).first()
+            if att and puzzle_game and contest:
+                from app.services import PuzzleAntiCheatService
+                signature = PuzzleAntiCheatService.generate_signature(att.session_id, contest_id, current_user.id)
+                return PuzzleStartSessionResponse(
+                    session_id=att.session_id,
+                    shuffled_layout=json.loads(puzzle_game.shuffled_layout),
+                    started_at=att.started_at,
+                    grid_size=contest.grid_size,
+                    duration_seconds=contest.duration_seconds,
+                    image_url=contest.image_url,
+                    signature=signature
+                )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)

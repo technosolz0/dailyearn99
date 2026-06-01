@@ -70,6 +70,15 @@ def join_fruit_contest(
             status="SUCCESS"
         )
     except ValueError as e:
+        if str(e) == "You have already started or joined this contest.":
+            from app.models import FruitMatch
+            m = db.query(FruitMatch).filter(FruitMatch.contest_id == payload.contest_id, FruitMatch.user_id == current_user.id).first()
+            if m:
+                return JoinFruitContestResponse(
+                    session_id=m.session_id,
+                    entry_fee_deducted=0.0,
+                    status="SUCCESS"
+                )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)

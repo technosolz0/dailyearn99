@@ -64,6 +64,18 @@ def join_word_contest(
         )
         return result
     except ValueError as e:
+        if str(e) == "You have already joined this contest.":
+            from app.models import WordAttempt
+            att = db.query(WordAttempt).filter(
+                WordAttempt.contest_id == payload.contest_id,
+                WordAttempt.user_id == current_user.id
+            ).first()
+            if att:
+                return {
+                    "session_id": att.session_id,
+                    "entry_fee_deducted": 0.0,
+                    "status": "SUCCESS"
+                }
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
@@ -89,6 +101,44 @@ def start_word_contest(
         )
         return session_data
     except ValueError as e:
+        if str(e) == "Session already started or processed.":
+            from app.models import WordAttempt, WordQuestion
+            from app.services import WordAntiCheatService
+            import json
+            att = db.query(WordAttempt).filter(
+                WordAttempt.session_id == session_id,
+                WordAttempt.user_id == current_user.id
+            ).first()
+            contest = db.query(WordContest).filter(WordContest.id == contest_id).first()
+            if att and contest:
+                # Fetch questions
+                questions = db.query(WordQuestion).filter(WordQuestion.contest_id == contest_id).all()
+                stripped_questions = []
+                for q in questions:
+                    try:
+                        p_data = json.loads(q.puzzle_data)
+                    except Exception:
+                        p_data = q.puzzle_data
+
+                    try:
+                        clues_data = json.loads(q.clues) if q.clues else None
+                    except Exception:
+                        clues_data = q.clues
+
+                    stripped_questions.append({
+                        "id": q.id,
+                        "game_type": q.game_type,
+                        "puzzle_data": p_data,
+                        "clues": clues_data,
+                        "points_reward": q.points_reward
+                    })
+                signature = WordAntiCheatService.generate_signature(session_id, current_user.id)
+                return {
+                    "questions": stripped_questions,
+                    "duration_seconds": contest.duration_seconds,
+                    "started_at": att.started_at,
+                    "signature": signature
+                }
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
