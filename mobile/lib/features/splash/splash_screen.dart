@@ -54,7 +54,7 @@ class SplashScreen extends StatelessWidget {
                   ),
                   children: [
                     TextSpan(
-                      text: 'Target',
+                      text: 'DailyEarn',
                       style: TextStyle(color: AppTheme.accentCyan),
                     ),
                     TextSpan(
