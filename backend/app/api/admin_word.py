@@ -8,8 +8,10 @@ from app.core.database import get_db
 from app.models import WordContest, WordQuestion
 from app.schemas import CreateWordContestRequest, WordContestResponse
 from app.services import WordRewardService
+from app.core.security import get_current_admin
 
-router = APIRouter(prefix="/admin/word-puzzle", tags=["Admin Word Puzzle"])
+router = APIRouter(prefix="/admin/word-puzzle", tags=["Admin Word Puzzle"], dependencies=[Depends(get_current_admin)])
+
 
 @router.post("/contests", response_model=WordContestResponse)
 def create_word_contest(

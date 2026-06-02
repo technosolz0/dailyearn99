@@ -9,6 +9,97 @@ let state = {
     withdrawals: []
 };
 
+// Global originalFetch Proxy to secure all API requests
+const originalFetch = window.fetch;
+window.fetch = async function (resource, init = {}) {
+    const token = localStorage.getItem('adminToken');
+    if (token && typeof resource === 'string' && resource.startsWith(API_BASE)) {
+        init.headers = init.headers || {};
+        if (init.headers instanceof Headers) {
+            if (!init.headers.has('Authorization')) {
+                init.headers.set('Authorization', `Bearer ${token}`);
+            }
+        } else {
+            if (!init.headers['Authorization'] && !init.headers['authorization']) {
+                init.headers['Authorization'] = `Bearer ${token}`;
+            }
+        }
+    }
+    
+    try {
+        const response = await originalFetch(resource, init);
+        if (response.status === 401 && typeof resource === 'string' && resource.startsWith(API_BASE)) {
+            if (!resource.includes('/admin/login')) {
+                handleUnauthorized();
+            }
+        }
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
+function handleUnauthorized() {
+    localStorage.removeItem('adminToken');
+    const appContainer = document.querySelector('.app-container');
+    if (appContainer) {
+        appContainer.style.display = 'none';
+    }
+    const loginOverlay = document.getElementById('admin-login-overlay');
+    if (loginOverlay) {
+        loginOverlay.classList.remove('hidden');
+    }
+}
+
+async function handleAdminLogin(username, password) {
+    const errorEl = document.getElementById('login-error');
+    errorEl.style.display = 'none';
+    
+    try {
+        const response = await originalFetch(`${API_BASE}/admin/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        
+        if (!response.ok) {
+            throw new Error("Invalid username or password");
+        }
+        
+        const data = await response.json();
+        localStorage.setItem('adminToken', data.access_token);
+        
+        const appContainer = document.querySelector('.app-container');
+        if (appContainer) {
+            appContainer.style.display = 'flex';
+        }
+        const loginOverlay = document.getElementById('admin-login-overlay');
+        if (loginOverlay) {
+            loginOverlay.classList.add('hidden');
+        }
+        
+        showToast("Authenticated successfully!");
+        
+        // Reset inputs
+        document.getElementById('login-username').value = '';
+        document.getElementById('login-password').value = '';
+        
+        loadDashboardData();
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab') || window.location.hash.substring(1);
+        if (tabParam) {
+            const tabButton = document.querySelector(`.menu-item[data-tab="${tabParam}"]`);
+            if (tabButton) {
+                tabButton.click();
+            }
+        }
+    } catch (err) {
+        errorEl.innerText = "Invalid username or password.";
+        errorEl.style.display = 'block';
+    }
+}
+
 // Elements
 const el = {
     get tabs() { return document.querySelectorAll('.menu-item'); },
@@ -49,13 +140,91 @@ const el = {
 
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
+    // Intercept submit on the login form
+    const loginForm = document.getElementById('admin-login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const u = document.getElementById('login-username').value.trim();
+            const p = document.getElementById('login-password').value;
+            handleAdminLogin(u, p);
+        });
+    }
+    
+    // Add logout event listener
+    const logoutBtn = document.getElementById('btn-logout');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            handleUnauthorized();
+            showToast("Logged out successfully.");
+        });
+    }
+    
+    // Add details modal close listeners
+    const closeDetailsBtn = document.getElementById('btn-close-details-modal');
+    if (closeDetailsBtn) {
+        closeDetailsBtn.addEventListener('click', () => {
+            document.getElementById('user-details-modal').classList.remove('show');
+        });
+    }
+    const detailsModal = document.getElementById('user-details-modal');
+    if (detailsModal) {
+        detailsModal.addEventListener('click', (e) => {
+            if (e.target === detailsModal) {
+                detailsModal.classList.remove('show');
+            }
+        });
+    }
+
     setupTabNavigation();
     setupEventHandlers();
-    loadDashboardData();
 
-    // Automatically poll stats every 30 seconds
-    setInterval(loadDashboardData, 30000);
+    // Check initial authentication status
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+        handleUnauthorized();
+    } else {
+        // Try verifying the token with stats endpoint
+        originalFetch(`${API_BASE}/admin/stats`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        }).then(res => {
+            if (res.ok) {
+                const appContainer = document.querySelector('.app-container');
+                if (appContainer) {
+                    appContainer.style.display = 'flex';
+                }
+                const loginOverlay = document.getElementById('admin-login-overlay');
+                if (loginOverlay) {
+                    loginOverlay.classList.add('hidden');
+                }
+                
+                loadDashboardData();
+                
+                // Handle URL parameter / Hash tab redirection
+                const urlParams = new URLSearchParams(window.location.search);
+                const tabParam = urlParams.get('tab') || window.location.hash.substring(1);
+                if (tabParam) {
+                    const tabButton = document.querySelector(`.menu-item[data-tab="${tabParam}"]`);
+                    if (tabButton) {
+                        tabButton.click();
+                    }
+                }
+                
+                // Automatically poll stats every 30 seconds if authenticated
+                setInterval(() => {
+                    if (localStorage.getItem('adminToken')) {
+                        loadDashboardData();
+                    }
+                }, 30000);
+            } else {
+                handleUnauthorized();
+            }
+        }).catch(() => {
+            handleUnauthorized();
+        });
+    }
 });
+
 
 // Toast Notifications
 function showToast(message, isError = false) {
@@ -942,12 +1111,160 @@ function renderUsersTable(usersList) {
                     <div style="display: flex; gap: 8px; align-items: center;">
                         ${banBtn}
                         <button class="btn btn-action" style="background-color: rgba(0, 210, 255, 0.1); color: var(--primary); border: 1px solid rgba(0, 210, 255, 0.2);" onclick="openAdjustBalanceModal(${u.id}, '${u.name ? u.name.replace(/'/g, "\\'") : 'Anonymous'}', '${u.phone}')">Adjust Balance</button>
+                        <button class="btn btn-action" style="background-color: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid var(--border-color);" onclick="viewUserDetails(${u.id})">View Details</button>
                     </div>
                 </td>
             </tr>
         `;
     }).join('');
 }
+
+function viewUserDetails(userId) {
+    const u = state.users.find(x => x.id === userId);
+    if (!u) {
+        showToast("User details not found locally.", true);
+        return;
+    }
+    
+    const detailsContent = document.getElementById('user-details-content');
+    detailsContent.innerHTML = `
+        <!-- Profile & Status -->
+        <div>
+            <div class="profile-section-title">Personal Details</div>
+            <div class="profile-info-grid">
+                <div class="profile-card">
+                    <div class="profile-field-row">
+                        <span class="profile-field-lbl">User ID</span>
+                        <span class="profile-field-val">${u.id}</span>
+                    </div>
+                    <div class="profile-field-row">
+                        <span class="profile-field-lbl">Full Name</span>
+                        <span class="profile-field-val">${u.name || (u.first_name ? `${u.first_name} ${u.last_name || ''}` : 'Anonymous')}</span>
+                    </div>
+                    <div class="profile-field-row">
+                        <span class="profile-field-lbl">Mobile Number</span>
+                        <span class="profile-field-val">${u.phone}</span>
+                    </div>
+                    <div class="profile-field-row">
+                        <span class="profile-field-lbl">Email Address</span>
+                        <span class="profile-field-val">${u.email || '-'}</span>
+                    </div>
+                </div>
+                
+                <div class="profile-card">
+                    <div class="profile-field-row">
+                        <span class="profile-field-lbl">Referral Code</span>
+                        <span class="profile-field-val">${u.referral_code}</span>
+                    </div>
+                    <div class="profile-field-row">
+                        <span class="profile-field-lbl">Referred By</span>
+                        <span class="profile-field-val">${u.referred_by || '-'}</span>
+                    </div>
+                    <div class="profile-field-row">
+                        <span class="profile-field-lbl">KYC Status</span>
+                        <span class="profile-field-val">
+                            <span class="badge ${u.kyc_status === 'VERIFIED' ? 'badge-success' : 'badge-warning'}">
+                                ${u.kyc_status}
+                            </span>
+                        </span>
+                    </div>
+                    <div class="profile-field-row">
+                        <span class="profile-field-lbl">Account Status</span>
+                        <span class="profile-field-val">
+                            <span class="badge ${u.is_banned ? 'badge-error' : 'badge-success'}">
+                                ${u.is_banned ? 'BANNED' : 'ACTIVE'}
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wallets & Finances -->
+        <div>
+            <div class="profile-section-title">Finances & Wallets</div>
+            <div class="profile-stats-grid">
+                <div class="profile-stat-box">
+                    <div class="profile-stat-num dep">₹${u.deposit_balance.toFixed(2)}</div>
+                    <div class="profile-stat-label">Deposit Wallet</div>
+                </div>
+                <div class="profile-stat-box">
+                    <div class="profile-stat-num win">₹${u.winning_balance.toFixed(2)}</div>
+                    <div class="profile-stat-label">Winning Wallet</div>
+                </div>
+                <div class="profile-stat-box">
+                    <div class="profile-stat-num bon">₹${u.bonus_balance.toFixed(2)}</div>
+                    <div class="profile-stat-label">Bonus Wallet</div>
+                </div>
+                <div class="profile-stat-box">
+                    <div class="profile-stat-num" style="color: var(--warning);">₹${(u.deposit_balance + u.winning_balance + u.bonus_balance).toFixed(2)}</div>
+                    <div class="profile-stat-label">Total Value</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bank Details -->
+        <div>
+            <div class="profile-section-title">Bank Details</div>
+            <div class="profile-card" style="background: rgba(0, 210, 255, 0.02); border-color: rgba(0, 210, 255, 0.15);">
+                ${u.bank_account_number ? `
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                        <div>
+                            <div class="profile-field-row">
+                                <span class="profile-field-lbl">Holder Name</span>
+                                <span class="profile-field-val" style="color: var(--primary);">${u.bank_account_holder_name}</span>
+                            </div>
+                            <div class="profile-field-row">
+                                <span class="profile-field-lbl">Bank Name</span>
+                                <span class="profile-field-val">${u.bank_name}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="profile-field-row">
+                                <span class="profile-field-lbl">Account Number</span>
+                                <span class="profile-field-val" style="font-family: monospace;">${u.bank_account_number}</span>
+                            </div>
+                            <div class="profile-field-row">
+                                <span class="profile-field-lbl">IFSC Code</span>
+                                <span class="profile-field-val" style="font-family: monospace; text-transform: uppercase;">${u.bank_ifsc_code}</span>
+                            </div>
+                        </div>
+                    </div>
+                ` : `
+                    <div style="text-align: center; color: var(--text-muted); font-style: italic; padding: 10px 0;">
+                        No bank accounts registered by this user.
+                    </div>
+                `}
+            </div>
+        </div>
+
+        <!-- Game Metrics & Engagements -->
+        <div>
+            <div class="profile-section-title">Game Engagement Metrics</div>
+            <div class="profile-stats-grid">
+                <div class="profile-stat-box">
+                    <div class="profile-stat-num" style="color: #fff;">${u.joined_contest_ids ? u.joined_contest_ids.length : 0} / ${u.completed_contest_ids ? u.completed_contest_ids.length : 0}</div>
+                    <div class="profile-stat-label">Math Quiz (Join/End)</div>
+                </div>
+                <div class="profile-stat-box">
+                    <div class="profile-stat-num" style="color: #fff;">${u.joined_word_contest_ids ? u.joined_word_contest_ids.length : 0} / ${u.completed_word_contest_ids ? u.completed_word_contest_ids.length : 0}</div>
+                    <div class="profile-stat-label">Word Guess (Join/End)</div>
+                </div>
+                <div class="profile-stat-box">
+                    <div class="profile-stat-num" style="color: #fff;">${u.joined_puzzle_contest_ids ? u.joined_puzzle_contest_ids.length : 0} / ${u.completed_puzzle_contest_ids ? u.completed_puzzle_contest_ids.length : 0}</div>
+                    <div class="profile-stat-label">Slide Puzzle (Join/End)</div>
+                </div>
+                <div class="profile-stat-box">
+                    <div class="profile-stat-num" style="color: #fff;">${u.joined_fruit_contest_ids ? u.joined_fruit_contest_ids.length : 0} / ${u.completed_fruit_contest_ids ? u.completed_fruit_contest_ids.length : 0}</div>
+                    <div class="profile-stat-label">Fruit Slicing (Join/End)</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('user-details-modal').classList.add('show');
+}
+
 
 function filterUsersTable(query) {
     const filtered = state.users.filter(u =>

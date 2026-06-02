@@ -784,3 +784,148 @@ input:focus {
     font-family: inherit;
 }
 
+/* ==========================================
+   ADMIN LOGIN SCREEN STYLING
+   ========================================== */
+.login-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: var(--bg-dark);
+    background-image: radial-gradient(circle at 50% 50%, rgba(0, 210, 255, 0.09) 0%, transparent 65%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.login-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.login-card {
+    background: rgba(15, 18, 29, 0.7);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    padding: 40px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    text-align: center;
+    animation: loginFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes loginFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.login-header {
+    margin-bottom: 30px;
+}
+
+.login-card .logo {
+    font-size: 32px;
+    margin-bottom: 4px;
+}
+
+/* ==========================================
+   USER PROFILE DETAILS STYLING
+   ========================================== */
+.profile-section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    font-weight: 700;
+    margin-top: 5px;
+    margin-bottom: 12px;
+    border-left: 3px solid var(--primary);
+    padding-left: 8px;
+}
+
+.profile-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 8px;
+}
+
+.profile-card {
+    background-color: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.profile-field-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.04);
+}
+
+.profile-field-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.profile-field-row:first-child {
+    padding-top: 0;
+}
+
+.profile-field-lbl {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.profile-field-val {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.profile-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.profile-stat-box {
+    background-color: rgba(255, 255, 255, 0.015);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+}
+
+.profile-stat-num {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 4px;
+}
+
+.profile-stat-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+

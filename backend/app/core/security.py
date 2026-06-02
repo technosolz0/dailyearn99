@@ -90,3 +90,22 @@ def get_current_user(
         )
     return user
 
+
+def get_current_admin(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme)
+) -> str:
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization header missing or invalid format (Use Bearer token)",
+        )
+    token = credentials.credentials
+    sub = verify_token(token)
+    if sub != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Admin token is invalid or expired or not authorized",
+        )
+    return sub
+
+

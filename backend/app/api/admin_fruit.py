@@ -9,8 +9,10 @@ from app.core.database import get_db
 from app.models import FruitContest
 from app.schemas import FruitContestCreate, FruitContestResponse
 from app.services import FruitRewardService
+from app.core.security import get_current_admin
 
-router = APIRouter(prefix="/admin/fruit-slicing", tags=["Admin Fruit Slicing"])
+router = APIRouter(prefix="/admin/fruit-slicing", tags=["Admin Fruit Slicing"], dependencies=[Depends(get_current_admin)])
+
 
 @router.post("/contests", response_model=FruitContestResponse)
 def create_fruit_contest(

@@ -185,6 +185,11 @@ class AdminAdjustBalanceRequest(BaseModel):
     amount: float
     wallet_type: str = Field(..., description="'deposit', 'winning', or 'bonus'")
 
+class AdminLoginRequest(BaseModel):
+    username: str
+    password: str
+
+
 class RazorpayCreateOrderRequest(BaseModel):
     amount: float = Field(..., gt=0)
 

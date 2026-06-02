@@ -115,12 +115,22 @@
             </nav>
 
             <div class="sidebar-footer">
-                <div class="user-profile">
-                    <div class="avatar">A</div>
-                    <div class="profile-info">
-                        <div class="name">Administrator</div>
-                        <div class="role">Platform Control</div>
+                <div class="user-profile" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="avatar">A</div>
+                        <div class="profile-info">
+                            <div class="name">Administrator</div>
+                            <div class="role">Platform Control</div>
+                        </div>
                     </div>
+                    <button id="btn-logout" class="btn btn-secondary btn-icon" style="padding: 8px; font-size: 11px; margin-top: 4px; width: 100%; border-color: rgba(255, 23, 68, 0.15); color: var(--error); background: rgba(255, 23, 68, 0.04); display: flex; justify-content: center; align-items: center; border-radius: 8px;">
+                        <svg class="btn-icon-svg" style="width:12px; height:12px; stroke: currentColor;" viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                        Log Out
+                    </button>
                 </div>
             </div>
         </aside>
@@ -1200,6 +1210,43 @@
                 </div>
                 <button type="submit" class="btn btn-primary btn-full" style="margin-top: 10px;">Update Balance</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Admin Login Screen -->
+    <div id="admin-login-overlay" class="login-overlay">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="logo"><span class="logo-accent">target</span>99</div>
+                <div class="logo-sub">ADMIN PORTAL</div>
+            </div>
+            <form id="admin-login-form" class="contest-form">
+                <div id="login-error" style="display: none; color: var(--error); font-size: 13px; font-weight: 600; text-align: center; padding: 10px; background: rgba(255, 23, 68, 0.1); border: 1px solid rgba(255, 23, 68, 0.2); border-radius: 8px; margin-bottom: 5px;">
+                    Invalid username or password.
+                </div>
+                <div class="form-group">
+                    <label for="login-username">Admin Username</label>
+                    <input type="text" id="login-username" placeholder="Enter admin username" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Admin Password</label>
+                    <input type="password" id="login-password" placeholder="Enter admin password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 10px;">Authenticate & Enter</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- User Details Modal -->
+    <div id="user-details-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 650px;">
+            <div class="modal-header">
+                <h2>User Profile & Audit Details</h2>
+                <button class="btn-close" id="btn-close-details-modal">&times;</button>
+            </div>
+            <div id="user-details-content" style="font-size: 13px; display: flex; flex-direction: column; gap: 20px;">
+                <!-- Dynamic profile audit loaded here -->
+            </div>
         </div>
     </div>
 

@@ -8,11 +8,30 @@ from app.core.database import get_db
 from app.models import User, Contest, WalletTransaction
 from app.schemas import (
     AdminStatsResponse, UserResponse, ContestCreate, ContestResponse, TransactionResponse,
-    AdminAdjustBalanceRequest, QuestionSchema
+    AdminAdjustBalanceRequest, QuestionSchema, AdminLoginRequest
 )
 from app.core.config import settings
+from app.core.security import get_current_admin, create_access_token
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+public_router = APIRouter(prefix="/admin", tags=["Admin Public"])
+
+@public_router.post("/login")
+def admin_login(request: AdminLoginRequest):
+    if request.username == settings.ADMIN_USERNAME and request.password == settings.ADMIN_PASSWORD:
+        token = create_access_token(subject="admin")
+        return {"access_token": token, "token_type": "bearer"}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid admin username or password"
+        )
+
+router = APIRouter(
+    prefix="/admin",
+    tags=["admin"],
+    dependencies=[Depends(get_current_admin)]
+)
+
 
 @router.get("/stats", response_model=AdminStatsResponse)
 def get_stats(db: Session = Depends(get_db)):

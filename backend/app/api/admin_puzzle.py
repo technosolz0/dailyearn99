@@ -7,8 +7,10 @@ from app.core.database import get_db
 from app.models import ImagePuzzleContest, ImagePuzzleGame
 from app.schemas import ImagePuzzleContestCreate, ImagePuzzleContestResponse
 from app.services import PuzzleRewardService
+from app.core.security import get_current_admin
 
-router = APIRouter(prefix="/admin/puzzle", tags=["admin_puzzle"])
+router = APIRouter(prefix="/admin/puzzle", tags=["admin_puzzle"], dependencies=[Depends(get_current_admin)])
+
 
 @router.post("/contests", response_model=ImagePuzzleContestResponse)
 def create_puzzle_contest(
