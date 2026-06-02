@@ -416,7 +416,7 @@ class FruitLeaderboard(Base):
     __tablename__ = "fruit_leaderboards"
 
     id = Column(Integer, primary_key=True, index=True)
-    contest_id = Column(Integer, ForeignKey("fruit_contests.id", ondelete="CASCADE"), nullable=False)
+    contest_id = Column(Integer, ForeignKey("fruit_contests.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     score = Column(Integer, nullable=False)
     max_combo = Column(Integer, nullable=False)
@@ -428,6 +428,13 @@ class FruitLeaderboard(Base):
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
+class Notification(Base):
+    __tablename__ = "notifications"
 
-
-
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Null implies broadcast notification
+    title = Column(String, nullable=False)
+    body = Column(String, nullable=False)
+    data_json = Column(String, nullable=True)  # JSON-serialized metadata
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

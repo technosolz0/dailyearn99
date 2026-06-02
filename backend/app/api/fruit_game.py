@@ -27,12 +27,39 @@ def get_fruit_contests(db: Session = Depends(get_db)):
     """
     now = datetime.now(timezone.utc)
     
-    # 1. Bulk transition UPCOMING to ACTIVE
-    db.query(FruitContest).filter(
+    # 1. Select upcoming contests to transition and trigger notifications
+    upcoming_to_active = db.query(FruitContest).filter(
         FruitContest.status == "UPCOMING",
         FruitContest.start_time <= now
-    ).update({FruitContest.status: "ACTIVE"}, synchronize_session=False)
-    db.commit()
+    ).all()
+
+    for c in upcoming_to_active:
+        c.status = "ACTIVE"
+        db.commit()
+
+        # Find all users registered in this contest
+        from app.models import FruitMatch, Notification
+        from app.core.notifications import send_push_to_user
+        import json
+
+        matches = db.query(FruitMatch).filter(FruitMatch.contest_id == c.id).all()
+        for match in matches:
+            title = "🍎 Fruit Slicing Tournament Started!"
+            body = f"The tournament '{c.title}' has officially started! Tap to slice and earn now!"
+            data = {"type": "contest_started", "contest_id": str(c.id), "category": "FRUIT"}
+
+            # Save in database
+            db_notification = Notification(
+                user_id=match.user_id,
+                title=title,
+                body=body,
+                data_json=json.dumps(data)
+            )
+            db.add(db_notification)
+            db.commit()
+
+            # Trigger push notification
+            send_push_to_user(db, match.user_id, title, body, data)
 
     # 2. Selectively process rewards only for expired ACTIVE contests
     expired_contests = db.query(FruitContest).filter(

@@ -25,12 +25,39 @@ def get_word_contests(db: Session = Depends(get_db)):
     """
     now = datetime.now(timezone.utc)
     
-    # 1. Bulk transition UPCOMING to ACTIVE
-    db.query(WordContest).filter(
+    # 1. Select upcoming contests to transition and trigger notifications
+    upcoming_to_active = db.query(WordContest).filter(
         WordContest.status == "UPCOMING",
         WordContest.start_time <= now
-    ).update({WordContest.status: "ACTIVE"}, synchronize_session=False)
-    db.commit()
+    ).all()
+
+    for c in upcoming_to_active:
+        c.status = "ACTIVE"
+        db.commit()
+
+        # Find all users registered in this contest
+        from app.models import WordAttempt, Notification
+        from app.core.notifications import send_push_to_user
+        import json
+
+        attempts = db.query(WordAttempt).filter(WordAttempt.contest_id == c.id).all()
+        for att in attempts:
+            title = "🔤 Word Guess Contest Started!"
+            body = f"The contest '{c.title}' has officially started! Tap to unscramble and earn!"
+            data = {"type": "contest_started", "contest_id": str(c.id), "category": "WORD"}
+
+            # Save in database
+            db_notification = Notification(
+                user_id=att.user_id,
+                title=title,
+                body=body,
+                data_json=json.dumps(data)
+            )
+            db.add(db_notification)
+            db.commit()
+
+            # Trigger push notification
+            send_push_to_user(db, att.user_id, title, body, data)
 
     # 2. Selectively process rewards only for expired ACTIVE contests
     expired_contests = db.query(WordContest).filter(

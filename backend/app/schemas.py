@@ -550,6 +550,19 @@ class FruitLeaderboardItem(BaseModel):
         from_attributes = True
 
 
+class NotificationResponse(BaseModel):
+    id: int
+    title: str
+    body: str
+    data: Optional[dict] = None
+    is_read: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+
 
 
 

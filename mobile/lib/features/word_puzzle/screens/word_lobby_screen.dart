@@ -273,19 +273,47 @@ class _WordLobbyScreenState extends State<WordLobbyScreen> {
                       ),
                     )
                   else if (isJoined)
-                    ElevatedButton.icon(
-                      onPressed: () => _startGamePlay(context, contest),
-                      icon: const Icon(Icons.play_arrow),
-                      label: const Text('PLAY CHALLENGE NOW'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00E5FF),
-                        foregroundColor: Colors.black,
-                        minimumSize: const Size(double.infinity, 44),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                    if (isActive)
+                      ElevatedButton.icon(
+                        onPressed: () => _startGamePlay(context, contest),
+                        icon: const Icon(Icons.play_arrow),
+                        label: const Text('PLAY CHALLENGE NOW'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00E5FF),
+                          foregroundColor: Colors.black,
+                          minimumSize: const Size(double.infinity, 44),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
-                      ),
-                    )
+                      )
+                    else
+                      Column(
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: null,
+                            icon: const Icon(Icons.lock_clock, color: Colors.white38),
+                            label: Text(
+                              'STARTS AT ${contest.startTime.toLocal().hour.toString().padLeft(2, '0')}:${contest.startTime.toLocal().minute.toString().padLeft(2, '0')}',
+                              style: const TextStyle(color: Colors.white38, fontWeight: FontWeight.bold),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white12,
+                              disabledBackgroundColor: Colors.white12,
+                              minimumSize: const Size(double.infinity, 44),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Aapne register kar liya hai! Challenge start hone ka wait karein.',
+                            style: TextStyle(color: Colors.orangeAccent, fontSize: 11.5, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      )
                   else
                     ElevatedButton(
                       onPressed: () => _showJoinConfirmation(context, contest),

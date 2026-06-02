@@ -9,7 +9,7 @@ import os
 from app.core.config import settings
 from app.core.database import engine, Base, get_db
 from app.models import Contest
-from app.api import auth, contests, wallet, referral, admin, spin, puzzle_game, admin_puzzle, word_game, admin_word, fruit_game, admin_fruit
+from app.api import auth, contests, wallet, referral, admin, spin, puzzle_game, admin_puzzle, word_game, admin_word, fruit_game, admin_fruit, notifications
 from app.websocket import manager, puzzle_ws_manager, word_ws_manager, fruit_ws_manager
 
 # Create database tables
@@ -394,6 +394,7 @@ app.include_router(word_game.router, prefix=settings.API_V1_STR)
 app.include_router(admin_word.router, prefix=settings.API_V1_STR)
 app.include_router(fruit_game.router, prefix=settings.API_V1_STR)
 app.include_router(admin_fruit.router, prefix=settings.API_V1_STR)
+app.include_router(notifications.router, prefix=settings.API_V1_STR)
 
 # Realtime Leaderboard WebSocket endpoint
 @app.websocket("/ws/leaderboard/{contest_id}")
