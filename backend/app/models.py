@@ -271,6 +271,8 @@ class ImagePuzzleAttempt(Base):
     status = Column(String, default="IN_PROGRESS")  # IN_PROGRESS, SUBMITTED, VERIFIED, SUSPICIOUS
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+    user = relationship("User")
+
 
 class ImagePuzzleLeaderboard(Base):
     __tablename__ = "image_puzzle_leaderboard"
@@ -282,6 +284,8 @@ class ImagePuzzleLeaderboard(Base):
     completion_seconds = Column(Float, nullable=False)
     rank = Column(Integer, nullable=False)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User")
 
 
 class WordContest(Base):
@@ -335,6 +339,8 @@ class WordAttempt(Base):
     submitted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+    user = relationship("User")
+
 
 class WordAnswer(Base):
     __tablename__ = "word_answers"
@@ -365,6 +371,8 @@ class WordLeaderboard(Base):
     is_paid = Column(Boolean, default=False)
     paid_at = Column(DateTime, nullable=True)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User")
 
 
 class FruitContest(Base):
@@ -401,6 +409,8 @@ class FruitMatch(Base):
     signature = Column(String, nullable=False)  # Cryptographic validation hash
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+    user = relationship("User")
+
 
 class FruitEvent(Base):
     __tablename__ = "fruit_events"
@@ -429,6 +439,8 @@ class FruitScore(Base):
     is_verified = Column(Boolean, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+    user = relationship("User")
+
 
 class FruitLeaderboard(Base):
     __tablename__ = "fruit_leaderboards"
@@ -444,6 +456,8 @@ class FruitLeaderboard(Base):
     is_paid = Column(Boolean, default=False)
     paid_at = Column(DateTime, nullable=True)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User")
 
 
 class ArrowContest(Base):
@@ -493,6 +507,8 @@ class ArrowAttempt(Base):
     submitted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+    user = relationship("User")
+
 
 class ArrowLeaderboard(Base):
     __tablename__ = "arrow_leaderboards"
@@ -507,6 +523,8 @@ class ArrowLeaderboard(Base):
     is_paid = Column(Boolean, default=False)
     paid_at = Column(DateTime, nullable=True)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User")
 
 
 class Notification(Base):

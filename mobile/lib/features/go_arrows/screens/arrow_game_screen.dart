@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/arrow_bloc.dart';
@@ -19,6 +20,7 @@ class ArrowGameScreen extends StatefulWidget {
 
 class _ArrowGameScreenState extends State<ArrowGameScreen> {
   final Map<int, double> _shakeOffsets = {};
+  String _selectedShape = 'arrow';
 
   void _triggerShake(int blockId) {
     if (!mounted) return;
@@ -57,51 +59,49 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
     });
   }
 
-  bool _isObstructed(ArrowBlockModel tappedBlock, List<ArrowBlockModel> activeBlocks, int gridSize) {
+  bool _isObstructed(
+    ArrowBlockModel tappedBlock,
+    List<ArrowBlockModel> activeBlocks,
+    int gridSize,
+  ) {
     int r = tappedBlock.row;
     int c = tappedBlock.col;
     String d = tappedBlock.direction;
 
     if (d == 'UP') {
       for (int rCheck = 0; rCheck < r; rCheck++) {
-        if (activeBlocks.any((b) => !b.isCleared && b.row == rCheck && b.col == c)) {
+        if (activeBlocks.any(
+          (b) => !b.isCleared && b.row == rCheck && b.col == c,
+        )) {
           return true;
         }
       }
     } else if (d == 'DOWN') {
       for (int rCheck = r + 1; rCheck < gridSize; rCheck++) {
-        if (activeBlocks.any((b) => !b.isCleared && b.row == rCheck && b.col == c)) {
+        if (activeBlocks.any(
+          (b) => !b.isCleared && b.row == rCheck && b.col == c,
+        )) {
           return true;
         }
       }
     } else if (d == 'LEFT') {
       for (int cCheck = 0; cCheck < c; cCheck++) {
-        if (activeBlocks.any((b) => !b.isCleared && b.row == r && b.col == cCheck)) {
+        if (activeBlocks.any(
+          (b) => !b.isCleared && b.row == r && b.col == cCheck,
+        )) {
           return true;
         }
       }
     } else if (d == 'RIGHT') {
       for (int cCheck = c + 1; cCheck < gridSize; cCheck++) {
-        if (activeBlocks.any((b) => !b.isCleared && b.row == r && b.col == cCheck)) {
+        if (activeBlocks.any(
+          (b) => !b.isCleared && b.row == r && b.col == cCheck,
+        )) {
           return true;
         }
       }
     }
     return false;
-  }
-
-  IconData _getArrowIcon(String direction) {
-    switch (direction) {
-      case 'UP':
-        return Icons.arrow_upward_rounded;
-      case 'DOWN':
-        return Icons.arrow_downward_rounded;
-      case 'LEFT':
-        return Icons.arrow_back_rounded;
-      case 'RIGHT':
-      default:
-        return Icons.arrow_forward_rounded;
-    }
   }
 
   @override
@@ -165,7 +165,9 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
       child: Column(
         children: [
           _buildStatsBar(state),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
+          _buildShapeSelector(),
+          const SizedBox(height: 12),
           Expanded(
             child: Center(
               child: AspectRatio(
@@ -222,34 +224,26 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
                               child: GestureDetector(
                                 onTap: () {
                                   if (block.isCleared) return;
-                                  final blocked = _isObstructed(block, state.blocks, state.gridSize);
+                                  final blocked = _isObstructed(
+                                    block,
+                                    state.blocks,
+                                    state.gridSize,
+                                  );
                                   if (blocked) {
                                     _triggerShake(block.id);
                                   }
-                                  context.read<ArrowBloc>().add(TapArrowEvent(block.id));
+                                  context.read<ArrowBloc>().add(
+                                    TapArrowEvent(block.id),
+                                  );
                                 },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF241C44),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: const Color(0xFFFF9900).withOpacity(0.6),
-                                      width: 1.5,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFFFF9900).withOpacity(0.08),
-                                        blurRadius: 6,
-                                        spreadRadius: 1,
-                                      ),
-                                    ],
+                                child: CustomPaint(
+                                  painter: ArrowBlockPainter(
+                                    direction: block.direction,
+                                    shapeType: _selectedShape,
+                                    isObstructed:
+                                        (_shakeOffsets[block.id] ?? 0.0) != 0.0,
                                   ),
-                                  alignment: Alignment.center,
-                                  child: Icon(
-                                    _getArrowIcon(block.direction),
-                                    color: const Color(0xFFFF9900),
-                                    size: segmentSize * 0.45,
-                                  ),
+                                  child: Container(alignment: Alignment.center),
                                 ),
                               ),
                             ),
@@ -439,11 +433,7 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
       child: Text(
         '⚠️ Dhyan rahein: Agar arrow ke raste me koi dusra block hai toh tap karne par collision shake hoga aur score deduct hoga! Clear the entire board as fast as possible.',
         textAlign: TextAlign.center,
-        style: TextStyle(
-          color: Colors.white38,
-          fontSize: 10.5,
-          height: 1.4,
-        ),
+        style: TextStyle(color: Colors.white38, fontSize: 10.5, height: 1.4),
       ),
     );
   }
@@ -516,5 +506,239 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
         );
       },
     );
+  }
+
+  Widget _buildShapeSelector() {
+    final shapes = [
+      {'id': 'arrow', 'name': 'ARROW', 'icon': Icons.navigation_rounded},
+      {'id': 'delta', 'name': 'DELTA', 'icon': Icons.change_history_rounded},
+      {'id': 'pentagon', 'name': 'SHIELD', 'icon': Icons.shield_rounded},
+      {'id': 'classic', 'name': 'CLASSIC', 'icon': Icons.crop_square_rounded},
+    ];
+
+    return Container(
+      height: 38,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          const Text(
+            'SHAPE:',
+            style: TextStyle(
+              color: Colors.white54,
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: shapes.map((shape) {
+                final isSelected = _selectedShape == shape['id'];
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedShape = shape['id'] as String;
+                    });
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFFFF9900)
+                          : const Color(0xFF140F2D),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected
+                            ? const Color(0xFFFF9900)
+                            : Colors.white24,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          shape['icon'] as IconData,
+                          size: 13,
+                          color: isSelected ? Colors.black : Colors.white70,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          shape['name'] as String,
+                          style: TextStyle(
+                            color: isSelected ? Colors.black : Colors.white70,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ArrowBlockPainter extends CustomPainter {
+  final String direction;
+  final String shapeType; // 'arrow', 'delta', 'pentagon', 'classic'
+  final bool isObstructed;
+
+  ArrowBlockPainter({
+    required this.direction,
+    required this.shapeType,
+    this.isObstructed = false,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Save canvas state
+    canvas.save();
+
+    // Translate to center and rotate based on direction
+    canvas.translate(w / 2, h / 2);
+    double angle = 0;
+    if (direction == 'RIGHT') {
+      angle = math.pi / 2;
+    } else if (direction == 'DOWN') {
+      angle = math.pi;
+    } else if (direction == 'LEFT') {
+      angle = 3 * math.pi / 2;
+    }
+    canvas.rotate(angle);
+    canvas.translate(-w / 2, -h / 2);
+
+    final path = Path();
+
+    // Padding to ensure line stroke is not cut off
+    double pad = 3.0;
+    double pw = w - pad * 2;
+    double ph = h - pad * 2;
+
+    if (shapeType == 'arrow') {
+      path.moveTo(w / 2, pad);
+      path.lineTo(w - pad, ph * 0.42 + pad);
+      path.lineTo(w * 0.70, ph * 0.38 + pad);
+      path.lineTo(w * 0.70, ph * 0.95 + pad);
+      path.lineTo(w * 0.30, ph * 0.95 + pad);
+      path.lineTo(w * 0.30, ph * 0.38 + pad);
+      path.lineTo(pad, ph * 0.42 + pad);
+      path.close();
+    } else if (shapeType == 'delta') {
+      path.moveTo(w / 2, pad);
+      path.lineTo(w - pad, ph * 0.95 + pad);
+      path.lineTo(w / 2, ph * 0.75 + pad);
+      path.lineTo(pad, ph * 0.95 + pad);
+      path.close();
+    } else if (shapeType == 'pentagon') {
+      path.moveTo(w / 2, pad);
+      path.lineTo(w - pad, ph * 0.45 + pad);
+      path.lineTo(w - pad, ph * 0.95 + pad);
+      path.lineTo(pad, ph * 0.95 + pad);
+      path.lineTo(pad, ph * 0.45 + pad);
+      path.close();
+    } else {
+      // Classic shape: rounded rectangle
+      path.addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(pad, pad, pw, ph),
+          const Radius.circular(12),
+        ),
+      );
+    }
+
+    // Paint properties
+    final fillPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..shader = LinearGradient(
+        begin: Alignment.bottomCenter,
+        end: Alignment.topCenter,
+        colors: isObstructed
+            ? [
+                const Color(0xFF6B1515), // Dark red tail
+                const Color(0xFFFF3B30), // Bright red head
+              ]
+            : [
+                const Color(0xFF1B0E3A), // Deep violet tail
+                const Color(0xFF3A1C71), // Purple body
+                const Color(0xFFFF9900), // Neon orange tip
+              ],
+        stops: const [0.0, 0.5, 1.0],
+      ).createShader(Rect.fromLTWH(0, 0, w, h));
+
+    // Shadow / Glow
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = isObstructed
+            ? const Color(0xFFFF3B30).withOpacity(0.3)
+            : const Color(0xFFFF9900).withOpacity(0.3)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0),
+    );
+
+    // Draw Fill
+    canvas.drawPath(path, fillPaint);
+
+    // Border Paint
+    final borderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..color = isObstructed
+          ? const Color(0xFFFF3B30)
+          : const Color(0xFFFFB347);
+
+    // Draw Border
+    canvas.drawPath(path, borderPaint);
+
+    // Draw double inner chevrons pointing up
+    final innerPath1 = Path();
+    innerPath1.moveTo(w / 2, h * 0.32);
+    innerPath1.lineTo(w * 0.65, h * 0.46);
+    innerPath1.lineTo(w * 0.58, h * 0.51);
+    innerPath1.lineTo(w / 2, h * 0.39);
+    innerPath1.lineTo(w * 0.42, h * 0.51);
+    innerPath1.lineTo(w * 0.35, h * 0.46);
+    innerPath1.close();
+
+    final innerPath2 = Path();
+    innerPath2.moveTo(w / 2, h * 0.46);
+    innerPath2.lineTo(w * 0.65, h * 0.60);
+    innerPath2.lineTo(w * 0.58, h * 0.65);
+    innerPath2.lineTo(w / 2, h * 0.53);
+    innerPath2.lineTo(w * 0.42, h * 0.65);
+    innerPath2.lineTo(w * 0.35, h * 0.60);
+    innerPath2.close();
+
+    final innerPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = Colors.white.withOpacity(0.85);
+
+    canvas.drawPath(innerPath1, innerPaint);
+    canvas.drawPath(innerPath2, innerPaint);
+
+    // Restore canvas state
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant ArrowBlockPainter oldDelegate) {
+    return oldDelegate.direction != direction ||
+        oldDelegate.shapeType != shapeType ||
+        oldDelegate.isObstructed != isObstructed;
   }
 }
