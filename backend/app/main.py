@@ -97,6 +97,19 @@ def migrate_database():
         except Exception:
             pass
 
+    columns_arrow_contests = [
+        ("start_time", "TIMESTAMP"),
+        ("end_time", "TIMESTAMP"),
+    ]
+    for col_name, col_type in columns_arrow_contests:
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE arrow_contests ADD COLUMN {col_name} {col_type}"))
+            print(f"Schema Migration: Added column '{col_name}' to arrow_contests table.")
+        except Exception:
+            # Ignore error (column already exists)
+            pass
+
 migrate_database()
 
 app = FastAPI(

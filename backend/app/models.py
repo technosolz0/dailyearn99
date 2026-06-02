@@ -459,6 +459,8 @@ class ArrowContest(Base):
     prize_rules = Column(String, nullable=False)  # JSON string of rank-wise rules
     grid_size = Column(Integer, default=4)  # 4 for 4x4, 5 for 5x5
     duration_seconds = Column(Integer, default=120)
+    start_time = Column(DateTime, nullable=False)
+    end_time = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
