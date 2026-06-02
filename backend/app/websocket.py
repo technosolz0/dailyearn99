@@ -77,6 +77,7 @@ manager = ConnectionManager(channel_prefix="general")
 puzzle_ws_manager = ConnectionManager(channel_prefix="puzzle")
 word_ws_manager = ConnectionManager(channel_prefix="word")
 fruit_ws_manager = ConnectionManager(channel_prefix="fruit")
+arrow_ws_manager = ConnectionManager(channel_prefix="arrow")
 
 
 class PuzzleLeaderboardManager:
@@ -487,4 +488,130 @@ class WordLeaderboardManager:
 
 
 word_leaderboard_manager = WordLeaderboardManager()
+
+
+class ArrowLeaderboardManager:
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._scores: Dict[int, Dict[int, tuple]] = {}
+
+    def _calculate_redis_score(self, score: int, duration: float, submitted_at: datetime) -> float:
+        dur_val = min(max(0.0, float(duration)), 99999.0)
+        dur_factor = (100000.0 - dur_val) / 100000.0
+        ts_val = max(0.0, float(submitted_at.timestamp()) - 1700000000.0)
+        ts_factor = (1000000000.0 - ts_val) / 1000000000.0
+        return float(score) + (dur_factor / 10.0) + (ts_factor / 100000000000.0)
+
+    def update_score(self, contest_id: int, user_id: int, name: str, score: int, duration: float):
+        now = datetime.now(timezone.utc)
+        if redis_is_active:
+            try:
+                zset_key = f"leaderboard:arrow:{contest_id}"
+                meta_key = f"leaderboard:arrow:{contest_id}:meta"
+                redis_score = self._calculate_redis_score(score, duration, now)
+                
+                redis_client_sync.zadd(zset_key, {str(user_id): redis_score})
+                redis_client_sync.hset(meta_key, str(user_id), json.dumps({
+                    "name": name,
+                    "score": score,
+                    "duration": duration,
+                    "submitted_at": now.isoformat()
+                }))
+                redis_client_sync.expire(zset_key, 86400)
+                redis_client_sync.expire(meta_key, 86400)
+                return
+            except Exception as e:
+                print(f"Redis ArrowLeaderboard update failed: {e}")
+                
+        with self._lock:
+            if contest_id not in self._scores:
+                self._scores[contest_id] = {}
+            existing = self._scores[contest_id].get(user_id)
+            if not existing or score > existing[0] or (score == existing[0] and duration < existing[1]):
+                self._scores[contest_id][user_id] = (score, duration, now, name)
+
+    def get_leaderboard(self, contest_id: int) -> List[dict]:
+        if redis_is_active:
+            try:
+                zset_key = f"leaderboard:arrow:{contest_id}"
+                meta_key = f"leaderboard:arrow:{contest_id}:meta"
+                
+                raw_members = redis_client_sync.zrevrange(zset_key, 0, 99, withscores=True)
+                if raw_members:
+                    user_ids = [m[0] for m in raw_members]
+                    metadata_list = redis_client_sync.hmget(meta_key, user_ids)
+                    leaderboard = []
+                    for rank, (user_id, _), meta_str in zip(range(1, len(raw_members)+1), raw_members, metadata_list):
+                        if meta_str:
+                            meta = json.loads(meta_str)
+                            leaderboard.append({
+                                "user_id": int(user_id),
+                                "name": meta["name"],
+                                "score": meta["score"],
+                                "rank": rank,
+                                "completion_seconds": meta["duration"]
+                            })
+                    return leaderboard
+            except Exception as e:
+                print(f"Redis ArrowLeaderboard read failed: {e}")
+
+        with self._lock:
+            if contest_id not in self._scores:
+                return []
+            sorted_players = sorted(
+                self._scores[contest_id].items(),
+                key=lambda x: (-x[1][0], x[1][1], x[1][2])
+            )
+            leaderboard = []
+            for rank, (u_id, (score, duration, _, name)) in enumerate(sorted_players, start=1):
+                leaderboard.append({
+                    "user_id": u_id,
+                    "name": name,
+                    "score": score,
+                    "rank": rank,
+                    "completion_seconds": duration
+                })
+            return leaderboard
+
+    def load_from_db(self, db: Session, contest_id: int):
+        from app.models import ArrowAttempt, User
+        attempts = (
+            db.query(ArrowAttempt)
+            .join(User)
+            .filter(ArrowAttempt.contest_id == contest_id)
+            .filter(ArrowAttempt.status == "VERIFIED")
+            .all()
+        )
+        if redis_is_active:
+            try:
+                zset_key = f"leaderboard:arrow:{contest_id}"
+                meta_key = f"leaderboard:arrow:{contest_id}:meta"
+                redis_client_sync.delete(zset_key, meta_key)
+                
+                pipeline = redis_client_sync.pipeline()
+                for att in attempts:
+                    name = att.user.name or att.user.phone
+                    redis_score = self._calculate_redis_score(att.score, att.completion_seconds, att.submitted_at)
+                    pipeline.zadd(zset_key, {str(att.user_id): redis_score})
+                    pipeline.hset(meta_key, str(att.user_id), json.dumps({
+                        "name": name,
+                        "score": att.score,
+                        "duration": att.completion_seconds,
+                        "submitted_at": att.submitted_at.isoformat()
+                    }))
+                pipeline.expire(zset_key, 86400)
+                pipeline.expire(meta_key, 86400)
+                pipeline.execute()
+                return
+            except Exception as e:
+                print(f"Redis ArrowLeaderboard db load failed: {e}")
+
+        with self._lock:
+            self._scores[contest_id] = {}
+            for att in attempts:
+                name = att.user.name or att.user.phone
+                self._scores[contest_id][att.user_id] = (att.score, att.completion_seconds, att.submitted_at, name)
+
+
+arrow_leaderboard_manager = ArrowLeaderboardManager()
 

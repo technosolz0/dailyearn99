@@ -9,14 +9,15 @@ import os
 from app.core.config import settings
 from app.core.database import engine, Base, get_db
 from app.models import Contest
-from app.api import auth, contests, wallet, referral, admin, spin, puzzle_game, admin_puzzle, word_game, admin_word, fruit_game, admin_fruit, notifications
-from app.websocket import manager, puzzle_ws_manager, word_ws_manager, fruit_ws_manager
+from app.api import auth, contests, wallet, referral, admin, spin, puzzle_game, admin_puzzle, word_game, admin_word, fruit_game, admin_fruit, notifications, arrow_game, admin_arrow
+from app.websocket import manager, puzzle_ws_manager, word_ws_manager, fruit_ws_manager, arrow_ws_manager
 
 # Create database tables
 from app.models import (
     Question, UserQuestionHistory, ImagePuzzleContest, ImagePuzzleGame, ImagePuzzleAttempt, ImagePuzzleLeaderboard,
     WordContest, WordQuestion, WordAttempt, WordAnswer, WordLeaderboard,
-    FruitContest, FruitMatch, FruitEvent, FruitScore, FruitLeaderboard
+    FruitContest, FruitMatch, FruitEvent, FruitScore, FruitLeaderboard,
+    ArrowContest, ArrowGame, ArrowAttempt, ArrowLeaderboard
 )  # Explicitly import to register on Base
 Base.metadata.create_all(bind=engine)
 
@@ -376,6 +377,74 @@ async def startup_event():
             db.add_all([q1, q2, q3])
             db.commit()
             print("Database Seeding: Populated initial Word contests and questions.")
+
+        # Seed Arrow Contests
+        if db.query(ArrowContest).count() == 0:
+            now = datetime.now()
+            arrow_contests = [
+                ArrowContest(
+                    title="🏹 Small Arrows Sweepstakes",
+                    entry_fee=10.0,
+                    total_slots=100,
+                    joined_slots=0,
+                    prize_pool=800.0,
+                    status="UPCOMING",
+                    prize_rules=json.dumps([
+                        {"min_rank": 1, "max_rank": 1, "prize": 300.0},
+                        {"min_rank": 2, "max_rank": 3, "prize": 150.0},
+                        {"min_rank": 4, "max_rank": 10, "prize": 20.0}
+                    ]),
+                    grid_size=4,
+                    duration_seconds=120,
+                    start_time=now + timedelta(minutes=1),
+                    end_time=now + timedelta(hours=2)
+                ),
+                ArrowContest(
+                    title="🔥 Speed Arrows Championship",
+                    entry_fee=50.0,
+                    total_slots=50,
+                    joined_slots=0,
+                    prize_pool=2000.0,
+                    status="UPCOMING",
+                    prize_rules=json.dumps([
+                        {"min_rank": 1, "max_rank": 1, "prize": 1000.0},
+                        {"min_rank": 2, "max_rank": 2, "prize": 500.0},
+                        {"min_rank": 3, "max_rank": 5, "prize": 166.0}
+                    ]),
+                    grid_size=4,
+                    duration_seconds=90,
+                    start_time=now + timedelta(minutes=5),
+                    end_time=now + timedelta(hours=3)
+                ),
+                ArrowContest(
+                    title="💎 Hardcore 5x5 Arrow Arena",
+                    entry_fee=200.0,
+                    total_slots=10,
+                    joined_slots=0,
+                    prize_pool=1600.0,
+                    status="UPCOMING",
+                    prize_rules=json.dumps([
+                        {"min_rank": 1, "max_rank": 1, "prize": 1000.0},
+                        {"min_rank": 2, "max_rank": 2, "prize": 600.0}
+                    ]),
+                    grid_size=5,
+                    duration_seconds=180,
+                    start_time=now + timedelta(hours=1),
+                    end_time=now + timedelta(hours=5)
+                )
+            ]
+            for c in arrow_contests:
+                db.add(c)
+                db.flush()
+                from app.services import ArrowGameService
+                layout_data = ArrowGameService.generate_solvable_layout(c.grid_size)
+                arrow_game = ArrowGame(
+                    contest_id=c.id,
+                    layout=json.dumps(layout_data)
+                )
+                db.add(arrow_game)
+            db.commit()
+            print("Database Seeding: Populated initial Arrow contests and games.")
     finally:
         db.close()
 
@@ -394,6 +463,8 @@ app.include_router(word_game.router, prefix=settings.API_V1_STR)
 app.include_router(admin_word.router, prefix=settings.API_V1_STR)
 app.include_router(fruit_game.router, prefix=settings.API_V1_STR)
 app.include_router(admin_fruit.router, prefix=settings.API_V1_STR)
+app.include_router(arrow_game.router, prefix=settings.API_V1_STR)
+app.include_router(admin_arrow.router, prefix=settings.API_V1_STR)
 app.include_router(notifications.router, prefix=settings.API_V1_STR)
 
 # Realtime Leaderboard WebSocket endpoint
@@ -444,6 +515,18 @@ async def fruit_websocket_endpoint(websocket: WebSocket, contest_id: int):
         fruit_ws_manager.disconnect(websocket, contest_id)
     except Exception:
         fruit_ws_manager.disconnect(websocket, contest_id)
+
+# Realtime Arrow Leaderboard WebSocket endpoint
+@app.websocket("/ws/arrow/leaderboard/{contest_id}")
+async def arrow_websocket_endpoint(websocket: WebSocket, contest_id: int):
+    await arrow_ws_manager.connect(websocket, contest_id)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        arrow_ws_manager.disconnect(websocket, contest_id)
+    except Exception:
+        arrow_ws_manager.disconnect(websocket, contest_id)
 
 # Redirect root to admin dashboard
 @app.get("/")

@@ -92,6 +92,24 @@ class User(Base):
             return [m.contest_id for m in session.query(FruitMatch).filter(FruitMatch.user_id == self.id, FruitMatch.status.in_(["SUBMITTED", "VERIFIED"])).all()]
         return []
 
+    @property
+    def joined_arrow_contest_ids(self):
+        from app.models import ArrowAttempt
+        from sqlalchemy.orm import object_session
+        session = object_session(self)
+        if session:
+            return [a.contest_id for a in session.query(ArrowAttempt).filter(ArrowAttempt.user_id == self.id).all()]
+        return []
+
+    @property
+    def completed_arrow_contest_ids(self):
+        from app.models import ArrowAttempt
+        from sqlalchemy.orm import object_session
+        session = object_session(self)
+        if session:
+            return [a.contest_id for a in session.query(ArrowAttempt).filter(ArrowAttempt.user_id == self.id, ArrowAttempt.status.in_(["SUBMITTED", "VERIFIED"])).all()]
+        return []
+
 class Contest(Base):
     __tablename__ = "contests"
 
@@ -421,6 +439,67 @@ class FruitLeaderboard(Base):
     score = Column(Integer, nullable=False)
     max_combo = Column(Integer, nullable=False)
     miss_count = Column(Integer, nullable=False)
+    rank = Column(Integer, nullable=False)
+    prize_amount = Column(Float, default=0.0)
+    is_paid = Column(Boolean, default=False)
+    paid_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class ArrowContest(Base):
+    __tablename__ = "arrow_contests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    entry_fee = Column(Float, nullable=False, default=0.0)
+    total_slots = Column(Integer, nullable=False)
+    joined_slots = Column(Integer, default=0)
+    prize_pool = Column(Float, nullable=False, default=0.0)
+    status = Column(String, default="UPCOMING")  # UPCOMING, ACTIVE, COMPLETED, CANCELLED
+    prize_rules = Column(String, nullable=False)  # JSON string of rank-wise rules
+    grid_size = Column(Integer, default=4)  # 4 for 4x4, 5 for 5x5
+    duration_seconds = Column(Integer, default=120)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class ArrowGame(Base):
+    __tablename__ = "arrow_games"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contest_id = Column(Integer, ForeignKey("arrow_contests.id", ondelete="CASCADE"), nullable=False, unique=True)
+    layout = Column(String, nullable=False)  # JSON string representing blocks e.g. [{"id": 0, "row": 0, "col": 0, "dir": "UP"}, ...]
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ArrowAttempt(Base):
+    __tablename__ = "arrow_attempts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contest_id = Column(Integer, ForeignKey("arrow_contests.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    session_id = Column(String, unique=True, index=True, nullable=False)
+    score = Column(Integer, default=0)
+    completion_seconds = Column(Float, nullable=False, default=0.0)
+    moves = Column(Integer, default=0)  # total taps
+    taps_sequence = Column(String, nullable=False, default="[]")  # JSON telemetry
+    is_verified = Column(Boolean, default=False)
+    device_fingerprint = Column(String, nullable=False)
+    ip_address = Column(String, nullable=False)
+    status = Column(String, default="IN_PROGRESS")  # IN_PROGRESS, SUBMITTED, VERIFIED, SUSPICIOUS
+    started_at = Column(DateTime, nullable=False)
+    submitted_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ArrowLeaderboard(Base):
+    __tablename__ = "arrow_leaderboards"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contest_id = Column(Integer, ForeignKey("arrow_contests.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    score = Column(Integer, nullable=False)
+    completion_seconds = Column(Float, nullable=False)
     rank = Column(Integer, nullable=False)
     prize_amount = Column(Float, default=0.0)
     is_paid = Column(Boolean, default=False)

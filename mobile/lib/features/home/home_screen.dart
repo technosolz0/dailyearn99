@@ -10,6 +10,7 @@ import 'package:dailyearn99/core/widgets/deposit_bottom_sheet.dart';
 import 'package:dailyearn99/features/image_puzzle/screens/puzzle_lobby_screen.dart';
 import 'package:dailyearn99/features/word_puzzle/screens/word_lobby_screen.dart';
 import 'package:dailyearn99/features/fruit_slicing/screens/fruit_lobby_screen.dart';
+import 'package:dailyearn99/features/go_arrows/screens/arrow_lobby_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -449,6 +450,100 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const Icon(
                                   Icons.chevron_right,
                                   color: Color(0xFFFF4500),
+                                  size: 28,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // Go Arrows Challenge Quick Launch Banner Card
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0,
+                      vertical: 8.0,
+                    ),
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ArrowLobbyScreen(),
+                          ),
+                        ).then((_) {
+                          context.read<AppBloc>().add(LoadProfileEvent());
+                        });
+                      },
+                      child: Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: const Color(0xFFFF9900).withOpacity(0.5), width: 1.5),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  const Color(0xFF2E1A05),
+                                  const Color(0xFF140F2D).withOpacity(0.8),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            padding: const EdgeInsets.all(20),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFF9900).withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: const Text(
+                                          'NEW GAME MODE',
+                                          style: TextStyle(
+                                            fontSize: 8,
+                                            color: Color(0xFFFF9900),
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 1.0,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        '🏹 Go Arrows Challenge',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      const Text(
+                                        'Tap arrow blocks to make them fly off-screen. Avoid obstructions to maximize score!',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: AppTheme.textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Icon(
+                                  Icons.chevron_right,
+                                  color: Color(0xFFFF9900),
                                   size: 28,
                                 ),
                               ],

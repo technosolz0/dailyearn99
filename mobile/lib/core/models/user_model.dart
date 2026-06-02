@@ -24,6 +24,8 @@ class UserModel {
   final List<int> completedPuzzleContestIds;
   final List<int> joinedFruitContestIds;
   final List<int> completedFruitContestIds;
+  final List<int> joinedArrowContestIds;
+  final List<int> completedArrowContestIds;
 
   UserModel({
     required this.id,
@@ -51,6 +53,8 @@ class UserModel {
     required this.completedPuzzleContestIds,
     required this.joinedFruitContestIds,
     required this.completedFruitContestIds,
+    required this.joinedArrowContestIds,
+    required this.completedArrowContestIds,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -104,6 +108,14 @@ class UserModel {
               ?.map((e) => e as int)
               .toList() ??
           [],
+      joinedArrowContestIds: (json['joined_arrow_contest_ids'] as List<dynamic>?)
+              ?.map((e) => e as int)
+              .toList() ??
+          [],
+      completedArrowContestIds: (json['completed_arrow_contest_ids'] as List<dynamic>?)
+              ?.map((e) => e as int)
+              .toList() ??
+          [],
     );
   }
 
@@ -134,6 +146,8 @@ class UserModel {
       'completed_puzzle_contest_ids': completedPuzzleContestIds,
       'joined_fruit_contest_ids': joinedFruitContestIds,
       'completed_fruit_contest_ids': completedFruitContestIds,
+      'joined_arrow_contest_ids': joinedArrowContestIds,
+      'completed_arrow_contest_ids': completedArrowContestIds,
     };
   }
 

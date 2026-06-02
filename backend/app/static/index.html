@@ -105,6 +105,12 @@
                     </svg>
                     Puzzle Manager
                 </button>
+                <button class="menu-item" data-tab="arrow-manager">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                    </svg>
+                    Arrow Manager
+                </button>
                 <button class="menu-item" data-tab="word-manager">
                     <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
@@ -979,6 +985,132 @@
                                 <tbody id="puzzle-contests-table-body">
                                     <tr>
                                         <td colspan="8" class="table-placeholder">Loading slide puzzle contests...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 10.5. ARROW MANAGER TAB -->
+                <section class="tab-panel" id="panel-arrow-manager">
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-icon-wrapper blue">
+                                <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                                </svg>
+                            </div>
+                            <div class="kpi-data">
+                                <span class="kpi-title">Active Arrow Contests</span>
+                                <h3 class="kpi-value" id="arrow-stat-active">-</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>Launch Go Arrows Contest</h2>
+                            </div>
+                            <form id="arrow-contest-form" class="contest-form">
+                                <div class="form-group">
+                                    <label for="ac-title">Contest Title</label>
+                                    <input type="text" id="ac-title" placeholder="e.g. 🏹 Super Arrows Sweepstakes" required>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="ac-fee">Entry Fee (₹)</label>
+                                        <input type="number" id="ac-fee" value="10" min="0" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ac-slots">Total Slots</label>
+                                        <input type="number" id="ac-slots" value="100" min="2" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ac-pool">Prize Pool (₹)</label>
+                                        <input type="number" id="ac-pool" value="800" min="0" required>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="ac-grid-size">Grid Size</label>
+                                        <select id="ac-grid-size" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:10px; border-radius:6px; font-family:inherit; font-size:13px;">
+                                            <option value="3">3x3 Grid (Small)</option>
+                                            <option value="4" selected>4x4 Grid (Standard)</option>
+                                            <option value="5">5x5 Grid (Expert)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ac-duration">Solve Limit (seconds)</label>
+                                        <input type="number" id="ac-duration" value="120" min="10" required>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="ac-start-time">Start Time</label>
+                                        <input type="datetime-local" id="ac-start-time" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ac-end-time">End Time (Optional)</label>
+                                        <input type="datetime-local" id="ac-end-time">
+                                    </div>
+                                </div>
+
+                                <div class="prize-rules-section">
+                                    <div class="section-header">
+                                        <h3>Rank-wise Prize Rules</h3>
+                                        <button type="button" class="btn btn-secondary btn-icon btn-action" id="btn-ac-add-prize-rule" style="padding: 4px 8px; font-size: 11px;">
+                                            + Add Rule
+                                        </button>
+                                    </div>
+                                    <div class="prize-rules-list" id="ac-prize-rules-list">
+                                        <!-- Dynamic rules rows -->
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary btn-full">Launch Arrow Contest</button>
+                            </form>
+                        </div>
+
+                        <div class="card" style="display:flex; flex-direction:column; justify-content: space-between;">
+                            <div class="card-header">
+                                <h2>Guidelines</h2>
+                            </div>
+                            <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 15px;">
+                                <p>To configure a Go Arrows contest, customize grid layouts (3x3, 4x4, 5x5) and set timings above. A solvable layout is generated automatically on launch.</p>
+                            </div>
+                            <div style="display: flex; gap: 15px; align-items: center; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px;">
+                                <div>
+                                    <h4 style="margin: 0; font-size: 13px; font-weight: bold; color: var(--text-main);">Arrows Game Maintenance Lock</h4>
+                                    <p style="margin: 3px 0 0 0; font-size: 10px; color: var(--text-muted);">Enable to restrict arrows access for all players instantly.</p>
+                                </div>
+                                <button type="button" class="btn btn-secondary" id="btn-toggle-arrow-maintenance" style="padding: 6px 12px; font-size: 11px;">Enable Lockout</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card table-card" style="margin-top: 30px;">
+                        <div class="card-table-header">
+                            <h2>All Go Arrows Contests</h2>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Details</th>
+                                        <th>Entry Fee</th>
+                                        <th>Slots Filled</th>
+                                        <th>Prize Pool</th>
+                                        <th>Grid Size & Time</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="arrow-contests-table-body">
+                                    <tr>
+                                        <td colspan="8" class="table-placeholder">Loading arrows contests...</td>
                                     </tr>
                                 </tbody>
                             </table>

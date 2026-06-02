@@ -127,6 +127,8 @@ class _GameLeaderboardScreenState extends State<GameLeaderboardScreen> with Sing
         endpoint = ApiConstants.puzzleLeaderboard(widget.contestId);
       } else if (widget.gameType == 'fruit') {
         endpoint = ApiConstants.fruitLeaderboard(widget.contestId);
+      } else if (widget.gameType == 'arrow') {
+        endpoint = ApiConstants.arrowLeaderboard(widget.contestId);
       }
 
       final response = await _apiClient.get(endpoint);
@@ -157,6 +159,8 @@ class _GameLeaderboardScreenState extends State<GameLeaderboardScreen> with Sing
         wsUrl = ApiConstants.puzzleWs(widget.contestId);
       } else if (widget.gameType == 'fruit') {
         wsUrl = ApiConstants.fruitWs(widget.contestId);
+      } else if (widget.gameType == 'arrow') {
+        wsUrl = ApiConstants.arrowWs(widget.contestId);
       }
 
       _wsChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
@@ -186,6 +190,7 @@ class _GameLeaderboardScreenState extends State<GameLeaderboardScreen> with Sing
   Color _getGameAccentColor() {
     if (widget.gameType == 'fruit') return const Color(0xFFFF4500);
     if (widget.gameType == 'word') return const Color(0xFF00E5FF);
+    if (widget.gameType == 'arrow') return const Color(0xFFFF9900);
     return const Color(0xFF8A2BE2);
   }
 

@@ -121,4 +121,25 @@ class ApiConstants {
         ? 'ws://target99api.serwex.in/ws/fruit/leaderboard/$contestId'
         : 'ws://target99api.serwex.in/ws/fruit/leaderboard/$contestId';
   }
+
+  // Go Arrows APIs
+  static const String arrowContests = '/arrow/contests';
+  static String arrowStart(int contestId) => '/arrow/start/$contestId';
+  static const String arrowSubmit = '/arrow/submit-score';
+  static String arrowLeaderboard(int contestId) =>
+      '/arrow/leaderboard/$contestId';
+  static String arrowWs(int contestId) {
+    if (useLocalBackend) {
+      if (kIsWeb) return 'ws://127.0.0.1:8000/ws/arrow/leaderboard/$contestId';
+      return Platform.isAndroid
+          ? 'ws://10.0.2.2:8000/ws/arrow/leaderboard/$contestId'
+          : 'ws://127.0.0.1:8000/ws/arrow/leaderboard/$contestId';
+    }
+    if (kIsWeb) {
+      return 'ws://target99api.serwex.in/ws/arrow/leaderboard/$contestId';
+    }
+    return Platform.isAndroid
+        ? 'ws://target99api.serwex.in/ws/arrow/leaderboard/$contestId'
+        : 'ws://target99api.serwex.in/ws/arrow/leaderboard/$contestId';
+  }
 }

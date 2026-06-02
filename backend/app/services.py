@@ -1,3 +1,7 @@
+from app.models import ArrowLeaderboard
+from app.models import ArrowGame
+from app.models import ArrowAttempt
+from app.models import ArrowContest
 from app.models import FruitLeaderboard
 from app.models import FruitScore
 from app.models import FruitContest
@@ -1521,6 +1525,362 @@ class FruitRewardService:
                     db,
                     user.id,
                     title="🏁 Fruit Tournament Completed",
+                    body=f"'{contest.title}' has finished! You placed Rank #{rank_idx}. Better luck next time!"
+                )
+
+        db.commit()
+        return {"status": "SUCCESS", "payouts_made": payouts_made}
+
+
+class ArrowAntiCheatService:
+    SECRET_KEY = b"ARROW_GAME_ANTI_CHEAT_SECRET_KEY_7744"
+
+    @classmethod
+    def generate_signature(cls, session_id: str, contest_id: int, user_id: int) -> str:
+        payload = f"{session_id}:{contest_id}:{user_id}".encode()
+        return hmac.new(cls.SECRET_KEY, payload, hashlib.sha256).hexdigest()
+
+    @classmethod
+    def verify_signature(cls, session_id: str, contest_id: int, user_id: int, signature: str) -> bool:
+        expected = cls.generate_signature(session_id, contest_id, user_id)
+        return hmac.compare_digest(expected, signature)
+
+    @classmethod
+    def validate_telemetry_kinematics(
+        cls,
+        telemetry: List[dict],
+        reported_time: float,
+        reported_moves: int,
+        started_at: datetime
+    ) -> bool:
+        actual_elapsed = (datetime.now(timezone.utc) - started_at.replace(tzinfo=timezone.utc)).total_seconds()
+        # Max grace buffer is 6 seconds
+        if actual_elapsed > reported_time + 6.0:
+            return False
+
+        # Verify that reported moves equals telemetry taps
+        if len(telemetry) != reported_moves:
+            return False
+
+        # Taps speed validation (no auto clickers or macros: spacing must be at least 50ms)
+        last_dt = -1
+        for tap in telemetry:
+            dt = tap.get("dt", 0)
+            if last_dt >= 0:
+                diff = dt - last_dt
+                if diff < 50:  # Suspicious speed
+                    return False
+            last_dt = dt
+
+        return True
+
+
+class ArrowGameService:
+    _maintenance_mode = False
+
+    @classmethod
+    def set_maintenance_mode(cls, enabled: bool):
+        cls._maintenance_mode = enabled
+
+    @classmethod
+    def is_maintenance_mode(cls) -> bool:
+        return cls._maintenance_mode
+
+    @staticmethod
+    def generate_solvable_layout(grid_size: int) -> list:
+        n_blocks = int(grid_size * grid_size * 0.75)  # e.g., 12 blocks for 4x4
+        directions = ["UP", "DOWN", "LEFT", "RIGHT"]
+        for attempt_idx in range(200):
+            cells = [(r, c) for r in range(grid_size) for c in range(grid_size)]
+            chosen_cells = random.sample(cells, min(n_blocks, len(cells)))
+            blocks = []
+            for idx, (r, c) in enumerate(chosen_cells):
+                blocks.append({
+                    "id": idx,
+                    "row": r,
+                    "col": c,
+                    "dir": random.choice(directions)
+                })
+
+            # Check solvability
+            active_blocks = {(b["row"], b["col"]): b for b in blocks}
+            solved_count = 0
+            while active_blocks:
+                escaped = None
+                for coord, b in list(active_blocks.items()):
+                    r, c, d = b["row"], b["col"], b["dir"]
+                    blocked = False
+                    if d == "UP":
+                        for r_check in range(0, r):
+                            if (r_check, c) in active_blocks:
+                                blocked = True
+                                break
+                    elif d == "DOWN":
+                        for r_check in range(r + 1, grid_size):
+                            if (r_check, c) in active_blocks:
+                                blocked = True
+                                break
+                    elif d == "LEFT":
+                        for c_check in range(0, c):
+                            if (r, c_check) in active_blocks:
+                                blocked = True
+                                break
+                    elif d == "RIGHT":
+                        for c_check in range(c + 1, grid_size):
+                            if (r, c_check) in active_blocks:
+                                blocked = True
+                                break
+
+                    if not blocked:
+                        escaped = coord
+                        break
+
+                if escaped:
+                    active_blocks.pop(escaped)
+                    solved_count += 1
+                else:
+                    break
+
+            if solved_count == len(blocks):
+                return blocks
+
+        # Fallback layout pointing outward if solving check times out
+        blocks = []
+        for idx, (r, c) in enumerate(chosen_cells):
+            d = "UP" if r < grid_size / 2 else "DOWN"
+            blocks.append({
+                "id": idx,
+                "row": r,
+                "col": c,
+                "dir": d
+            })
+        return blocks
+
+    @staticmethod
+    def start_arrow_session(db: Session, user: User, contest_id: int, device_fingerprint: str, ip_address: str) -> dict:
+        if ArrowGameService.is_maintenance_mode():
+            raise ValueError("Go Arrows is currently under maintenance. Please try again later.")
+
+        contest = db.query(ArrowContest).filter(ArrowContest.id == contest_id).first()
+        if not contest:
+            raise ValueError("Contest not found.")
+        if contest.status != "ACTIVE" and contest.status != "UPCOMING":
+            raise ValueError("Contest is not active.")
+        if contest.joined_slots >= contest.total_slots:
+            raise ValueError("Contest is full.")
+
+        existing_attempt = db.query(ArrowAttempt).filter(
+            ArrowAttempt.contest_id == contest_id,
+            ArrowAttempt.user_id == user.id
+        ).first()
+        if existing_attempt:
+            raise ValueError("You have already started or joined this contest.")
+
+        # Wallet balances validation and deduction
+        WalletService.deduct_entry_fee(db, user, contest.entry_fee)
+        contest.joined_slots += 1
+
+        # Retrieve or create solvable game layout
+        arrow_game = db.query(ArrowGame).filter(ArrowGame.contest_id == contest_id).first()
+        if not arrow_game:
+            layout_data = ArrowGameService.generate_solvable_layout(contest.grid_size)
+            arrow_game = ArrowGame(
+                contest_id=contest_id,
+                layout=json.dumps(layout_data)
+            )
+            db.add(arrow_game)
+            db.flush()
+
+        session_id = str(uuid.uuid4())
+        started_at = datetime.now(timezone.utc)
+
+        attempt = ArrowAttempt(
+            contest_id=contest_id,
+            user_id=user.id,
+            score=0,
+            completion_seconds=0.0,
+            moves=0,
+            taps_sequence="[]",
+            is_verified=False,
+            device_fingerprint=device_fingerprint,
+            ip_address=ip_address,
+            session_id=session_id,
+            started_at=started_at,
+            submitted_at=started_at,
+            status="IN_PROGRESS"
+        )
+        db.add(attempt)
+        db.commit()
+
+        signature = ArrowAntiCheatService.generate_signature(session_id, contest_id, user.id)
+
+        return {
+            "session_id": session_id,
+            "layout": json.loads(arrow_game.layout),
+            "started_at": started_at,
+            "grid_size": contest.grid_size,
+            "duration_seconds": contest.duration_seconds,
+            "signature": signature
+        }
+
+    @staticmethod
+    def calculate_score(seconds: float, moves: int) -> int:
+        score = 10000 - (seconds * 8) - (moves * 4)
+        return max(0, int(score))
+
+    @classmethod
+    def submit_arrow_score(cls, db: Session, user: User, data) -> dict:
+        attempt = db.query(ArrowAttempt).filter(
+            ArrowAttempt.session_id == data.session_id,
+            ArrowAttempt.user_id == user.id
+        ).with_for_update().first()
+
+        if not attempt:
+            raise ValueError("Arrows match session not found.")
+        if attempt.status != "IN_PROGRESS":
+            raise ValueError("Score already submitted or session closed.")
+
+        if not ArrowAntiCheatService.verify_signature(data.session_id, data.contest_id, user.id, data.signature):
+            attempt.status = "SUSPICIOUS"
+            db.commit()
+            raise ValueError("Invalid session signature.")
+
+        telemetry_dicts = [{"block_id": t.block_id, "dt": t.dt, "success": t.success} for t in data.telemetry]
+
+        is_legit = ArrowAntiCheatService.validate_telemetry_kinematics(
+            telemetry=telemetry_dicts,
+            reported_time=data.completion_seconds,
+            reported_moves=data.moves,
+            started_at=attempt.started_at
+        )
+
+        if not is_legit:
+            attempt.status = "SUSPICIOUS"
+            db.commit()
+            raise ValueError("Anti-Cheat validation failed.")
+
+        score = cls.calculate_score(data.completion_seconds, data.moves)
+
+        attempt.score = score
+        attempt.completion_seconds = data.completion_seconds
+        attempt.moves = data.moves
+        attempt.taps_sequence = json.dumps(telemetry_dicts)
+        attempt.is_verified = True
+        attempt.status = "VERIFIED"
+        attempt.submitted_at = datetime.now(timezone.utc)
+        db.commit()
+
+        # Update leaderboard record
+        leaderboard_entry = db.query(ArrowLeaderboard).filter(
+            ArrowLeaderboard.contest_id == data.contest_id,
+            ArrowLeaderboard.user_id == user.id
+        ).first()
+
+        if not leaderboard_entry:
+            leaderboard_entry = ArrowLeaderboard(
+                contest_id=data.contest_id,
+                user_id=user.id,
+                score=score,
+                completion_seconds=data.completion_seconds,
+                rank=9999
+            )
+            db.add(leaderboard_entry)
+        else:
+            if score > leaderboard_entry.score:
+                leaderboard_entry.score = score
+                leaderboard_entry.completion_seconds = data.completion_seconds
+        db.commit()
+
+        # Broadcast scores via WebSockets
+        try:
+            from app.websocket import arrow_leaderboard_manager, arrow_ws_manager
+            arrow_leaderboard_manager.update_score(
+                contest_id=data.contest_id,
+                user_id=user.id,
+                name=user.name or user.phone,
+                score=score,
+                duration=data.completion_seconds
+            )
+            leaderboard = arrow_leaderboard_manager.get_leaderboard(data.contest_id)
+            import asyncio
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.run_coroutine_threadsafe(
+                    arrow_ws_manager.broadcast_leaderboard(data.contest_id, leaderboard),
+                    loop
+                )
+        except Exception as e:
+            print(f"Arrow live leaderboard WS broadcast failure: {e}")
+
+        return {"status": "SUCCESS", "score": score}
+
+
+class ArrowRewardService:
+    @staticmethod
+    def complete_contest_rewards(db: Session, contest_id: int) -> dict:
+        contest = db.query(ArrowContest).filter(ArrowContest.id == contest_id).with_for_update().first()
+        if not contest:
+            return {"error": "Contest not found"}
+        if contest.status == "COMPLETED":
+            return {"message": "Contest already completed."}
+
+        contest.status = "COMPLETED"
+        db.commit()
+
+        # Rank placements: score (desc), completion_seconds (asc), moves (asc)
+        attempts = db.query(ArrowAttempt).filter(
+            ArrowAttempt.contest_id == contest_id,
+            ArrowAttempt.status == "VERIFIED"
+        ).order_by(
+            ArrowAttempt.score.desc(),
+            ArrowAttempt.completion_seconds.asc(),
+            ArrowAttempt.moves.asc()
+        ).all()
+
+        payout_rules = []
+        if contest.prize_rules:
+            try:
+                payout_rules = json.loads(contest.prize_rules)
+            except Exception:
+                pass
+
+        payouts_made = 0
+        for rank_idx, att in enumerate(attempts, start=1):
+            db_leaderboard = db.query(ArrowLeaderboard).filter(
+                ArrowLeaderboard.contest_id == contest_id,
+                ArrowLeaderboard.user_id == att.user_id
+            ).first()
+            if db_leaderboard:
+                db_leaderboard.rank = rank_idx
+
+            user = db.query(User).filter(User.id == att.user_id).first()
+            if not user:
+                continue
+
+            payout_amount = 0.0
+            if payout_rules:
+                for rule in payout_rules:
+                    if rule.get("min_rank") <= rank_idx <= rule.get("max_rank"):
+                        payout_amount = float(rule.get("prize", 0.0))
+                        break
+            else:
+                pcts = {1: 0.5, 2: 0.3, 3: 0.2}
+                if rank_idx in pcts:
+                    payout_amount = contest.prize_pool * pcts[rank_idx]
+
+            if payout_amount > 0:
+                WalletService.credit_prize(db, user, payout_amount)
+                if db_leaderboard:
+                    db_leaderboard.prize_amount = payout_amount
+                    db_leaderboard.is_paid = True
+                    db_leaderboard.paid_at = datetime.now(timezone.utc)
+                payouts_made += 1
+            else:
+                from app.core.notifications import send_push_to_user
+                send_push_to_user(
+                    db,
+                    user.id,
+                    title="🏁 Arrow Contest Completed",
                     body=f"'{contest.title}' has finished! You placed Rank #{rank_idx}. Better luck next time!"
                 )
 

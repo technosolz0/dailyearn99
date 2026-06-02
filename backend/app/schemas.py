@@ -47,6 +47,8 @@ class UserResponse(BaseModel):
     completed_puzzle_contest_ids: List[int] = []
     joined_fruit_contest_ids: List[int] = []
     completed_fruit_contest_ids: List[int] = []
+    joined_arrow_contest_ids: List[int] = []
+    completed_arrow_contest_ids: List[int] = []
 
     class Config:
         from_attributes = True
@@ -557,6 +559,88 @@ class NotificationResponse(BaseModel):
     data: Optional[dict] = None
     is_read: bool
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ArrowPrizeRuleSchema(BaseModel):
+    min_rank: int = Field(..., gt=0)
+    max_rank: int = Field(..., gt=0)
+    prize: float = Field(..., ge=0)
+
+
+class ArrowContestCreate(BaseModel):
+    title: str = Field(..., min_length=3, max_length=100)
+    entry_fee: float = Field(..., ge=0)
+    total_slots: int = Field(..., gt=1)
+    prize_pool: float = Field(..., ge=0)
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    prize_rules: List[ArrowPrizeRuleSchema]
+    grid_size: int = Field(4, ge=3, le=5)  # 4 for 4x4, 5 for 5x5
+    duration_seconds: int = Field(120, gt=10)
+
+
+class ArrowContestResponse(BaseModel):
+    id: int
+    title: str
+    entry_fee: float
+    total_slots: int
+    joined_slots: int
+    prize_pool: float
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    status: str
+    prize_rules: Optional[List[ArrowPrizeRuleSchema]] = None
+    grid_size: int
+    duration_seconds: int
+
+    @field_validator("prize_rules", mode="before")
+    @classmethod
+    def parse_prize_rules(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
+
+    class Config:
+        from_attributes = True
+
+
+class ArrowStartSessionResponse(BaseModel):
+    session_id: str
+    layout: List[dict]  # e.g. [{"id": 0, "row": 0, "col": 0, "dir": "UP"}, ...]
+    started_at: datetime
+    grid_size: int
+    duration_seconds: int
+    signature: str
+
+
+class ArrowTapTelemetry(BaseModel):
+    block_id: int = Field(..., ge=0)
+    dt: int = Field(..., ge=0)  # delta ms from start
+    success: bool
+
+
+class ArrowScoreSubmissionRequest(BaseModel):
+    contest_id: int
+    session_id: str
+    completion_seconds: float = Field(..., gt=0)
+    moves: int = Field(..., ge=0)
+    telemetry: List[ArrowTapTelemetry]
+    device_fingerprint: str
+    signature: str
+
+
+class ArrowLeaderboardItem(BaseModel):
+    user_id: int
+    name: str
+    score: int
+    rank: int
+    completion_seconds: float
 
     class Config:
         from_attributes = True

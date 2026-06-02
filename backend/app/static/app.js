@@ -9,7 +9,8 @@ let state = {
     withdrawals: [],
     fruit_maintenance_active: false,
     puzzle_maintenance_active: false,
-    word_maintenance_active: false
+    word_maintenance_active: false,
+    arrow_maintenance_active: false
 };
 
 // Global originalFetch Proxy to secure all API requests
@@ -305,6 +306,10 @@ function updateHeaders(tab) {
         case 'puzzle-manager':
             el.pageTitle.innerText = "Slide Puzzle Manager";
             el.pageSubtitle.innerText = "Manage slide puzzle matches, configure image assets, and award winnings";
+            break;
+        case 'arrow-manager':
+            el.pageTitle.innerText = "Go Arrows Manager";
+            el.pageSubtitle.innerText = "Manage Go Arrows contest lobbies, configure board parameters, and award winnings";
             break;
         case 'word-manager':
             el.pageTitle.innerText = "Word Puzzle Manager";
@@ -1050,6 +1055,9 @@ function loadTabSpecificData(tab) {
         case 'puzzle-manager':
             loadPuzzleManager();
             break;
+        case 'arrow-manager':
+            loadArrowManager();
+            break;
         case 'word-manager':
             loadWordManager();
             break;
@@ -1260,6 +1268,10 @@ function viewUserDetails(userId) {
                 <div class="profile-stat-box">
                     <div class="profile-stat-num" style="color: #fff;">${u.joined_fruit_contest_ids ? u.joined_fruit_contest_ids.length : 0} / ${u.completed_fruit_contest_ids ? u.completed_fruit_contest_ids.length : 0}</div>
                     <div class="profile-stat-label">Fruit Slicing (Join/End)</div>
+                </div>
+                <div class="profile-stat-box">
+                    <div class="profile-stat-num" style="color: #fff;">${u.joined_arrow_contest_ids ? u.joined_arrow_contest_ids.length : 0} / ${u.completed_arrow_contest_ids ? u.completed_arrow_contest_ids.length : 0}</div>
+                    <div class="profile-stat-label">Go Arrows (Join/End)</div>
                 </div>
             </div>
         </div>
@@ -2722,7 +2734,215 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Arrow Maintenance Toggle Button
+    const btnToggleArrowMaintenance = document.getElementById('btn-toggle-arrow-maintenance');
+    if (btnToggleArrowMaintenance) {
+        btnToggleArrowMaintenance.addEventListener('click', async () => {
+            const nextMode = !state.arrow_maintenance_active;
+            btnToggleArrowMaintenance.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/arrow/maintenance/toggle`, {
+                    method: 'POST'
+                });
+                if (!res.ok) throw new Error("Failed to change maintenance status.");
+
+                state.arrow_maintenance_active = nextMode;
+                btnToggleArrowMaintenance.innerText = state.arrow_maintenance_active ? "Unlock Game Access" : "Lock Game Access";
+                btnToggleArrowMaintenance.style.backgroundColor = state.arrow_maintenance_active ? 'var(--success)' : 'var(--error)';
+                showToast(state.arrow_maintenance_active ? "Go Arrows has been LOCKED for maintenance." : "Go Arrows unlocked! Game access is live.");
+            } catch (err) {
+                showToast("Maintenance toggle error: " + err.message, true);
+            } finally {
+                btnToggleArrowMaintenance.disabled = false;
+            }
+        });
+    }
+
+    // 2. Add rule button for Arrows
+    const btnAcAddRule = document.getElementById('btn-ac-add-prize-rule');
+    if (btnAcAddRule) {
+        btnAcAddRule.addEventListener('click', () => {
+            addPrizeRuleRow('ac-prize-rules-list');
+        });
+    }
+
+    // 3. Launch Arrow Contest form submit
+    const acForm = document.getElementById('arrow-contest-form');
+    if (acForm) {
+        acForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = acForm.querySelector('button[type="submit"]');
+            btn.innerText = "Launching...";
+            btn.disabled = true;
+
+            const rules = [];
+            acForm.querySelectorAll('.prize-rule-row').forEach(row => {
+                const minRank = parseInt(row.querySelector('.rule-min-rank').value);
+                const maxRank = parseInt(row.querySelector('.rule-max-rank').value);
+                const prize = parseFloat(row.querySelector('.rule-prize').value);
+                if (minRank && maxRank && !isNaN(prize)) {
+                    rules.push({ min_rank: minRank, max_rank: maxRank, prize: prize });
+                }
+            });
+
+            const payload = {
+                title: document.getElementById('ac-title').value.trim(),
+                entry_fee: parseFloat(document.getElementById('ac-fee').value),
+                total_slots: parseInt(document.getElementById('ac-slots').value),
+                prize_pool: parseFloat(document.getElementById('ac-pool').value),
+                grid_size: parseInt(document.getElementById('ac-grid-size').value),
+                duration_seconds: parseInt(document.getElementById('ac-duration').value),
+                start_time: new Date(document.getElementById('ac-start-time').value).toISOString(),
+                prize_rules: rules
+            };
+
+            const endTimeVal = document.getElementById('ac-end-time').value;
+            if (endTimeVal) {
+                payload.end_time = new Date(endTimeVal).toISOString();
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/arrow/contests`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || "Failed to launch contest.");
+                }
+                showToast("Go Arrows tournament launched successfully!");
+                acForm.reset();
+                document.getElementById('ac-prize-rules-list').innerHTML = '';
+                loadArrowManager();
+            } catch (err) {
+                showToast("Error: " + err.message, true);
+            } finally {
+                btn.innerText = "Launch Arrow Contest";
+                btn.disabled = false;
+            }
+        });
+    }
 });
+
+
+// ==========================================
+// GO ARROWS GAME ENGINE ADMINISTRATIVE CONTROLLERS
+// ==========================================
+
+async function loadArrowManager() {
+    try {
+        // Fetch Arrow Maintenance status
+        const maintenanceRes = await fetch(`${API_BASE}/admin/arrow/maintenance`);
+        if (maintenanceRes.ok) {
+            const m = await maintenanceRes.json();
+            state.arrow_maintenance_active = m.maintenance_mode;
+            const btn = document.getElementById('btn-toggle-arrow-maintenance');
+            if (btn) {
+                btn.innerText = state.arrow_maintenance_active ? "Unlock Game Access" : "Lock Game Access";
+                btn.style.backgroundColor = state.arrow_maintenance_active ? 'var(--success)' : 'var(--error)';
+                btn.style.color = '#fff';
+            }
+        }
+
+        const res = await fetch(`${API_BASE}/arrow/contests`);
+        if (!res.ok) throw new Error("Failed to load Go Arrows contests.");
+        const contests = await res.json();
+
+        // 1. Calculate stats
+        const activeCount = contests.filter(c => c.status === 'ACTIVE').length;
+        document.getElementById('arrow-stat-active').innerText = activeCount;
+
+        // 2. Render table
+        const tbody = document.getElementById('arrow-contests-table-body');
+        if (tbody) {
+            if (contests.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="table-placeholder">No Go Arrows contests active or defined yet.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = contests.map(c => {
+                let statusBadge = 'badge-warning';
+                if (c.status === 'ACTIVE') statusBadge = 'badge-success';
+                if (c.status === 'COMPLETED') statusBadge = 'badge-info';
+
+                const startTimeStr = new Date(c.start_time).toLocaleString();
+                const endTimeStr = c.end_time ? new Date(c.end_time).toLocaleString() : 'N/A';
+
+                const actionBtn = c.status !== 'COMPLETED'
+                    ? `<button class="btn btn-action btn-unban" onclick="completeArrowContest(${c.id})">Complete</button>`
+                    : `<span class="text-muted" style="font-size:12px;">Payout Done</span>`;
+
+                let rulesHtml = '';
+                if (c.prize_rules && c.prize_rules.length > 0) {
+                    rulesHtml = `<div style="font-size: 11px; color: var(--text-muted); margin-top: 5px; display: flex; flex-direction: column; gap: 2px;">` +
+                        c.prize_rules.map(r => `<span>Rank ${r.min_rank}${r.min_rank === r.max_rank ? '' : '-' + r.max_rank}: ₹${r.prize}</span>`).join('') +
+                        `</div>`;
+                }
+
+                return `
+                    <tr>
+                        <td>${c.id}</td>
+                        <td>
+                            <strong style="font-size:14px; color:var(--text-main);">${c.title}</strong>
+                        </td>
+                        <td>₹${c.entry_fee.toFixed(2)}</td>
+                        <td>
+                            <div class="user-cell">
+                                <span>${c.joined_slots} / ${c.total_slots} filled</span>
+                                <div style="background-color: rgba(255,255,255,0.05); width:120px; height:4px; border-radius:2px; margin-top:4px; overflow:hidden;">
+                                    <div style="background:var(--primary); height:100%; width: ${(c.joined_slots / c.total_slots) * 100}%"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <strong>₹${c.prize_pool.toFixed(2)}</strong>
+                            ${rulesHtml}
+                        </td>
+                        <td>
+                            <div style="font-size: 11px;">
+                                <div><strong>Grid Size:</strong> ${c.grid_size}x${c.grid_size}</div>
+                                <div><strong>Solve Limit:</strong> ${c.duration_seconds}s</div>
+                                <div><strong>Start:</strong> ${startTimeStr}</div>
+                                <div><strong>End:</strong> ${endTimeStr}</div>
+                            </div>
+                        </td>
+                        <td><span class="badge ${statusBadge}">${c.status}</span></td>
+                        <td>
+                            <div style="display:flex; gap:8px;">
+                                ${actionBtn}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    } catch (err) {
+        showToast(err.message, true);
+        const tbody = document.getElementById('arrow-contests-table-body');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="8" class="table-placeholder" style="color: var(--error);">Failed to load Go Arrows contests: ${err.message}</td></tr>`;
+        }
+    }
+}
+
+async function completeArrowContest(contestId) {
+    if (!confirm("Are you sure you want to complete this Go Arrows contest and award the winners?")) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/arrow/contests/${contestId}/complete`, {
+            method: 'POST'
+        });
+        if (!res.ok) throw new Error(await res.text());
+        showToast("Go Arrows contest completed and prize payouts distributed!");
+        loadArrowManager();
+    } catch (err) {
+        showToast("Error completing Go Arrows contest: " + err.message, true);
+    }
+}
+
+window.completeArrowContest = completeArrowContest;
 
 
 
