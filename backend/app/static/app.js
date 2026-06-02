@@ -6,7 +6,10 @@ let state = {
     activeTab: 'overview',
     users: [],
     contests: [],
-    withdrawals: []
+    withdrawals: [],
+    fruit_maintenance_active: false,
+    puzzle_maintenance_active: false,
+    word_maintenance_active: false
 };
 
 // Global originalFetch Proxy to secure all API requests
@@ -2109,6 +2112,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadFruitManager() {
     try {
+        // Fetch Fruit Maintenance status
+        const maintenanceRes = await fetch(`${API_BASE}/admin/fruit-slicing/maintenance`);
+        if (maintenanceRes.ok) {
+            const m = await maintenanceRes.json();
+            state.fruit_maintenance_active = m.maintenance_mode;
+            const btn = document.getElementById('btn-toggle-fruit-maintenance');
+            if (btn) {
+                btn.innerText = state.fruit_maintenance_active ? "Unlock Game Access" : "Lock Game Access";
+                btn.style.backgroundColor = state.fruit_maintenance_active ? 'var(--success)' : 'var(--error)';
+                btn.style.color = '#fff';
+            }
+        }
+
         const res = await fetch(`${API_BASE}/fruit-game/contests`);
         if (!res.ok) throw new Error("Failed to load Fruit Slicing contests.");
         const contests = await res.json();
@@ -2216,6 +2232,19 @@ window.completeFruitContest = completeFruitContest;
 
 async function loadPuzzleManager() {
     try {
+        // Fetch Puzzle Maintenance status
+        const maintenanceRes = await fetch(`${API_BASE}/admin/puzzle/maintenance`);
+        if (maintenanceRes.ok) {
+            const m = await maintenanceRes.json();
+            state.puzzle_maintenance_active = m.maintenance_mode;
+            const btn = document.getElementById('btn-toggle-puzzle-maintenance');
+            if (btn) {
+                btn.innerText = state.puzzle_maintenance_active ? "Unlock Game Access" : "Lock Game Access";
+                btn.style.backgroundColor = state.puzzle_maintenance_active ? 'var(--success)' : 'var(--error)';
+                btn.style.color = '#fff';
+            }
+        }
+
         const res = await fetch(`${API_BASE}/puzzle/contests`);
         if (!res.ok) throw new Error("Failed to load Image Puzzle contests.");
         const contests = await res.json();
@@ -2331,6 +2360,19 @@ const WORD_PUZZLE_TEMPLATES = {
 
 async function loadWordManager() {
     try {
+        // Fetch Word Maintenance status
+        const maintenanceRes = await fetch(`${API_BASE}/admin/word-puzzle/maintenance`);
+        if (maintenanceRes.ok) {
+            const m = await maintenanceRes.json();
+            state.word_maintenance_active = m.maintenance_mode;
+            const btn = document.getElementById('btn-toggle-word-maintenance');
+            if (btn) {
+                btn.innerText = state.word_maintenance_active ? "Unlock Game Access" : "Lock Game Access";
+                btn.style.backgroundColor = state.word_maintenance_active ? 'var(--success)' : 'var(--error)';
+                btn.style.color = '#fff';
+            }
+        }
+
         const res = await fetch(`${API_BASE}/word-game/contests`);
         if (!res.ok) throw new Error("Failed to load Word Guessing contests.");
         const contests = await res.json();
@@ -2604,6 +2646,83 @@ function addPrizeRuleRow(listContainerId) {
     listEl.scrollTop = listEl.scrollHeight;
     console.log("Successfully appended new prize rule row to", listContainerId);
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Fruit Maintenance Toggle Button
+    const btnToggleFruitMaintenance = document.getElementById('btn-toggle-fruit-maintenance');
+    if (btnToggleFruitMaintenance) {
+        btnToggleFruitMaintenance.addEventListener('click', async () => {
+            const nextMode = !state.fruit_maintenance_active;
+            btnToggleFruitMaintenance.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/fruit-slicing/maintenance?enabled=${nextMode}`, {
+                    method: 'POST'
+                });
+                if (!res.ok) throw new Error("Failed to change maintenance status.");
+
+                state.fruit_maintenance_active = nextMode;
+                btnToggleFruitMaintenance.innerText = state.fruit_maintenance_active ? "Unlock Game Access" : "Lock Game Access";
+                btnToggleFruitMaintenance.style.backgroundColor = state.fruit_maintenance_active ? 'var(--success)' : 'var(--error)';
+                showToast(state.fruit_maintenance_active ? "Fruit Game has been LOCKED for maintenance." : "Fruit Game unlocked! Game access is live.");
+            } catch (err) {
+                showToast("Maintenance toggle error: " + err.message, true);
+            } finally {
+                btnToggleFruitMaintenance.disabled = false;
+            }
+        });
+    }
+
+    // Puzzle Maintenance Toggle Button
+    const btnTogglePuzzleMaintenance = document.getElementById('btn-toggle-puzzle-maintenance');
+    if (btnTogglePuzzleMaintenance) {
+        btnTogglePuzzleMaintenance.addEventListener('click', async () => {
+            const nextMode = !state.puzzle_maintenance_active;
+            btnTogglePuzzleMaintenance.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/puzzle/maintenance?enabled=${nextMode}`, {
+                    method: 'POST'
+                });
+                if (!res.ok) throw new Error("Failed to change maintenance status.");
+
+                state.puzzle_maintenance_active = nextMode;
+                btnTogglePuzzleMaintenance.innerText = state.puzzle_maintenance_active ? "Unlock Game Access" : "Lock Game Access";
+                btnTogglePuzzleMaintenance.style.backgroundColor = state.puzzle_maintenance_active ? 'var(--success)' : 'var(--error)';
+                showToast(state.puzzle_maintenance_active ? "Image Puzzle has been LOCKED for maintenance." : "Image Puzzle unlocked! Game access is live.");
+            } catch (err) {
+                showToast("Maintenance toggle error: " + err.message, true);
+            } finally {
+                btnTogglePuzzleMaintenance.disabled = false;
+            }
+        });
+    }
+
+    // Word Maintenance Toggle Button
+    const btnToggleWordMaintenance = document.getElementById('btn-toggle-word-maintenance');
+    if (btnToggleWordMaintenance) {
+        btnToggleWordMaintenance.addEventListener('click', async () => {
+            const nextMode = !state.word_maintenance_active;
+            btnToggleWordMaintenance.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/word-puzzle/maintenance?enabled=${nextMode}`, {
+                    method: 'POST'
+                });
+                if (!res.ok) throw new Error("Failed to change maintenance status.");
+
+                state.word_maintenance_active = nextMode;
+                btnToggleWordMaintenance.innerText = state.word_maintenance_active ? "Unlock Game Access" : "Lock Game Access";
+                btnToggleWordMaintenance.style.backgroundColor = state.word_maintenance_active ? 'var(--success)' : 'var(--error)';
+                showToast(state.word_maintenance_active ? "Word Game has been LOCKED for maintenance." : "Word Game unlocked! Game access is live.");
+            } catch (err) {
+                showToast("Maintenance toggle error: " + err.message, true);
+            } finally {
+                btnToggleWordMaintenance.disabled = false;
+            }
+        });
+    }
+});
 
 
 

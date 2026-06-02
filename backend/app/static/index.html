@@ -797,15 +797,20 @@
                             </form>
                         </div>
 
-                        <div class="card" style="display: flex; flex-direction: column; justify-content: center;">
+                        <div class="card" style="display: flex; flex-direction: column;">
                             <div class="card-header">
                                 <h2>Active Lobbies Details</h2>
                             </div>
                             <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-                                <p style="margin-bottom: 10px;">Fruit Slicing tournaments utilize a cryptographically
-                                    secure spawner sequence generated using a deterministic seed.</p>
-                                <p>Admin parameters let players challenge each other in high-paced matches. All matches
-                                    are fully validated on the backend to prevent speed-hacks or score-tampering.</p>
+                                <p style="margin-bottom: 10px;">Fruit Slicing tournaments utilize a cryptographically secure spawner sequence generated using a deterministic seed.</p>
+                                <p style="margin-bottom: 20px;">Admin parameters let players challenge each other in high-paced matches. All matches are fully validated on the backend to prevent speed-hacks or score-tampering.</p>
+                            </div>
+                            <div style="display: flex; gap: 15px; align-items: center; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; margin-top: auto;">
+                                <div>
+                                    <h4 style="margin: 0; font-size: 13px; font-weight: bold; color: var(--text-main);">Fruit Game Maintenance Lock</h4>
+                                    <p style="margin: 3px 0 0 0; font-size: 10px; color: var(--text-muted);">Enable to restrict fruit game access for all players instantly.</p>
+                                </div>
+                                <button type="button" class="btn btn-secondary" id="btn-toggle-fruit-maintenance" style="padding: 6px 12px; font-size: 11px;">Enable Lockout</button>
                             </div>
                         </div>
                     </div>
@@ -940,10 +945,15 @@
                                     src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=500&auto=format&fit=crop"
                                     style="max-width: 100%; max-height: 180px; border-radius: 8px; border: 1px solid var(--border-color); object-fit: cover;">
                             </div>
-                            <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-                                <p>To configure a slide puzzle match, customize grid layouts (3x3, 4x4, 5x5) and input
-                                    standard image URLs above. A live preview of the target image is displayed above.
-                                </p>
+                            <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 15px;">
+                                <p>To configure a slide puzzle match, customize grid layouts (3x3, 4x4, 5x5) and input standard image URLs above. A live preview of the target image is displayed above.</p>
+                            </div>
+                            <div style="display: flex; gap: 15px; align-items: center; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px;">
+                                <div>
+                                    <h4 style="margin: 0; font-size: 13px; font-weight: bold; color: var(--text-main);">Puzzle Game Maintenance Lock</h4>
+                                    <p style="margin: 3px 0 0 0; font-size: 10px; color: var(--text-muted);">Enable to restrict puzzle access for all players instantly.</p>
+                                </div>
+                                <button type="button" class="btn btn-secondary" id="btn-toggle-puzzle-maintenance" style="padding: 6px 12px; font-size: 11px;">Enable Lockout</button>
                             </div>
                         </div>
                     </div>
@@ -1062,15 +1072,20 @@
                             </form>
                         </div>
 
-                        <div class="card" style="display:flex; flex-direction:column; justify-content: center;">
+                        <div class="card" style="display:flex; flex-direction:column;">
                             <div class="card-header">
                                 <h2>Vocabulary Rules</h2>
                             </div>
                             <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-                                <p style="margin-bottom:10px;">Word contests can host multiple rounds consisting of
-                                    unscrambles, word searches, crosswords, and pattern fills.</p>
-                                <p>Once you launch a contest, you can use the **Word Contest Questions Editor** below to
-                                    load and customize its word bank sequence.</p>
+                                <p style="margin-bottom:10px;">Word contests can host multiple rounds consisting of unscrambles, word searches, crosswords, and pattern fills.</p>
+                                <p style="margin-bottom: 20px;">Once you launch a contest, you can use the **Word Contest Questions Editor** below to load and customize its word bank sequence.</p>
+                            </div>
+                            <div style="display: flex; gap: 15px; align-items: center; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; margin-top: auto;">
+                                <div>
+                                    <h4 style="margin: 0; font-size: 13px; font-weight: bold; color: var(--text-main);">Word Game Maintenance Lock</h4>
+                                    <p style="margin: 3px 0 0 0; font-size: 10px; color: var(--text-muted);">Enable to restrict word game access for all players instantly.</p>
+                                </div>
+                                <button type="button" class="btn btn-secondary" id="btn-toggle-word-maintenance" style="padding: 6px 12px; font-size: 11px;">Enable Lockout</button>
                             </div>
                         </div>
                     </div>

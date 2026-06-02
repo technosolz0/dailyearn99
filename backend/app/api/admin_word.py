@@ -176,3 +176,14 @@ def get_contest_questions(
         })
     return result
 
+@router.post("/maintenance")
+def toggle_word_maintenance(enabled: bool):
+    from app.services import WordGameService
+    WordGameService.set_maintenance_mode(enabled)
+    return {"maintenance_mode": WordGameService.is_maintenance_mode()}
+
+@router.get("/maintenance")
+def get_word_maintenance():
+    from app.services import WordGameService
+    return {"maintenance_mode": WordGameService.is_maintenance_mode()}
+

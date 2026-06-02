@@ -84,3 +84,14 @@ def complete_fruit_contest(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+
+@router.post("/maintenance")
+def toggle_fruit_maintenance(enabled: bool):
+    from app.services import FruitGameService
+    FruitGameService.set_maintenance_mode(enabled)
+    return {"maintenance_mode": FruitGameService.is_maintenance_mode()}
+
+@router.get("/maintenance")
+def get_fruit_maintenance():
+    from app.services import FruitGameService
+    return {"maintenance_mode": FruitGameService.is_maintenance_mode()}

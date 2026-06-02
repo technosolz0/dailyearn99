@@ -75,3 +75,14 @@ def complete_puzzle_contest(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+
+@router.post("/maintenance")
+def toggle_puzzle_maintenance(enabled: bool):
+    from app.services import PuzzleGameService
+    PuzzleGameService.set_maintenance_mode(enabled)
+    return {"maintenance_mode": PuzzleGameService.is_maintenance_mode()}
+
+@router.get("/maintenance")
+def get_puzzle_maintenance():
+    from app.services import PuzzleGameService
+    return {"maintenance_mode": PuzzleGameService.is_maintenance_mode()}

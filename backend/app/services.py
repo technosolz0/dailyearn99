@@ -605,8 +605,20 @@ class PuzzleAntiCheatService:
 
 
 class PuzzleGameService:
+    _maintenance_mode = False
+
+    @classmethod
+    def set_maintenance_mode(cls, enabled: bool):
+        cls._maintenance_mode = enabled
+
+    @classmethod
+    def is_maintenance_mode(cls) -> bool:
+        return cls._maintenance_mode
+
     @staticmethod
     def start_puzzle_session(db: Session, user: User, contest_id: int, device_fingerprint: str, ip_address: str) -> dict:
+        if PuzzleGameService.is_maintenance_mode():
+            raise ValueError("Image Puzzle is currently under maintenance. Please try again later.")
         contest = db.query(ImagePuzzleContest).filter(ImagePuzzleContest.id == contest_id).first()
         if not contest:
             raise ValueError("Contest not found.")
@@ -857,8 +869,20 @@ from app.websocket import word_leaderboard_manager
 
 
 class WordGameService:
+    _maintenance_mode = False
+
+    @classmethod
+    def set_maintenance_mode(cls, enabled: bool):
+        cls._maintenance_mode = enabled
+
+    @classmethod
+    def is_maintenance_mode(cls) -> bool:
+        return cls._maintenance_mode
+
     @staticmethod
     def join_word_contest(db: Session, user: User, contest_id: int, device_fingerprint: str, ip_address: str) -> dict:
+        if WordGameService.is_maintenance_mode():
+            raise ValueError("Word Puzzle is currently under maintenance. Please try again later.")
         contest = db.query(WordContest).filter(WordContest.id == contest_id).with_for_update().first()
         if not contest:
             raise ValueError("Contest not found.")
@@ -1278,8 +1302,20 @@ class FruitAntiCheatService:
 
 
 class FruitGameService:
+    _maintenance_mode = False
+
+    @classmethod
+    def set_maintenance_mode(cls, enabled: bool):
+        cls._maintenance_mode = enabled
+
+    @classmethod
+    def is_maintenance_mode(cls) -> bool:
+        return cls._maintenance_mode
+
     @staticmethod
     def start_fruit_session(db: Session, user: User, contest_id: int, device_fingerprint: str, ip_address: str) -> dict:
+        if FruitGameService.is_maintenance_mode():
+            raise ValueError("Fruit Puzzle is currently under maintenance. Please try again later.")
         contest = db.query(FruitContest).filter(FruitContest.id == contest_id).with_for_update().first()
         if not contest:
             raise ValueError("Contest not found.")
