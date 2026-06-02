@@ -76,64 +76,76 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
       body: BlocBuilder<AppBloc, AppState>(
         builder: (context, appState) {
           final user = appState.currentUser;
-          
+
           return _isLoading
               ? const Center(
                   child: CircularProgressIndicator(color: Color(0xFF8A2BE2)),
                 )
               : _error != null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
-                            const SizedBox(height: 12),
-                            Text(
-                              _error!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(color: Colors.white70),
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _refreshContests,
-                              child: const Text('Retry'),
-                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8A2BE2)),
-                            ),
-                          ],
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: Colors.redAccent,
+                          size: 48,
                         ),
-                      ),
-                    )
-                  : _contests.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'No puzzle challenges listed currently.',
-                            style: TextStyle(color: Colors.white54),
+                        const SizedBox(height: 12),
+                        Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _refreshContests,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF8A2BE2),
                           ),
-                        )
-                      : RefreshIndicator(
-                          onRefresh: _refreshContests,
-                          color: const Color(0xFF8A2BE2),
-                          child: ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _contests.length,
-                            itemBuilder: (context, index) {
-                              return _buildContestCard(context, _contests[index], user);
-                            },
-                          ),
-                        );
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : _contests.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No puzzle challenges listed currently.',
+                    style: TextStyle(color: Colors.white54),
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _refreshContests,
+                  color: const Color(0xFF8A2BE2),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _contests.length,
+                    itemBuilder: (context, index) {
+                      return _buildContestCard(context, _contests[index], user);
+                    },
+                  ),
+                );
         },
       ),
     );
   }
 
-  Widget _buildContestCard(BuildContext context, PuzzleContestModel contest, dynamic user) {
+  Widget _buildContestCard(
+    BuildContext context,
+    PuzzleContestModel contest,
+    dynamic user,
+  ) {
     bool isActive = contest.status == 'ACTIVE';
-    
+
     // Check user registration status
-    final isJoined = user?.joinedPuzzleContestIds?.contains(contest.id) ?? false;
-    final isCompleted = user?.completedPuzzleContestIds?.contains(contest.id) ?? false;
+    final isJoined =
+        user?.joinedPuzzleContestIds?.contains(contest.id) ?? false;
+    final isCompleted =
+        user?.completedPuzzleContestIds?.contains(contest.id) ?? false;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -141,7 +153,9 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
         color: const Color(0xFF151030),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isActive ? const Color(0xFF8A2BE2).withOpacity(0.8) : Colors.white12,
+          color: isActive
+              ? const Color(0xFF8A2BE2).withOpacity(0.8)
+              : Colors.white12,
           width: isActive ? 1.5 : 1.0,
         ),
         boxShadow: isActive
@@ -150,7 +164,7 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
                   color: const Color(0xFF8A2BE2).withOpacity(0.1),
                   blurRadius: 10,
                   spreadRadius: 1,
-                )
+                ),
               ]
             : null,
       ),
@@ -169,7 +183,11 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
                         color: Colors.grey[900],
-                        child: const Icon(Icons.broken_image, color: Colors.white24, size: 40),
+                        child: const Icon(
+                          Icons.broken_image,
+                          color: Colors.white24,
+                          size: 40,
+                        ),
                       );
                     },
                   ),
@@ -178,7 +196,10 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
                   height: 120,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.black.withOpacity(0.85), Colors.transparent],
+                      colors: [
+                        Colors.black.withOpacity(0.85),
+                        Colors.transparent,
+                      ],
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
                     ),
@@ -190,9 +211,14 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: isActive ? Colors.green[800] : Colors.amber[700],
+                          color: isActive
+                              ? Colors.green[800]
+                              : Colors.amber[700],
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -210,7 +236,11 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
                       IconButton(
                         constraints: const BoxConstraints(),
                         padding: EdgeInsets.zero,
-                        icon: const Icon(Icons.emoji_events, color: Colors.amberAccent, size: 20),
+                        icon: const Icon(
+                          Icons.emoji_events,
+                          color: Colors.amberAccent,
+                          size: 20,
+                        ),
                         tooltip: 'View Standings',
                         onPressed: () => _openLeaderboard(context, contest),
                       ),
@@ -241,9 +271,21 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildInfoColumn('PRIZE POOL', '₹${contest.prizePool.toStringAsFixed(0)}', Colors.cyanAccent),
-                      _buildInfoColumn('ENTRY FEE', '₹${contest.entryFee.toStringAsFixed(0)}', Colors.greenAccent),
-                      _buildInfoColumn('GRID SIZE', '${contest.gridSize}x${contest.gridSize}', Colors.amberAccent),
+                      _buildInfoColumn(
+                        'PRIZE POOL',
+                        '₹${contest.prizePool.toStringAsFixed(0)}',
+                        Colors.cyanAccent,
+                      ),
+                      _buildInfoColumn(
+                        'ENTRY FEE',
+                        '₹${contest.entryFee.toStringAsFixed(0)}',
+                        Colors.greenAccent,
+                      ),
+                      _buildInfoColumn(
+                        'GRID SIZE',
+                        '${contest.gridSize}x${contest.gridSize}',
+                        Colors.amberAccent,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -252,35 +294,53 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
                     children: [
                       Text(
                         'Slots: ${contest.joinedSlots}/${contest.totalSlots}',
-                        style: const TextStyle(color: Colors.white54, fontSize: 11),
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 11,
+                        ),
                       ),
                       if (isCompleted)
                         const Text(
                           'COMPLETED',
-                          style: TextStyle(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: Colors.greenAccent,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
                         )
                       else if (isJoined)
                         const Text(
                           'IN PROGRESS',
-                          style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 11, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: Color(0xFF8A2BE2),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
                         )
                       else
                         Text(
                           'Play Time: ${contest.durationSeconds}s',
-                          style: const TextStyle(color: Colors.white54, fontSize: 11),
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 11,
+                          ),
                         ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   LinearProgressIndicator(
-                    value: contest.totalSlots > 0 ? contest.joinedSlots / contest.totalSlots : 0,
+                    value: contest.totalSlots > 0
+                        ? contest.joinedSlots / contest.totalSlots
+                        : 0,
                     backgroundColor: Colors.white12,
-                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8A2BE2)),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Color(0xFF8A2BE2),
+                    ),
                     minHeight: 4,
                     borderRadius: BorderRadius.circular(2),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // CTA button depending on registration & play status
                   if (isCompleted)
                     ElevatedButton.icon(
@@ -316,10 +376,16 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
                         children: [
                           ElevatedButton.icon(
                             onPressed: null,
-                            icon: const Icon(Icons.lock_clock, color: Colors.white38),
+                            icon: const Icon(
+                              Icons.lock_clock,
+                              color: Colors.white38,
+                            ),
                             label: Text(
                               'STARTS AT ${contest.startTime.toLocal().hour.toString().padLeft(2, '0')}:${contest.startTime.toLocal().minute.toString().padLeft(2, '0')}',
-                              style: const TextStyle(color: Colors.white38, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                color: Colors.white38,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white12,
@@ -333,7 +399,11 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
                           const SizedBox(height: 8),
                           const Text(
                             'Aapne register kar liya hai! Challenge start hone ka wait karein.',
-                            style: TextStyle(color: Colors.orangeAccent, fontSize: 11.5, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: Colors.orangeAccent,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.bold,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ],
@@ -341,16 +411,19 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
                   else
                     ElevatedButton(
                       onPressed: () => _showJoinConfirmation(context, contest),
-                      child: Text(
-                        'JOIN CHALLENGE (₹${contest.entryFee.toStringAsFixed(0)})',
-                        style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF8A2BE2),
                         foregroundColor: Colors.white,
                         minimumSize: const Size(double.infinity, 44),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        'JOIN CHALLENGE (₹${contest.entryFee.toStringAsFixed(0)})',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ),
@@ -369,7 +442,11 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(color: Colors.white38, fontSize: 8, letterSpacing: 0.8),
+          style: const TextStyle(
+            color: Colors.white38,
+            fontSize: 8,
+            letterSpacing: 0.8,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
@@ -385,7 +462,8 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
   }
 
   void _showJoinConfirmation(BuildContext context, PuzzleContestModel contest) {
-    final double userBalance = context.read<AppBloc>().state.currentUser?.totalBalance ?? 0.0;
+    final double userBalance =
+        context.read<AppBloc>().state.currentUser?.totalBalance ?? 0.0;
     final bool canAfford = userBalance >= contest.entryFee;
 
     showModalBottomSheet(
@@ -422,24 +500,33 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
                     Text(
                       contest.title,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Rules Container
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.04),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white.withOpacity(0.08)),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.08),
+                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Row(
                             children: [
-                              Icon(Icons.gavel_rounded, color: Color(0xFF8A2BE2), size: 16),
+                              Icon(
+                                Icons.gavel_rounded,
+                                color: Color(0xFF8A2BE2),
+                                size: 16,
+                              ),
                               SizedBox(width: 8),
                               Text(
                                 'GAMEPLAY RULES',
@@ -455,23 +542,46 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
                           const SizedBox(height: 10),
                           RichText(
                             text: const TextSpan(
-                              style: TextStyle(color: Colors.white70, fontSize: 11.5, height: 1.5, fontFamily: 'sans-serif'),
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11.5,
+                                height: 1.5,
+                                fontFamily: 'sans-serif',
+                              ),
                               children: [
                                 TextSpan(
                                   text: '• Puzzle Solving: ',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                                TextSpan(text: 'User ko grid ke blocks ko slide karke perfect puzzle image reconstruct karni hoti hai.\n'),
+                                TextSpan(
+                                  text:
+                                      'User ko grid ke blocks ko slide karke perfect puzzle image reconstruct karni hoti hai.\n',
+                                ),
                                 TextSpan(
                                   text: '• Solver Score Formula: ',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                                TextSpan(text: 'Score = 10000 - (Seconds × 5) - (Moves × 2) - (Hints Used × 100). Jitna fast aur kam moves me solve karenge, score utna high hoga (Min. score is 0).\n'),
+                                TextSpan(
+                                  text:
+                                      'Score = 10000 - (Seconds × 5) - (Moves × 2) - (Hints Used × 100). Jitna fast aur kam moves me solve karenge, score utna high hoga (Min. score is 0).\n',
+                                ),
                                 TextSpan(
                                   text: '• Strict Anti-Cheat: ',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                                TextSpan(text: 'System blocks ke movement timing (min. 100ms gap) aur complete swap paths ko verify karta hai. Macro aur clicker scripts complete ban hain.'),
+                                TextSpan(
+                                  text:
+                                      'System blocks ke movement timing (min. 100ms gap) aur complete swap paths ko verify karta hai. Macro aur clicker scripts complete ban hain.',
+                                ),
                               ],
                             ),
                           ),
@@ -479,20 +589,42 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    
+
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Entry Fee', style: TextStyle(color: Colors.white54, fontSize: 13)),
-                        Text('₹${contest.entryFee.toStringAsFixed(0)}', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 15)),
+                        const Text(
+                          'Entry Fee',
+                          style: TextStyle(color: Colors.white54, fontSize: 13),
+                        ),
+                        Text(
+                          '₹${contest.entryFee.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            color: Colors.greenAccent,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Your Wallet Balance', style: TextStyle(color: Colors.white54, fontSize: 13)),
-                        Text('₹${userBalance.toStringAsFixed(2)}', style: TextStyle(color: canAfford ? Colors.cyanAccent : Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 15)),
+                        const Text(
+                          'Your Wallet Balance',
+                          style: TextStyle(color: Colors.white54, fontSize: 13),
+                        ),
+                        Text(
+                          '₹${userBalance.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            color: canAfford
+                                ? Colors.cyanAccent
+                                : Colors.redAccent,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 24),
@@ -509,13 +641,15 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () => Navigator.pop(ctx),
-                            child: const Text('CANCEL'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white60,
                               side: const BorderSide(color: Colors.white24),
                               padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
+                            child: const Text('CANCEL'),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -527,13 +661,15 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
                                     Navigator.pop(ctx);
                                     _joinContestAndPlay(context, contest);
                                   },
-                            child: const Text('CONFIRM & JOIN'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF8A2BE2),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
+                            child: const Text('CONFIRM & JOIN'),
                           ),
                         ),
                       ],
@@ -548,22 +684,27 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
     );
   }
 
-  Future<void> _joinContestAndPlay(BuildContext context, PuzzleContestModel contest) async {
+  Future<void> _joinContestAndPlay(
+    BuildContext context,
+    PuzzleContestModel contest,
+  ) async {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFF8A2BE2))),
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF8A2BE2)),
+      ),
     );
 
     try {
       // 1. Join contest via starting session to deduct fee and register record
       await _repository.startPuzzleSession(contest.id);
-      
+
       // 2. Refresh global AppBloc user details for balance update
       if (context.mounted) {
         context.read<AppBloc>().add(LoadProfileEvent());
         Navigator.pop(context); // Close loading spinner
-        
+
         // 3. Start game
         _startGamePlay(context, contest);
       }
@@ -571,30 +712,34 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
       if (context.mounted) {
         Navigator.pop(context); // Close loading spinner
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     }
   }
 
   void _startGamePlay(BuildContext context, PuzzleContestModel contest) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => BlocProvider(
-          create: (context) => PuzzleBloc(_repository)..add(
-            LoadPuzzleGameEvent(contest.id),
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (context) => BlocProvider(
+              create: (context) =>
+                  PuzzleBloc(_repository)..add(LoadPuzzleGameEvent(contest.id)),
+              child: PuzzleGameScreen(
+                contestId: contest.id,
+                title: contest.title,
+                imageUrl: contest.imageUrl,
+              ),
+            ),
           ),
-          child: PuzzleGameScreen(
-            contestId: contest.id,
-            title: contest.title,
-            imageUrl: contest.imageUrl,
-          ),
-        ),
-      ),
-    ).then((_) {
-      _refreshContests();
-      context.read<AppBloc>().add(LoadProfileEvent());
-    });
+        )
+        .then((_) {
+          _refreshContests();
+          context.read<AppBloc>().add(LoadProfileEvent());
+        });
   }
 
   void _openLeaderboard(BuildContext context, PuzzleContestModel contest) {
