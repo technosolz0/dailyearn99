@@ -363,94 +363,158 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF151030),
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Confirm Registration',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  contest.title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return DraggableScrollableSheet(
+          initialChildSize: 0.72,
+          minChildSize: 0.5,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (_, scrollController) {
+            return SafeArea(
+              child: SingleChildScrollView(
+                controller: scrollController,
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text('Entry Fee', style: TextStyle(color: Colors.white54, fontSize: 13)),
-                    Text('₹${contest.entryFee.toStringAsFixed(0)}', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 15)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Your Wallet Balance', style: TextStyle(color: Colors.white54, fontSize: 13)),
-                    Text('₹${userBalance.toStringAsFixed(2)}', style: TextStyle(color: canAfford ? Colors.cyanAccent : Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 15)),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                if (!canAfford) ...[
-                  const Text(
-                    'Insufficient balance. Please deposit funds first.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.redAccent, fontSize: 11),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        child: const Text('CANCEL'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white60,
-                          side: const BorderSide(color: Colors.white24),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
+                    const Text(
+                      'Confirm Registration',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: !canAfford
-                            ? null
-                            : () async {
-                                Navigator.pop(ctx);
-                                _joinContestAndPlay(context, contest);
-                              },
-                        child: const Text('CONFIRM & JOIN'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF8A2BE2),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
+                    const SizedBox(height: 12),
+                    Text(
+                      contest.title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Rules Container
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.04),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withOpacity(0.08)),
                       ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.gavel_rounded, color: Color(0xFF8A2BE2), size: 16),
+                              SizedBox(width: 8),
+                              Text(
+                                'GAMEPLAY RULES',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          RichText(
+                            text: const TextSpan(
+                              style: TextStyle(color: Colors.white70, fontSize: 11.5, height: 1.5, fontFamily: 'sans-serif'),
+                              children: [
+                                TextSpan(
+                                  text: '• Puzzle Solving: ',
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                ),
+                                TextSpan(text: 'User ko grid ke blocks ko slide karke perfect puzzle image reconstruct karni hoti hai.\n'),
+                                TextSpan(
+                                  text: '• Solver Score Formula: ',
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                ),
+                                TextSpan(text: 'Score = 10000 - (Seconds × 5) - (Moves × 2) - (Hints Used × 100). Jitna fast aur kam moves me solve karenge, score utna high hoga (Min. score is 0).\n'),
+                                TextSpan(
+                                  text: '• Strict Anti-Cheat: ',
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                ),
+                                TextSpan(text: 'System blocks ke movement timing (min. 100ms gap) aur complete swap paths ko verify karta hai. Macro aur clicker scripts complete ban hain.'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Entry Fee', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                        Text('₹${contest.entryFee.toStringAsFixed(0)}', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 15)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Your Wallet Balance', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                        Text('₹${userBalance.toStringAsFixed(2)}', style: TextStyle(color: canAfford ? Colors.cyanAccent : Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 15)),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    if (!canAfford) ...[
+                      const Text(
+                        'Insufficient balance. Please deposit funds first.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.redAccent, fontSize: 11),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('CANCEL'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white60,
+                              side: const BorderSide(color: Colors.white24),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: !canAfford
+                                ? null
+                                : () async {
+                                    Navigator.pop(ctx);
+                                    _joinContestAndPlay(context, contest);
+                                  },
+                            child: const Text('CONFIRM & JOIN'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF8A2BE2),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
