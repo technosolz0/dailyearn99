@@ -891,7 +891,7 @@ class WordGameService:
         contest = db.query(WordContest).filter(WordContest.id == contest_id).with_for_update().first()
         if not contest:
             raise ValueError("Contest not found.")
-        if contest.status != "UPCOMING":
+        if contest.status != "ACTIVE" and contest.status != "UPCOMING":
             raise ValueError("Contest has already started or completed.")
         if contest.joined_slots >= contest.total_slots:
             raise ValueError("Contest is full.")

@@ -13,7 +13,7 @@ Teeno games mein Join karne (Register) aur Play karne (Gameplay Start) ki backen
 | Game Name | Kis Status Pe **Join (Register)** Hoga? | Kis Status Pe **Play (Game Start)** Hoga? |
 | :--- | :--- | :--- |
 | **🖼️ Image Puzzle** | **`ACTIVE`** ya **`UPCOMING`** | **`ACTIVE`** (registered hone ke baad) |
-| **🧩 Word Puzzle** | **`UPCOMING`** (sirf start hone se pehle) | **`ACTIVE`** (registered hone ke baad) |
+| **🧩 Word Puzzle** | **`ACTIVE`** ya **`UPCOMING`** | **`ACTIVE`** (registered hone ke baad) |
 | **🍎 Fruit Slicing** | **`ACTIVE`** ya **`UPCOMING`** | **`ACTIVE`** (registered hone ke baad) |
 
 ---
@@ -30,10 +30,10 @@ Teeno games mein Join karne (Register) aur Play karne (Gameplay Start) ki backen
 * **PLAY Logic:** User tabhi khel sakta hai jab wo registered ho aur current server time contest ke shuru hone ka ho chuka ho (i.e., status **`ACTIVE`** ho). 
 
 #### B. Word Puzzle Game (Special Rules)
-* **JOIN Logic (Seat Booking):** Word puzzle mein user sirf tabhi register kar sakta hai jab contest **`UPCOMING`** status mein ho (yaani tournament real-time shuru hone se pehle). Agar contest ek baar `ACTIVE` ho gaya, toh koi naya user join nahi kar sakta.
+* **JOIN Logic (Seat Booking):** Word puzzle mein user tabhi register kar sakta hai jab contest **`ACTIVE`** ya **`UPCOMING`** status mein ho.
   * *Backend check (`WordGameService.join_word_contest`):*
     ```python
-    if contest.status != "UPCOMING":
+    if contest.status != "ACTIVE" and contest.status != "UPCOMING":
         raise ValueError("Contest has already started or completed.")
     ```
 * **PLAY Logic:** Contest timing shuru hone par (status transitions to **`ACTIVE`**), registered user `/start` endpoint call karke active questions pull karta hai aur gameplay shuru karta hai.
