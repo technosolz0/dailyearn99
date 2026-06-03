@@ -20,7 +20,31 @@ class ArrowGameScreen extends StatefulWidget {
 
 class _ArrowGameScreenState extends State<ArrowGameScreen> {
   final Map<int, double> _shakeOffsets = {};
+  final Map<int, Color> _flyColors = {};
   String _selectedShape = 'arrow';
+
+  final List<Color> _vibrantColors = const [
+    Color(0xFFFF2D55), // Vibrant Pink/Red
+    Color(0xFFFF9500), // Sunset Orange
+    Color(0xFF4CD964), // Emerald Green
+    Color(0xFF5AC8FA), // Sky Blue
+    Color(0xFF5856D6), // Purple
+    Color(0xFF007AFF), // Blue
+    Color(0xFFFFCC00), // Yellow
+    Color(0xFFFF5722), // Deep Orange
+    Color(0xFFE91E63), // Pink
+    Color(0xFF9C27B0), // Grape
+    Color(0xFF00BCD4), // Teal
+    Color(0xFF8BC34A), // Lime
+  ];
+
+  void _assignFlyColor(int blockId) {
+    final random = math.Random();
+    setState(() {
+      _flyColors[blockId] =
+          _vibrantColors[random.nextInt(_vibrantColors.length)];
+    });
+  }
 
   void _triggerShake(int blockId) {
     if (!mounted) return;
@@ -107,19 +131,19 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0C091A),
+      backgroundColor: const Color(0xFFF5EFEB),
       appBar: AppBar(
         title: Text(
           widget.title.toUpperCase(),
           style: const TextStyle(
-            color: Colors.white,
+            color: Color(0xFF5D4037),
             fontWeight: FontWeight.bold,
             letterSpacing: 1.2,
             fontSize: 14,
           ),
         ),
-        backgroundColor: const Color(0xFF140F2D),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: const Color(0xFFF5EFEB),
+        iconTheme: const IconThemeData(color: Color(0xFF5D4037)),
         elevation: 0,
       ),
       body: BlocConsumer<ArrowBloc, ArrowState>(
@@ -133,12 +157,15 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
                 backgroundColor: Colors.redAccent,
               ),
             );
+          } else if (state is ArrowActiveState && state.moves == 0) {
+            _shakeOffsets.clear();
+            _flyColors.clear();
           }
         },
         builder: (context, state) {
           if (state is ArrowLoadingState) {
             return const Center(
-              child: CircularProgressIndicator(color: Color(0xFFFF9900)),
+              child: CircularProgressIndicator(color: Color(0xFF5D4037)),
             );
           }
 
@@ -149,7 +176,7 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
           return const Center(
             child: Text(
               'Initializing Challenge...',
-              style: TextStyle(color: Colors.white70),
+              style: TextStyle(color: Color(0xFF8D6E63)),
             ),
           );
         },
@@ -175,16 +202,16 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF140F2D),
+                    color: const Color(0xFFFAF6F0),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: const Color(0xFFFF9900),
-                      width: 2,
+                      color: const Color(0xFFEBE5DB),
+                      width: 2.0,
                     ),
-                    boxShadow: [
+                    boxShadow: const [
                       BoxShadow(
-                        color: const Color(0xFFFF9900).withOpacity(0.15),
-                        blurRadius: 25,
+                        color: Color(0x0A5D4037),
+                        blurRadius: 15,
                         spreadRadius: 2,
                       ),
                     ],
@@ -192,64 +219,81 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(14),
                     child: Stack(
-                      children: state.blocks.map((block) {
-                        double shake = _shakeOffsets[block.id] ?? 0.0;
-                        double leftPosition = block.col * segmentSize + shake;
-                        double topPosition = block.row * segmentSize;
+                      children: [
+                        // Dot grid background revealed as arrows fly off
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: DotGridPainter(
+                              gridSize: state.gridSize,
+                              dotColor: const Color(0x338D6E63),
+                            ),
+                          ),
+                        ),
+                        ...state.blocks.map((block) {
+                          double shake = _shakeOffsets[block.id] ?? 0.0;
+                          double leftPosition = block.col * segmentSize + shake;
+                          double topPosition = block.row * segmentSize;
 
-                        if (block.isCleared) {
-                          if (block.direction == 'UP') {
-                            topPosition = -MediaQuery.of(context).size.height;
-                          } else if (block.direction == 'DOWN') {
-                            topPosition = MediaQuery.of(context).size.height;
-                          } else if (block.direction == 'LEFT') {
-                            leftPosition = -MediaQuery.of(context).size.width;
-                          } else if (block.direction == 'RIGHT') {
-                            leftPosition = MediaQuery.of(context).size.width;
+                          if (block.isCleared) {
+                            if (block.direction == 'UP') {
+                              topPosition = -MediaQuery.of(context).size.height;
+                            } else if (block.direction == 'DOWN') {
+                              topPosition = MediaQuery.of(context).size.height;
+                            } else if (block.direction == 'LEFT') {
+                              leftPosition = -MediaQuery.of(context).size.width;
+                            } else if (block.direction == 'RIGHT') {
+                              leftPosition = MediaQuery.of(context).size.width;
+                            }
                           }
-                        }
 
-                        return AnimatedPositioned(
-                          duration: const Duration(milliseconds: 350),
-                          curve: Curves.easeOutCubic,
-                          left: leftPosition,
-                          top: topPosition,
-                          width: segmentSize,
-                          height: segmentSize,
-                          child: AnimatedOpacity(
-                            duration: const Duration(milliseconds: 250),
-                            opacity: block.isCleared ? 0.0 : 1.0,
-                            child: Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: GestureDetector(
-                                onTap: () {
-                                  if (block.isCleared) return;
-                                  final blocked = _isObstructed(
-                                    block,
-                                    state.blocks,
-                                    state.gridSize,
-                                  );
-                                  if (blocked) {
-                                    _triggerShake(block.id);
-                                  }
-                                  context.read<ArrowBloc>().add(
-                                    TapArrowEvent(block.id),
-                                  );
-                                },
-                                child: CustomPaint(
-                                  painter: ArrowBlockPainter(
-                                    direction: block.direction,
-                                    shapeType: _selectedShape,
-                                    isObstructed:
-                                        (_shakeOffsets[block.id] ?? 0.0) != 0.0,
+                          return AnimatedPositioned(
+                            duration: const Duration(milliseconds: 600),
+                            curve: Curves.easeOutCubic,
+                            left: leftPosition,
+                            top: topPosition,
+                            width: segmentSize,
+                            height: segmentSize,
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 500),
+                              opacity: block.isCleared ? 0.0 : 1.0,
+                              child: Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    if (block.isCleared) return;
+                                    final blocked = _isObstructed(
+                                      block,
+                                      state.blocks,
+                                      state.gridSize,
+                                    );
+                                    if (blocked) {
+                                      _triggerShake(block.id);
+                                    } else {
+                                      _assignFlyColor(block.id);
+                                    }
+                                    context.read<ArrowBloc>().add(
+                                      TapArrowEvent(block.id),
+                                    );
+                                  },
+                                  child: CustomPaint(
+                                    painter: ArrowBlockPainter(
+                                      direction: block.direction,
+                                      shapeType: _selectedShape,
+                                      isObstructed:
+                                          (_shakeOffsets[block.id] ?? 0.0) !=
+                                          0.0,
+                                      flyColor: _flyColors[block.id],
+                                    ),
+                                    child: Container(
+                                      alignment: Alignment.center,
+                                    ),
                                   ),
-                                  child: Container(alignment: Alignment.center),
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                      }).toList(),
+                          );
+                        }),
+                      ],
                     ),
                   ),
                 ),
@@ -275,8 +319,8 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: const BoxDecoration(
-        color: Color(0xFF140F2D),
-        border: Border(bottom: BorderSide(color: Colors.white10, width: 1)),
+        color: Color(0xFFFAF6F0),
+        border: Border(bottom: BorderSide(color: Color(0xFFEBE5DB), width: 1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -285,13 +329,13 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
             'TAPS',
             '${state.moves}',
             Icons.touch_app_rounded,
-            Colors.cyanAccent,
+            const Color(0xFF8D6E63),
           ),
           _buildStatCard(
             'TIME',
             timeStr,
             Icons.timer_rounded,
-            Colors.greenAccent,
+            const Color(0xFF8D6E63),
           ),
         ],
       ),
@@ -307,9 +351,9 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF221A44),
+        color: const Color(0xFFF5EFEB),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: const Color(0xFFEBE5DB)),
       ),
       child: Row(
         children: [
@@ -323,15 +367,16 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
                 label,
                 style: const TextStyle(
                   fontSize: 8,
-                  color: Colors.white54,
+                  color: Color(0xFF8D6E63),
                   letterSpacing: 0.8,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               Text(
                 value,
                 style: const TextStyle(
                   fontSize: 14,
-                  color: Colors.white,
+                  color: Color(0xFF5D4037),
                   fontWeight: FontWeight.bold,
                   fontFamily: 'monospace',
                 ),
@@ -349,16 +394,16 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF130E30),
+        color: const Color(0xFFFAF6F0),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: const Color(0xFFEBE5DB)),
       ),
       child: Row(
         children: [
           const Text(
             'LIVE RANKS:',
             style: TextStyle(
-              color: Colors.cyanAccent,
+              color: Color(0xFF8D6E63),
               fontSize: 9,
               fontWeight: FontWeight.bold,
               letterSpacing: 0.5,
@@ -370,7 +415,7 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
                 ? const Center(
                     child: Text(
                       'No completions logged yet.',
-                      style: TextStyle(color: Colors.white38, fontSize: 11),
+                      style: TextStyle(color: Color(0xFF8D6E63), fontSize: 11),
                     ),
                   )
                 : ListView.builder(
@@ -385,8 +430,9 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF22174C),
+                          color: const Color(0xFFF5EFEB),
                           borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFEBE5DB)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -394,7 +440,7 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
                             Text(
                               '#${item['rank']}',
                               style: const TextStyle(
-                                color: Colors.amber,
+                                color: Color(0xFF8D6E63),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 11,
                               ),
@@ -403,7 +449,7 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
                             Text(
                               '${item['name']}',
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: Color(0xFF5D4037),
                                 fontSize: 11,
                               ),
                             ),
@@ -411,7 +457,7 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
                             Text(
                               '${item['score']}',
                               style: const TextStyle(
-                                color: Colors.greenAccent,
+                                color: Color(0xFF4CAF50),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 11,
                               ),
@@ -433,7 +479,7 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
       child: Text(
         '⚠️ Dhyan rahein: Agar arrow ke raste me koi dusra block hai toh tap karne par collision shake hoga aur score deduct hoga! Clear the entire board as fast as possible.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.white38, fontSize: 10.5, height: 1.4),
+        style: TextStyle(color: Color(0xFF8D6E63), fontSize: 10.5, height: 1.4),
       ),
     );
   }
@@ -444,16 +490,16 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
       barrierDismissible: false,
       builder: (ctx) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF140F2D),
+          backgroundColor: const Color(0xFFFAF6F0),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: Color(0xFFFF9900), width: 1.5),
+            side: const BorderSide(color: Color(0xFF5D4037), width: 1.5),
           ),
           title: const Center(
             child: Text(
               'VICTORY SECURED!',
               style: TextStyle(
-                color: Color(0xFFFF9900),
+                color: Color(0xFF5D4037),
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.0,
               ),
@@ -467,13 +513,13 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
               const Text(
                 'Your arrow telemetry has been successfully and securely verified by target99 systems:',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 13),
+                style: TextStyle(color: Color(0xFF8D6E63), fontSize: 13),
               ),
               const SizedBox(height: 16),
               Text(
                 '$score PTS',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: Color(0xFF5D4037),
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                 ),
@@ -488,8 +534,8 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
                   Navigator.of(context).pop(); // Return to lobby
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF9900),
-                  foregroundColor: Colors.black,
+                  backgroundColor: const Color(0xFF5D4037),
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
                     vertical: 12,
@@ -524,7 +570,7 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
           const Text(
             'SHAPE:',
             style: TextStyle(
-              color: Colors.white54,
+              color: Color(0xFF8D6E63),
               fontSize: 9,
               fontWeight: FontWeight.bold,
               letterSpacing: 0.8,
@@ -551,13 +597,13 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? const Color(0xFFFF9900)
-                          : const Color(0xFF140F2D),
+                          ? const Color(0xFF5D4037)
+                          : const Color(0xFFFAF6F0),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: isSelected
-                            ? const Color(0xFFFF9900)
-                            : Colors.white24,
+                            ? const Color(0xFF5D4037)
+                            : const Color(0xFFEBE5DB),
                         width: 1,
                       ),
                     ),
@@ -567,13 +613,17 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
                         Icon(
                           shape['icon'] as IconData,
                           size: 13,
-                          color: isSelected ? Colors.black : Colors.white70,
+                          color: isSelected
+                              ? Colors.white
+                              : const Color(0xFF8D6E63),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           shape['name'] as String,
                           style: TextStyle(
-                            color: isSelected ? Colors.black : Colors.white70,
+                            color: isSelected
+                                ? Colors.white
+                                : const Color(0xFF8D6E63),
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
                           ),
@@ -595,11 +645,13 @@ class ArrowBlockPainter extends CustomPainter {
   final String direction;
   final String shapeType; // 'arrow', 'delta', 'pentagon', 'classic'
   final bool isObstructed;
+  final Color? flyColor;
 
   ArrowBlockPainter({
     required this.direction,
     required this.shapeType,
     this.isObstructed = false,
+    this.flyColor,
   });
 
   @override
@@ -668,26 +720,30 @@ class ArrowBlockPainter extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.bottomCenter,
         end: Alignment.topCenter,
-        colors: isObstructed
+        colors: flyColor != null
+            ? [flyColor!.withOpacity(0.65), flyColor!]
+            : isObstructed
             ? [
-                const Color(0xFF6B1515), // Dark red tail
-                const Color(0xFFFF3B30), // Bright red head
+                const Color(0xFFD32F2F), // Red tail
+                const Color(0xFFFF5252), // Red head
               ]
             : [
-                const Color(0xFF1B0E3A), // Deep violet tail
-                const Color(0xFF3A1C71), // Purple body
-                const Color(0xFFFF9900), // Neon orange tip
+                const Color(0xFF5D4037), // Chocolate brown tail
+                const Color(0xFF8D6E63), // Lighter brown body
+                const Color(0xFFA1887F), // Light tip
               ],
-        stops: const [0.0, 0.5, 1.0],
+        stops: flyColor != null ? const [0.0, 1.0] : const [0.0, 0.5, 1.0],
       ).createShader(Rect.fromLTWH(0, 0, w, h));
 
     // Shadow / Glow
     canvas.drawPath(
       path,
       Paint()
-        ..color = isObstructed
-            ? const Color(0xFFFF3B30).withOpacity(0.3)
-            : const Color(0xFFFF9900).withOpacity(0.3)
+        ..color = flyColor != null
+            ? flyColor!.withOpacity(0.4)
+            : isObstructed
+            ? const Color(0xFFFF5252).withOpacity(0.3)
+            : const Color(0xFF5D4037).withOpacity(0.15)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0),
     );
 
@@ -698,9 +754,11 @@ class ArrowBlockPainter extends CustomPainter {
     final borderPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5
-      ..color = isObstructed
-          ? const Color(0xFFFF3B30)
-          : const Color(0xFFFFB347);
+      ..color = flyColor != null
+          ? flyColor!
+          : isObstructed
+          ? const Color(0xFFFF5252)
+          : const Color(0xFF4E342E);
 
     // Draw Border
     canvas.drawPath(path, borderPaint);
@@ -726,7 +784,7 @@ class ArrowBlockPainter extends CustomPainter {
 
     final innerPaint = Paint()
       ..style = PaintingStyle.fill
-      ..color = Colors.white.withOpacity(0.85);
+      ..color = const Color(0xFFFAF6F0).withOpacity(0.85);
 
     canvas.drawPath(innerPath1, innerPaint);
     canvas.drawPath(innerPath2, innerPaint);
@@ -739,6 +797,35 @@ class ArrowBlockPainter extends CustomPainter {
   bool shouldRepaint(covariant ArrowBlockPainter oldDelegate) {
     return oldDelegate.direction != direction ||
         oldDelegate.shapeType != shapeType ||
-        oldDelegate.isObstructed != isObstructed;
+        oldDelegate.isObstructed != isObstructed ||
+        oldDelegate.flyColor != flyColor;
+  }
+}
+
+class DotGridPainter extends CustomPainter {
+  final int gridSize;
+  final Color dotColor;
+
+  DotGridPainter({required this.gridSize, required this.dotColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double segmentSize = size.width / gridSize;
+    final paint = Paint()
+      ..color = dotColor
+      ..style = PaintingStyle.fill;
+
+    for (int r = 0; r < gridSize; r++) {
+      for (int c = 0; c < gridSize; c++) {
+        final double cx = c * segmentSize + segmentSize / 2;
+        final double cy = r * segmentSize + segmentSize / 2;
+        canvas.drawCircle(Offset(cx, cy), 3.0, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant DotGridPainter oldDelegate) {
+    return oldDelegate.gridSize != gridSize || oldDelegate.dotColor != dotColor;
   }
 }
