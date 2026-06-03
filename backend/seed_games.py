@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.core.database import SessionLocal
-from app.models import FruitContest, ImagePuzzleContest, WordContest, WordQuestion
+from app.models import FruitContest, ImagePuzzleContest, WordContest, WordQuestion, ArrowContest
 
 # --- MOCK IMAGE PUZZLE CONTESTS ---
 PUZZLE_CONTESTS = [
@@ -59,6 +59,22 @@ PUZZLE_CONTESTS = [
             {"min_rank": 2, "max_rank": 2, "prize": 500.0},
             {"min_rank": 3, "max_rank": 3, "prize": 300.0}
         ]
+    },
+    {
+        "title": "🌅 Neon Sunset Retro Grid",
+        "entry_fee": 30.0,
+        "total_slots": 80,
+        "prize_pool": 2000.0,
+        "image_url": "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop",
+        "grid_size": 4,
+        "duration_seconds": 300,
+        "offset_start_hours": -0.5,  # Active
+        "offset_end_hours": 2.5,
+        "prize_rules": [
+            {"min_rank": 1, "max_rank": 1, "prize": 900.0},
+            {"min_rank": 2, "max_rank": 2, "prize": 500.0},
+            {"min_rank": 3, "max_rank": 5, "prize": 200.0}
+        ]
     }
 ]
 
@@ -107,6 +123,21 @@ FRUIT_CONTESTS = [
             {"min_rank": 1, "max_rank": 1, "prize": 300.0},
             {"min_rank": 2, "max_rank": 5, "prize": 100.0},
             {"min_rank": 6, "max_rank": 15, "prize": 15.0}
+        ]
+    },
+    {
+        "title": "🍌 Banana Bonanza Clash",
+        "entry_fee": 15.0,
+        "total_slots": 120,
+        "prize_pool": 1600.0,
+        "duration_seconds": 60,
+        "offset_start_hours": -1,  # Started 1 hour ago (Active)
+        "offset_end_hours": 2,
+        "seed": "banana_frenzy_yellow_seed",
+        "prize_rules": [
+            {"min_rank": 1, "max_rank": 1, "prize": 700.0},
+            {"min_rank": 2, "max_rank": 3, "prize": 350.0},
+            {"min_rank": 4, "max_rank": 10, "prize": 28.0}
         ]
     }
 ]
@@ -204,6 +235,186 @@ WORD_CONTESTS_DATA = [
                 "correct_answer": "GLASSMORPHISM",
                 "points_reward": 150
             }
+        ]
+    },
+    {
+        "contest": {
+            "title": "🌐 Web Dev Mastermind Quiz",
+            "entry_fee": 15.0,
+            "total_slots": 60,
+            "prize_pool": 800.0,
+            "difficulty": "EASY",
+            "duration_seconds": 150,
+            "offset_start_hours": -2,  # Active
+            "offset_end_hours": 1,
+            "prize_rules": [
+                {"min_rank": 1, "max_rank": 1, "prize": 350.0},
+                {"min_rank": 2, "max_rank": 3, "prize": 150.0},
+                {"min_rank": 4, "max_rank": 8, "prize": 30.0}
+            ]
+        },
+        "questions": [
+            {
+                "game_type": "MISSING_LETTERS",
+                "difficulty": "EASY",
+                "puzzle_data": {"pattern": "_T_L"},
+                "clues": "Standard markup language used for creating web pages (HTML).",
+                "correct_answer": "HTML",
+                "points_reward": 100
+            },
+            {
+                "game_type": "UNSCRAMBLE",
+                "difficulty": "EASY",
+                "puzzle_data": {"scrambled": "TPISRC"},
+                "clues": "Scripting language used to make web pages interactive.",
+                "correct_answer": "SCRIPT",
+                "points_reward": 100
+            },
+            {
+                "game_type": "WORD_SEARCH",
+                "difficulty": "EASY",
+                "puzzle_data": {
+                    "grid": [
+                        ["C", "S", "S", "X"],
+                        ["A", "B", "C", "D"],
+                        ["W", "E", "B", "Z"]
+                    ]
+                },
+                "clues": "Find the stylesheet language (CSS) in the first row.",
+                "correct_answer": "CSS",
+                "points_reward": 100
+            }
+        ]
+    },
+    {
+        "contest": {
+            "title": "💻 Core Science Trivia",
+            "entry_fee": 30.0,
+            "total_slots": 40,
+            "prize_pool": 1000.0,
+            "difficulty": "HARD",
+            "duration_seconds": 240,
+            "offset_start_hours": 4,  # Upcoming
+            "offset_end_hours": 7,
+            "prize_rules": [
+                {"min_rank": 1, "max_rank": 1, "prize": 500.0},
+                {"min_rank": 2, "max_rank": 2, "prize": 300.0},
+                {"min_rank": 3, "max_rank": 4, "prize": 100.0}
+            ]
+        },
+        "questions": [
+            {
+                "game_type": "UNSCRAMBLE",
+                "difficulty": "HARD",
+                "puzzle_data": {"scrambled": "RHLGMIOTA"},
+                "clues": "A step-by-step procedure or formula for solving a problem.",
+                "correct_answer": "ALGORITHM",
+                "points_reward": 150
+            },
+            {
+                "game_type": "MISSING_LETTERS",
+                "difficulty": "HARD",
+                "puzzle_data": {"pattern": "D_T_B_S_"},
+                "clues": "An organized collection of structured information or data.",
+                "correct_answer": "DATABASE",
+                "points_reward": 150
+            },
+            {
+                "game_type": "CROSSWORD",
+                "difficulty": "HARD",
+                "puzzle_data": {
+                    "grid": [
+                        ["K", "U", "B", "E", "R", "N", "E", "T", "E", "S"],
+                        ["X", "Y", "Z", "W", "A", "B", "C", "D", "E", "F"]
+                    ],
+                    "row": 0,
+                    "col": 0,
+                    "direction": "horizontal"
+                },
+                "clues": "An open-source container orchestration system for automating software deployment.",
+                "correct_answer": "KUBERNETES",
+                "points_reward": 200
+            },
+            {
+                "game_type": "UNSCRAMBLE",
+                "difficulty": "HARD",
+                "puzzle_data": {"scrambled": "MILCOPED"},
+                "clues": "Code that is translated into machine language before execution.",
+                "correct_answer": "COMPILED",
+                "points_reward": 150
+            }
+        ]
+    }
+]
+
+# --- MOCK GO ARROWS CONTESTS ---
+ARROW_CONTESTS = [
+    {
+        "title": "🎯 Go Arrows Beginner Arena",
+        "entry_fee": 10.0,
+        "total_slots": 100,
+        "prize_pool": 800.0,
+        "grid_size": 8,
+        "duration_seconds": 90,
+        "difficulty": "EASY",
+        "arrow_count": 40,
+        "offset_start_hours": -1,  # Started 1 hour ago (Active)
+        "offset_end_hours": 3,
+        "prize_rules": [
+            {"min_rank": 1, "max_rank": 1, "prize": 300.0},
+            {"min_rank": 2, "max_rank": 3, "prize": 150.0},
+            {"min_rank": 4, "max_rank": 10, "prize": 28.0}
+        ]
+    },
+    {
+        "title": "🏹 Go Arrows Marksman Challenge",
+        "entry_fee": 25.0,
+        "total_slots": 50,
+        "prize_pool": 1000.0,
+        "grid_size": 10,
+        "duration_seconds": 120,
+        "difficulty": "MEDIUM",
+        "arrow_count": 80,
+        "offset_start_hours": 2,  # Starts in 2 hours (Upcoming)
+        "offset_end_hours": 5,
+        "prize_rules": [
+            {"min_rank": 1, "max_rank": 1, "prize": 500.0},
+            {"min_rank": 2, "max_rank": 3, "prize": 200.0},
+            {"min_rank": 4, "max_rank": 5, "prize": 50.0}
+        ]
+    },
+    {
+        "title": "⚡ Go Arrows Expert Speedrun",
+        "entry_fee": 50.0,
+        "total_slots": 30,
+        "prize_pool": 1350.0,
+        "grid_size": 12,
+        "duration_seconds": 150,
+        "difficulty": "HARD",
+        "arrow_count": 120,
+        "offset_start_hours": -4,  # Finished 2 hours ago (Completed)
+        "offset_end_hours": -2,
+        "prize_rules": [
+            {"min_rank": 1, "max_rank": 1, "prize": 700.0},
+            {"min_rank": 2, "max_rank": 2, "prize": 450.0},
+            {"min_rank": 3, "max_rank": 4, "prize": 100.0}
+        ]
+    },
+    {
+        "title": "👑 Go Arrows Grandmaster Showdown",
+        "entry_fee": 100.0,
+        "total_slots": 20,
+        "prize_pool": 1800.0,
+        "grid_size": 15,
+        "duration_seconds": 180,
+        "difficulty": "EXPERT",
+        "arrow_count": 180,
+        "offset_start_hours": -0.5,  # Started 30 mins ago (Active)
+        "offset_end_hours": 1.5,
+        "prize_rules": [
+            {"min_rank": 1, "max_rank": 1, "prize": 1000.0},
+            {"min_rank": 2, "max_rank": 2, "prize": 500.0},
+            {"min_rank": 3, "max_rank": 3, "prize": 300.0}
         ]
     }
 ]
@@ -331,11 +542,46 @@ def seed_games():
                     db.add(wq)
                     word_question_count += 1
 
+        # 4. Seed Go Arrows Contests
+        print("Seeding Go Arrows Contests...")
+        arrow_contest_count = 0
+        for ac_data in ARROW_CONTESTS:
+            exists = db.query(ArrowContest).filter(ArrowContest.title == ac_data["title"]).first()
+            if not exists:
+                start = now + timedelta(hours=ac_data["offset_start_hours"])
+                end = now + timedelta(hours=ac_data["offset_end_hours"])
+                
+                status = "ACTIVE"
+                if start > now:
+                    status = "UPCOMING"
+                elif end < now:
+                    status = "COMPLETED"
+
+                ac = ArrowContest(
+                    title=ac_data["title"],
+                    entry_fee=ac_data["entry_fee"],
+                    total_slots=ac_data["total_slots"],
+                    joined_slots=random.randint(0, ac_data["total_slots"] - 5) if status != "UPCOMING" else 0,
+                    prize_pool=ac_data["prize_pool"],
+                    status=status,
+                    prize_rules=json.dumps(ac_data["prize_rules"]),
+                    grid_size=ac_data["grid_size"],
+                    duration_seconds=ac_data["duration_seconds"],
+                    difficulty=ac_data["difficulty"],
+                    arrow_count=ac_data["arrow_count"],
+                    start_time=start,
+                    end_time=end,
+                    created_at=now
+                )
+                db.add(ac)
+                arrow_contest_count += 1
+
         db.commit()
         print(f"\nSeeding Complete!")
         print(f"- Seeded {fruit_count} new Fruit contests.")
         print(f"- Seeded {puzzle_count} new Slide Puzzle contests.")
         print(f"- Seeded {word_contest_count} new Word contests with {word_question_count} total questions.")
+        print(f"- Seeded {arrow_contest_count} new Go Arrows contests.")
 
     except Exception as e:
         print(f"An error occurred during seeding: {e}")

@@ -2,13 +2,13 @@ import os
 import sys
 import json
 import random
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 # Add the parent directory to the path so we can import from app
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.core.database import SessionLocal
-from app.models import Question
+from app.models import Question, Contest
 
 BASE_QUESTIONS = {
     "en": [
@@ -765,6 +765,140 @@ def seed():
             print(f"Successfully seeded {inserted_count} new questions into the database!")
         else:
             print("All questions already exist in the database. No new questions inserted.")
+        
+        # Seed Trivia Contests
+        print("Seeding Trivia Contests...")
+        trivia_contest_count = 0
+        
+        # Retrieve some questions to form a baseline of 5 questions
+        db_questions = db.query(Question).filter(Question.language == "en").limit(5).all()
+        if len(db_questions) < 5:
+            contest_questions = [
+                {
+                    "text": "Which country won the ICC Men's T20 World Cup in 2024?",
+                    "options": ["India", "South Africa", "Australia", "England"],
+                    "correct_answer_index": 0
+                },
+                {
+                    "text": "In computer networking, what does VPN stand for?",
+                    "options": ["Virtual Private Network", "Vector Protocol Node", "Valued Personal Network", "Virtual Packet Node"],
+                    "correct_answer_index": 0
+                },
+                {
+                    "text": "Which programming language is predominantly used to write Flutter apps?",
+                    "options": ["Swift", "Dart", "Kotlin", "Rust"],
+                    "correct_answer_index": 1
+                },
+                {
+                    "text": "What is the national game of India officially/historically?",
+                    "options": ["Cricket", "Kabaddi", "Field Hockey", "Football"],
+                    "correct_answer_index": 2
+                },
+                {
+                    "text": "What is the platform fee target percentage in dailyearn99?",
+                    "options": ["10-20%", "15-35%", "50-60%", "5%"],
+                    "correct_answer_index": 1
+                }
+            ]
+        else:
+            contest_questions = []
+            for q in db_questions:
+                contest_questions.append({
+                    "text": q.text,
+                    "options": json.loads(q.options),
+                    "correct_answer_index": q.correct_answer_index
+                })
+        
+        questions_json = json.dumps(contest_questions)
+        now = datetime.now(timezone.utc)
+        
+        TRIVIA_CONTESTS = [
+            {
+                "title": "⚔️ Mega Quiz Championship",
+                "entry_fee": 30.0,
+                "total_slots": 1000,
+                "prize_pool": 30000.0,
+                "offset_start_hours": -1,  # Active
+                "offset_end_hours": 2,
+                "prize_rules": [
+                    {"min_rank": 1, "max_rank": 1, "prize": 10000.0},
+                    {"min_rank": 2, "max_rank": 10, "prize": 1000.0},
+                    {"min_rank": 11, "max_rank": 100, "prize": 100.0}
+                ]
+            },
+            {
+                "title": "⚡ Blitz Fast Trivia",
+                "entry_fee": 10.0,
+                "total_slots": 50,
+                "prize_pool": 400.0,
+                "offset_start_hours": -0.5,  # Active
+                "offset_end_hours": 1.5,
+                "prize_rules": [
+                    {"min_rank": 1, "max_rank": 1, "prize": 200.0},
+                    {"min_rank": 2, "max_rank": 3, "prize": 70.0},
+                    {"min_rank": 4, "max_rank": 10, "prize": 10.0}
+                ]
+            },
+            {
+                "title": "🔥 Super Challenger Battle",
+                "entry_fee": 100.0,
+                "total_slots": 20,
+                "prize_pool": 1800.0,
+                "offset_start_hours": 2,  # Upcoming
+                "offset_end_hours": 4,
+                "prize_rules": [
+                    {"min_rank": 1, "max_rank": 1, "prize": 1000.0},
+                    {"min_rank": 2, "max_rank": 2, "prize": 500.0},
+                    {"min_rank": 3, "max_rank": 3, "prize": 300.0}
+                ]
+            },
+            {
+                "title": "💎 Diamond High-Stakes Quiz",
+                "entry_fee": 500.0,
+                "total_slots": 10,
+                "prize_pool": 4500.0,
+                "offset_start_hours": -5,  # Completed
+                "offset_end_hours": -3,
+                "prize_rules": [
+                    {"min_rank": 1, "max_rank": 1, "prize": 3000.0},
+                    {"min_rank": 2, "max_rank": 2, "prize": 1500.0}
+                ]
+            }
+        ]
+        
+        for tc_data in TRIVIA_CONTESTS:
+            exists = db.query(Contest).filter(Contest.title == tc_data["title"]).first()
+            if not exists:
+                start = now + timedelta(hours=tc_data["offset_start_hours"])
+                end = now + timedelta(hours=tc_data["offset_end_hours"])
+                
+                status = "ACTIVE"
+                if start > now:
+                    status = "UPCOMING"
+                elif end < now:
+                    status = "COMPLETED"
+                
+                tc = Contest(
+                    title=tc_data["title"],
+                    entry_fee=tc_data["entry_fee"],
+                    total_slots=tc_data["total_slots"],
+                    joined_slots=random.randint(0, tc_data["total_slots"] - 5) if status != "UPCOMING" else 0,
+                    prize_pool=tc_data["prize_pool"],
+                    status=status,
+                    prize_rules=json.dumps(tc_data["prize_rules"]),
+                    questions=questions_json,
+                    start_time=start,
+                    end_time=end
+                )
+                db.add(tc)
+                trivia_contest_count += 1
+        
+        if trivia_contest_count > 0:
+            db.commit()
+            print(f"Successfully seeded {trivia_contest_count} new Trivia Contests.")
+        else:
+            print("All Trivia Contests already exist in the database.")
+            
     except Exception as e:
         print(f"An error occurred: {e}")
         db.rollback()
