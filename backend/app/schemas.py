@@ -578,8 +578,10 @@ class ArrowContestCreate(BaseModel):
     start_time: datetime
     end_time: Optional[datetime] = None
     prize_rules: List[ArrowPrizeRuleSchema]
-    grid_size: int = Field(4, ge=3, le=5)  # 4 for 4x4, 5 for 5x5
+    grid_size: int = Field(4, ge=3, le=20)  # Support up to 20x20 grid size
     duration_seconds: int = Field(120, gt=10)
+    difficulty: str = Field("MEDIUM", description="EASY, MEDIUM, HARD, or EXPERT")
+    arrow_count: int = Field(80, ge=1)
 
 
 class ArrowContestResponse(BaseModel):
@@ -595,6 +597,8 @@ class ArrowContestResponse(BaseModel):
     prize_rules: Optional[List[ArrowPrizeRuleSchema]] = None
     grid_size: int
     duration_seconds: int
+    difficulty: str
+    arrow_count: int
 
     @field_validator("prize_rules", mode="before")
     @classmethod

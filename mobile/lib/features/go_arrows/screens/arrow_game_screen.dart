@@ -1,8 +1,32 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/arrow_bloc.dart';
-import '../models/arrow_models.dart';
+
+class ArrowRenderItem {
+  final int id;
+  final int row;
+  final int col;
+  final String direction;
+  bool isCleared;
+
+  // Animation states
+  double flightProgress; // 0.0 to 1.0
+  double shakeProgress;  // -1.0 to 1.0 (obstruction shake)
+  Color? flyColor;
+
+  ArrowRenderItem({
+    required this.id,
+    required this.row,
+    required this.col,
+    required this.direction,
+    required this.isCleared,
+    this.flightProgress = 0.0,
+    this.shakeProgress = 0.0,
+    this.flyColor,
+  });
+}
 
 class ArrowGameScreen extends StatefulWidget {
   final int contestId;
@@ -18,9 +42,9 @@ class ArrowGameScreen extends StatefulWidget {
   State<ArrowGameScreen> createState() => _ArrowGameScreenState();
 }
 
-class _ArrowGameScreenState extends State<ArrowGameScreen> {
-  final Map<int, double> _shakeOffsets = {};
-  final Map<int, Color> _flyColors = {};
+class _ArrowGameScreenState extends State<ArrowGameScreen> with SingleTickerProviderStateMixin {
+  late final Ticker _ticker;
+  List<ArrowRenderItem> _renderItems = [];
   String _selectedShape = 'arrow';
 
   final List<Color> _vibrantColors = const [
@@ -38,54 +62,52 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
     Color(0xFF8BC34A), // Lime
   ];
 
-  void _assignFlyColor(int blockId) {
-    final random = math.Random();
-    setState(() {
-      _flyColors[blockId] =
-          _vibrantColors[random.nextInt(_vibrantColors.length)];
-    });
+  @override
+  void initState() {
+    super.initState();
+    _ticker = createTicker(_onTick);
+    _ticker.start();
   }
 
-  void _triggerShake(int blockId) {
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  void _onTick(Duration elapsed) {
     if (!mounted) return;
-    setState(() {
-      _shakeOffsets[blockId] = 10.0;
-    });
-    Future.delayed(const Duration(milliseconds: 40), () {
-      if (!mounted) return;
-      setState(() {
-        _shakeOffsets[blockId] = -10.0;
-      });
-    });
-    Future.delayed(const Duration(milliseconds: 80), () {
-      if (!mounted) return;
-      setState(() {
-        _shakeOffsets[blockId] = 8.0;
-      });
-    });
-    Future.delayed(const Duration(milliseconds: 120), () {
-      if (!mounted) return;
-      setState(() {
-        _shakeOffsets[blockId] = -8.0;
-      });
-    });
-    Future.delayed(const Duration(milliseconds: 160), () {
-      if (!mounted) return;
-      setState(() {
-        _shakeOffsets[blockId] = 4.0;
-      });
-    });
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (!mounted) return;
-      setState(() {
-        _shakeOffsets[blockId] = 0.0;
-      });
-    });
+    bool needsRepaint = false;
+
+    for (var item in _renderItems) {
+      // 1. Smooth flight animation
+      if (item.isCleared && item.flightProgress < 1.0) {
+        item.flightProgress += 0.08;
+        if (item.flightProgress > 1.0) {
+          item.flightProgress = 1.0;
+        }
+        needsRepaint = true;
+      }
+
+      // 2. Smooth springy shake decay
+      if (item.shakeProgress != 0.0) {
+        if (item.shakeProgress.abs() > 0.05) {
+          item.shakeProgress = -item.shakeProgress * 0.72; // invert & decay
+        } else {
+          item.shakeProgress = 0.0;
+        }
+        needsRepaint = true;
+      }
+    }
+
+    if (needsRepaint) {
+      setState(() {});
+    }
   }
 
-  bool _isObstructed(
-    ArrowBlockModel tappedBlock,
-    List<ArrowBlockModel> activeBlocks,
+  bool _isLocalObstructed(
+    ArrowRenderItem tappedBlock,
+    List<ArrowRenderItem> activeBlocks,
     int gridSize,
   ) {
     int r = tappedBlock.row;
@@ -128,6 +150,37 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
     return false;
   }
 
+  void _handleTapDown(TapDownDetails details, double segmentSize, int gridSize) {
+    final x = details.localPosition.dx;
+    final y = details.localPosition.dy;
+    final col = (x / segmentSize).floor();
+    final row = (y / segmentSize).floor();
+
+    if (col < 0 || col >= gridSize || row < 0 || row >= gridSize) return;
+
+    final itemIndex = _renderItems.indexWhere((item) => item.row == row && item.col == col);
+    if (itemIndex == -1) return;
+
+    final item = _renderItems[itemIndex];
+    if (item.isCleared) return;
+
+    final blocked = _isLocalObstructed(item, _renderItems, gridSize);
+    if (blocked) {
+      setState(() {
+        item.shakeProgress = 1.0; // Trigger collision shake
+      });
+    } else {
+      final random = math.Random();
+      setState(() {
+        item.isCleared = true;
+        item.flightProgress = 0.0;
+        item.flyColor = _vibrantColors[random.nextInt(_vibrantColors.length)];
+      });
+    }
+
+    context.read<ArrowBloc>().add(TapArrowEvent(item.id));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -157,9 +210,34 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
                 backgroundColor: Colors.redAccent,
               ),
             );
-          } else if (state is ArrowActiveState && state.moves == 0) {
-            _shakeOffsets.clear();
-            _flyColors.clear();
+          } else if (state is ArrowActiveState) {
+            if (_renderItems.isEmpty || state.moves == 0) {
+              setState(() {
+                _renderItems = state.blocks.map((b) => ArrowRenderItem(
+                  id: b.id,
+                  row: b.row,
+                  col: b.col,
+                  direction: b.direction,
+                  isCleared: b.isCleared,
+                )).toList();
+              });
+            } else {
+              // Confirm clearances in local state
+              final random = math.Random();
+              for (var b in state.blocks) {
+                final localItemIndex = _renderItems.indexWhere((item) => item.id == b.id);
+                if (localItemIndex != -1) {
+                  final localItem = _renderItems[localItemIndex];
+                  if (b.isCleared && !localItem.isCleared) {
+                    setState(() {
+                      localItem.isCleared = true;
+                      localItem.flightProgress = 0.0;
+                      localItem.flyColor ??= _vibrantColors[random.nextInt(_vibrantColors.length)];
+                    });
+                  }
+                }
+              }
+            }
           }
         },
         builder: (context, state) {
@@ -218,82 +296,16 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(14),
-                    child: Stack(
-                      children: [
-                        // Dot grid background revealed as arrows fly off
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: DotGridPainter(
-                              gridSize: state.gridSize,
-                              dotColor: const Color(0x338D6E63),
-                            ),
-                          ),
+                    child: GestureDetector(
+                      onTapDown: (details) => _handleTapDown(details, segmentSize, state.gridSize),
+                      child: CustomPaint(
+                        painter: GameBoardPainter(
+                          items: _renderItems,
+                          gridSize: state.gridSize,
+                          shapeType: _selectedShape,
+                          dotColor: const Color(0x338D6E63),
                         ),
-                        ...state.blocks.map((block) {
-                          double shake = _shakeOffsets[block.id] ?? 0.0;
-                          double leftPosition = block.col * segmentSize + shake;
-                          double topPosition = block.row * segmentSize;
-
-                          if (block.isCleared) {
-                            if (block.direction == 'UP') {
-                              topPosition = -MediaQuery.of(context).size.height;
-                            } else if (block.direction == 'DOWN') {
-                              topPosition = MediaQuery.of(context).size.height;
-                            } else if (block.direction == 'LEFT') {
-                              leftPosition = -MediaQuery.of(context).size.width;
-                            } else if (block.direction == 'RIGHT') {
-                              leftPosition = MediaQuery.of(context).size.width;
-                            }
-                          }
-
-                          return AnimatedPositioned(
-                            duration: const Duration(milliseconds: 600),
-                            curve: Curves.easeOutCubic,
-                            left: leftPosition,
-                            top: topPosition,
-                            width: segmentSize,
-                            height: segmentSize,
-                            child: AnimatedOpacity(
-                              duration: const Duration(milliseconds: 500),
-                              opacity: block.isCleared ? 0.0 : 1.0,
-                              child: Padding(
-                                padding: const EdgeInsets.all(4.0),
-                                child: GestureDetector(
-                                  onTap: () {
-                                    if (block.isCleared) return;
-                                    final blocked = _isObstructed(
-                                      block,
-                                      state.blocks,
-                                      state.gridSize,
-                                    );
-                                    if (blocked) {
-                                      _triggerShake(block.id);
-                                    } else {
-                                      _assignFlyColor(block.id);
-                                    }
-                                    context.read<ArrowBloc>().add(
-                                      TapArrowEvent(block.id),
-                                    );
-                                  },
-                                  child: CustomPaint(
-                                    painter: ArrowBlockPainter(
-                                      direction: block.direction,
-                                      shapeType: _selectedShape,
-                                      isObstructed:
-                                          (_shakeOffsets[block.id] ?? 0.0) !=
-                                          0.0,
-                                      flyColor: _flyColors[block.id],
-                                    ),
-                                    child: Container(
-                                      alignment: Alignment.center,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -641,177 +653,25 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> {
   }
 }
 
-class ArrowBlockPainter extends CustomPainter {
-  final String direction;
-  final String shapeType; // 'arrow', 'delta', 'pentagon', 'classic'
-  final bool isObstructed;
-  final Color? flyColor;
+class GameBoardPainter extends CustomPainter {
+  final List<ArrowRenderItem> items;
+  final int gridSize;
+  final String shapeType;
+  final Color dotColor;
 
-  ArrowBlockPainter({
-    required this.direction,
+  GameBoardPainter({
+    required this.items,
+    required this.gridSize,
     required this.shapeType,
-    this.isObstructed = false,
-    this.flyColor,
+    required this.dotColor,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-
-    // Save canvas state
-    canvas.save();
-
-    // Translate to center and rotate based on direction
-    canvas.translate(w / 2, h / 2);
-    double angle = 0;
-    if (direction == 'RIGHT') {
-      angle = math.pi / 2;
-    } else if (direction == 'DOWN') {
-      angle = math.pi;
-    } else if (direction == 'LEFT') {
-      angle = 3 * math.pi / 2;
-    }
-    canvas.rotate(angle);
-    canvas.translate(-w / 2, -h / 2);
-
-    final path = Path();
-
-    // Padding to ensure line stroke is not cut off
-    double pad = 3.0;
-    double pw = w - pad * 2;
-    double ph = h - pad * 2;
-
-    if (shapeType == 'arrow') {
-      path.moveTo(w / 2, pad);
-      path.lineTo(w - pad, ph * 0.42 + pad);
-      path.lineTo(w * 0.70, ph * 0.38 + pad);
-      path.lineTo(w * 0.70, ph * 0.95 + pad);
-      path.lineTo(w * 0.30, ph * 0.95 + pad);
-      path.lineTo(w * 0.30, ph * 0.38 + pad);
-      path.lineTo(pad, ph * 0.42 + pad);
-      path.close();
-    } else if (shapeType == 'delta') {
-      path.moveTo(w / 2, pad);
-      path.lineTo(w - pad, ph * 0.95 + pad);
-      path.lineTo(w / 2, ph * 0.75 + pad);
-      path.lineTo(pad, ph * 0.95 + pad);
-      path.close();
-    } else if (shapeType == 'pentagon') {
-      path.moveTo(w / 2, pad);
-      path.lineTo(w - pad, ph * 0.45 + pad);
-      path.lineTo(w - pad, ph * 0.95 + pad);
-      path.lineTo(pad, ph * 0.95 + pad);
-      path.lineTo(pad, ph * 0.45 + pad);
-      path.close();
-    } else {
-      // Classic shape: rounded rectangle
-      path.addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(pad, pad, pw, ph),
-          const Radius.circular(12),
-        ),
-      );
-    }
-
-    // Paint properties
-    final fillPaint = Paint()
-      ..style = PaintingStyle.fill
-      ..shader = LinearGradient(
-        begin: Alignment.bottomCenter,
-        end: Alignment.topCenter,
-        colors: flyColor != null
-            ? [flyColor!.withOpacity(0.65), flyColor!]
-            : isObstructed
-            ? [
-                const Color(0xFFD32F2F), // Red tail
-                const Color(0xFFFF5252), // Red head
-              ]
-            : [
-                const Color(0xFF5D4037), // Chocolate brown tail
-                const Color(0xFF8D6E63), // Lighter brown body
-                const Color(0xFFA1887F), // Light tip
-              ],
-        stops: flyColor != null ? const [0.0, 1.0] : const [0.0, 0.5, 1.0],
-      ).createShader(Rect.fromLTWH(0, 0, w, h));
-
-    // Shadow / Glow
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = flyColor != null
-            ? flyColor!.withOpacity(0.4)
-            : isObstructed
-            ? const Color(0xFFFF5252).withOpacity(0.3)
-            : const Color(0xFF5D4037).withOpacity(0.15)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0),
-    );
-
-    // Draw Fill
-    canvas.drawPath(path, fillPaint);
-
-    // Border Paint
-    final borderPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
-      ..color = flyColor != null
-          ? flyColor!
-          : isObstructed
-          ? const Color(0xFFFF5252)
-          : const Color(0xFF4E342E);
-
-    // Draw Border
-    canvas.drawPath(path, borderPaint);
-
-    // Draw double inner chevrons pointing up
-    final innerPath1 = Path();
-    innerPath1.moveTo(w / 2, h * 0.32);
-    innerPath1.lineTo(w * 0.65, h * 0.46);
-    innerPath1.lineTo(w * 0.58, h * 0.51);
-    innerPath1.lineTo(w / 2, h * 0.39);
-    innerPath1.lineTo(w * 0.42, h * 0.51);
-    innerPath1.lineTo(w * 0.35, h * 0.46);
-    innerPath1.close();
-
-    final innerPath2 = Path();
-    innerPath2.moveTo(w / 2, h * 0.46);
-    innerPath2.lineTo(w * 0.65, h * 0.60);
-    innerPath2.lineTo(w * 0.58, h * 0.65);
-    innerPath2.lineTo(w / 2, h * 0.53);
-    innerPath2.lineTo(w * 0.42, h * 0.65);
-    innerPath2.lineTo(w * 0.35, h * 0.60);
-    innerPath2.close();
-
-    final innerPaint = Paint()
-      ..style = PaintingStyle.fill
-      ..color = const Color(0xFFFAF6F0).withOpacity(0.85);
-
-    canvas.drawPath(innerPath1, innerPaint);
-    canvas.drawPath(innerPath2, innerPaint);
-
-    // Restore canvas state
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant ArrowBlockPainter oldDelegate) {
-    return oldDelegate.direction != direction ||
-        oldDelegate.shapeType != shapeType ||
-        oldDelegate.isObstructed != isObstructed ||
-        oldDelegate.flyColor != flyColor;
-  }
-}
-
-class DotGridPainter extends CustomPainter {
-  final int gridSize;
-  final Color dotColor;
-
-  DotGridPainter({required this.gridSize, required this.dotColor});
-
-  @override
-  void paint(Canvas canvas, Size size) {
     final double segmentSize = size.width / gridSize;
-    final paint = Paint()
+
+    // 1. Draw dot grid background (revealed as arrows fly off)
+    final dotPaint = Paint()
       ..color = dotColor
       ..style = PaintingStyle.fill;
 
@@ -819,13 +679,169 @@ class DotGridPainter extends CustomPainter {
       for (int c = 0; c < gridSize; c++) {
         final double cx = c * segmentSize + segmentSize / 2;
         final double cy = r * segmentSize + segmentSize / 2;
-        canvas.drawCircle(Offset(cx, cy), 3.0, paint);
+        canvas.drawCircle(Offset(cx, cy), 3.0, dotPaint);
       }
+    }
+
+    // Max flight distance calculation: size width * 1.5 to fly completely out
+    final double maxFlightDistance = size.width * 1.5;
+
+    // 2. Draw active and flying arrows
+    for (var item in items) {
+      if (item.isCleared && item.flightProgress >= 1.0) {
+        continue; // Fully flown off screen
+      }
+
+      canvas.save();
+
+      // Translate to cell center
+      double cx = item.col * segmentSize + segmentSize / 2;
+      double cy = item.row * segmentSize + segmentSize / 2;
+      canvas.translate(cx, cy);
+
+      // Rotate canvas based on arrow direction so that local Y is always 'UP'
+      double angle = 0;
+      if (item.direction == 'RIGHT') {
+        angle = math.pi / 2;
+      } else if (item.direction == 'DOWN') {
+        angle = math.pi;
+      } else if (item.direction == 'LEFT') {
+        angle = 3 * math.pi / 2;
+      }
+      canvas.rotate(angle);
+
+      // Apply local offsets (Flight along local Y axis, shake along local X axis)
+      double flightOffset = item.flightProgress * maxFlightDistance;
+      double shakeOffset = item.shakeProgress * 8.0;
+
+      canvas.translate(shakeOffset, -flightOffset);
+
+      // Translate back so drawing is done from top-left (0,0) of cell box
+      canvas.translate(-segmentSize / 2, -segmentSize / 2);
+
+      // Fade out opacity as it flies
+      double opacity = 1.0 - item.flightProgress;
+      if (opacity < 0.0) opacity = 0.0;
+
+      // Draw arrow path
+      final path = Path();
+      double pad = 3.0;
+      double w = segmentSize;
+      double h = segmentSize;
+      double pw = w - pad * 2;
+      double ph = h - pad * 2;
+
+      if (shapeType == 'arrow') {
+        path.moveTo(w / 2, pad);
+        path.lineTo(w - pad, ph * 0.42 + pad);
+        path.lineTo(w * 0.70, ph * 0.38 + pad);
+        path.lineTo(w * 0.70, ph * 0.95 + pad);
+        path.lineTo(w * 0.30, ph * 0.95 + pad);
+        path.lineTo(w * 0.30, ph * 0.38 + pad);
+        path.lineTo(pad, ph * 0.42 + pad);
+        path.close();
+      } else if (shapeType == 'delta') {
+        path.moveTo(w / 2, pad);
+        path.lineTo(w - pad, ph * 0.95 + pad);
+        path.lineTo(w / 2, ph * 0.75 + pad);
+        path.lineTo(pad, ph * 0.95 + pad);
+        path.close();
+      } else if (shapeType == 'pentagon') {
+        path.moveTo(w / 2, pad);
+        path.lineTo(w - pad, ph * 0.45 + pad);
+        path.lineTo(w - pad, ph * 0.95 + pad);
+        path.lineTo(pad, ph * 0.95 + pad);
+        path.lineTo(pad, ph * 0.45 + pad);
+        path.close();
+      } else {
+        path.addRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(pad, pad, pw, ph),
+            const Radius.circular(12),
+          ),
+        );
+      }
+
+      // Linear gradients for filling the arrows
+      final fillPaint = Paint()
+        ..style = PaintingStyle.fill
+        ..shader = LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: item.flyColor != null
+              ? [item.flyColor!.withOpacity(0.65 * opacity), item.flyColor!.withOpacity(opacity)]
+              : item.shakeProgress != 0.0
+                  ? [
+                      const Color(0xFFD32F2F).withOpacity(opacity), // Red tail
+                      const Color(0xFFFF5252).withOpacity(opacity), // Red head
+                    ]
+                  : [
+                      const Color(0xFF5D4037).withOpacity(opacity), // Chocolate brown tail
+                      const Color(0xFF8D6E63).withOpacity(opacity), // Lighter brown body
+                      const Color(0xFFA1887F).withOpacity(opacity), // Light tip
+                    ],
+          stops: item.flyColor != null ? const [0.0, 1.0] : const [0.0, 0.5, 1.0],
+        ).createShader(Rect.fromLTWH(0, 0, w, h));
+
+      // Draw shadow path
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = (item.flyColor != null
+              ? item.flyColor!.withOpacity(0.4 * opacity)
+              : item.shakeProgress != 0.0
+                  ? const Color(0xFFFF5252).withOpacity(0.3 * opacity)
+                  : const Color(0xFF5D4037).withOpacity(0.15 * opacity))
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0),
+      );
+
+      // Draw fill
+      canvas.drawPath(path, fillPaint);
+
+      // Border outline
+      final borderPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..color = (item.flyColor != null
+            ? item.flyColor!.withOpacity(opacity)
+            : item.shakeProgress != 0.0
+                ? const Color(0xFFFF5252).withOpacity(opacity)
+                : const Color(0xFF4E342E).withOpacity(opacity));
+
+      canvas.drawPath(path, borderPaint);
+
+      // Inner chevrons
+      final innerPath1 = Path();
+      innerPath1.moveTo(w / 2, h * 0.32);
+      innerPath1.lineTo(w * 0.65, h * 0.46);
+      innerPath1.lineTo(w * 0.58, h * 0.51);
+      innerPath1.lineTo(w / 2, h * 0.39);
+      innerPath1.lineTo(w * 0.42, h * 0.51);
+      innerPath1.lineTo(w * 0.35, h * 0.46);
+      innerPath1.close();
+
+      final innerPath2 = Path();
+      innerPath2.moveTo(w / 2, h * 0.46);
+      innerPath2.lineTo(w * 0.65, h * 0.60);
+      innerPath2.lineTo(w * 0.58, h * 0.65);
+      innerPath2.lineTo(w / 2, h * 0.53);
+      innerPath2.lineTo(w * 0.42, h * 0.65);
+      innerPath2.lineTo(w * 0.35, h * 0.60);
+      innerPath2.close();
+
+      final innerPaint = Paint()
+        ..style = PaintingStyle.fill
+        ..color = const Color(0xFFFAF6F0).withOpacity(0.85 * opacity);
+
+      canvas.drawPath(innerPath1, innerPaint);
+      canvas.drawPath(innerPath2, innerPaint);
+
+      canvas.restore();
     }
   }
 
   @override
-  bool shouldRepaint(covariant DotGridPainter oldDelegate) {
-    return oldDelegate.gridSize != gridSize || oldDelegate.dotColor != dotColor;
+  bool shouldRepaint(covariant GameBoardPainter oldDelegate) {
+    return true; // Driven by the ticker at 60 FPS
   }
 }

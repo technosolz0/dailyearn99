@@ -473,10 +473,26 @@ class ArrowContest(Base):
     prize_rules = Column(String, nullable=False)  # JSON string of rank-wise rules
     grid_size = Column(Integer, default=4)  # 4 for 4x4, 5 for 5x5
     duration_seconds = Column(Integer, default=120)
+    difficulty = Column(String, nullable=False, default="MEDIUM")
+    arrow_count = Column(Integer, nullable=False, default=80)
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class ArrowPuzzleSeed(Base):
+    __tablename__ = "arrow_puzzle_seeds"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contest_id = Column(Integer, ForeignKey("arrow_contests.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    seed = Column(Integer, nullable=False)
+    difficulty = Column(String, nullable=False, default="MEDIUM")
+    generated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User")
+    contest = relationship("ArrowContest")
 
 
 class ArrowGame(Base):

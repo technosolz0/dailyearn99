@@ -17,7 +17,7 @@ from app.models import (
     Question, UserQuestionHistory, ImagePuzzleContest, ImagePuzzleGame, ImagePuzzleAttempt, ImagePuzzleLeaderboard,
     WordContest, WordQuestion, WordAttempt, WordAnswer, WordLeaderboard,
     FruitContest, FruitMatch, FruitEvent, FruitScore, FruitLeaderboard,
-    ArrowContest, ArrowGame, ArrowAttempt, ArrowLeaderboard
+    ArrowContest, ArrowGame, ArrowAttempt, ArrowLeaderboard, ArrowPuzzleSeed
 )  # Explicitly import to register on Base
 Base.metadata.create_all(bind=engine)
 
@@ -100,6 +100,8 @@ def migrate_database():
     columns_arrow_contests = [
         ("start_time", "TIMESTAMP"),
         ("end_time", "TIMESTAMP"),
+        ("difficulty", "VARCHAR DEFAULT 'MEDIUM'"),
+        ("arrow_count", "INTEGER DEFAULT 80"),
     ]
     for col_name, col_type in columns_arrow_contests:
         try:
@@ -396,7 +398,7 @@ async def startup_event():
             now = datetime.now()
             arrow_contests = [
                 ArrowContest(
-                    title="🏹 Small Arrows Sweepstakes",
+                    title="🏹 Small Arrows Sweepstakes (Easy)",
                     entry_fee=10.0,
                     total_slots=100,
                     joined_slots=0,
@@ -407,13 +409,15 @@ async def startup_event():
                         {"min_rank": 2, "max_rank": 3, "prize": 150.0},
                         {"min_rank": 4, "max_rank": 10, "prize": 20.0}
                     ]),
-                    grid_size=4,
-                    duration_seconds=120,
+                    grid_size=8,
+                    difficulty="EASY",
+                    arrow_count=50,
+                    duration_seconds=60,
                     start_time=now + timedelta(minutes=1),
                     end_time=now + timedelta(hours=2)
                 ),
                 ArrowContest(
-                    title="🔥 Speed Arrows Championship",
+                    title="🔥 Speed Arrows Championship (Medium)",
                     entry_fee=50.0,
                     total_slots=50,
                     joined_slots=0,
@@ -424,13 +428,15 @@ async def startup_event():
                         {"min_rank": 2, "max_rank": 2, "prize": 500.0},
                         {"min_rank": 3, "max_rank": 5, "prize": 166.0}
                     ]),
-                    grid_size=4,
+                    grid_size=10,
+                    difficulty="MEDIUM",
+                    arrow_count=80,
                     duration_seconds=90,
                     start_time=now + timedelta(minutes=5),
                     end_time=now + timedelta(hours=3)
                 ),
                 ArrowContest(
-                    title="💎 Hardcore 5x5 Arrow Arena",
+                    title="💎 Hardcore Arrow Arena (Hard)",
                     entry_fee=200.0,
                     total_slots=10,
                     joined_slots=0,
@@ -440,24 +446,18 @@ async def startup_event():
                         {"min_rank": 1, "max_rank": 1, "prize": 1000.0},
                         {"min_rank": 2, "max_rank": 2, "prize": 600.0}
                     ]),
-                    grid_size=5,
-                    duration_seconds=180,
+                    grid_size=12,
+                    difficulty="HARD",
+                    arrow_count=150,
+                    duration_seconds=120,
                     start_time=now + timedelta(hours=1),
                     end_time=now + timedelta(hours=5)
                 )
             ]
             for c in arrow_contests:
                 db.add(c)
-                db.flush()
-                from app.services import ArrowGameService
-                layout_data = ArrowGameService.generate_solvable_layout(c.grid_size)
-                arrow_game = ArrowGame(
-                    contest_id=c.id,
-                    layout=json.dumps(layout_data)
-                )
-                db.add(arrow_game)
             db.commit()
-            print("Database Seeding: Populated initial Arrow contests and games.")
+            print("Database Seeding: Populated initial Arrow contests.")
     finally:
         db.close()
 

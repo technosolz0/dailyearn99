@@ -2,6 +2,7 @@ from app.models import ArrowLeaderboard
 from app.models import ArrowGame
 from app.models import ArrowAttempt
 from app.models import ArrowContest
+from app.models import ArrowPuzzleSeed
 from app.models import FruitLeaderboard
 from app.models import FruitScore
 from app.models import FruitContest
@@ -1554,8 +1555,8 @@ class ArrowAntiCheatService:
         started_at: datetime
     ) -> bool:
         actual_elapsed = (datetime.now(timezone.utc) - started_at.replace(tzinfo=timezone.utc)).total_seconds()
-        # Max grace buffer is 6 seconds
-        if actual_elapsed > reported_time + 6.0:
+        # Max grace buffer is 10 seconds
+        if actual_elapsed > reported_time + 10.0:
             return False
 
         # Verify that reported moves equals telemetry taps
@@ -1587,67 +1588,55 @@ class ArrowGameService:
         return cls._maintenance_mode
 
     @staticmethod
-    def generate_solvable_layout(grid_size: int) -> list:
-        n_blocks = int(grid_size * grid_size * 0.75)  # e.g., 12 blocks for 4x4
+    def generate_solvable_layout_reverse(grid_size: int, arrow_count: int, seed: int) -> list:
+        local_random = random.Random(seed)
+        
+        # Max density: 85% of board
+        max_arrows = int(grid_size * grid_size * 0.85)
+        target_count = min(arrow_count, max_arrows)
+        
+        placed_arrows = {} # key: (r, c), value: direction
         directions = ["UP", "DOWN", "LEFT", "RIGHT"]
-        for attempt_idx in range(200):
-            cells = [(r, c) for r in range(grid_size) for c in range(grid_size)]
-            chosen_cells = random.sample(cells, min(n_blocks, len(cells)))
-            blocks = []
-            for idx, (r, c) in enumerate(chosen_cells):
-                blocks.append({
-                    "id": idx,
-                    "row": r,
-                    "col": c,
-                    "dir": random.choice(directions)
-                })
-
-            # Check solvability
-            active_blocks = {(b["row"], b["col"]): b for b in blocks}
-            solved_count = 0
-            while active_blocks:
-                escaped = None
-                for coord, b in list(active_blocks.items()):
-                    r, c, d = b["row"], b["col"], b["dir"]
-                    blocked = False
-                    if d == "UP":
-                        for r_check in range(0, r):
-                            if (r_check, c) in active_blocks:
-                                blocked = True
-                                break
-                    elif d == "DOWN":
-                        for r_check in range(r + 1, grid_size):
-                            if (r_check, c) in active_blocks:
-                                blocked = True
-                                break
-                    elif d == "LEFT":
-                        for c_check in range(0, c):
-                            if (r, c_check) in active_blocks:
-                                blocked = True
-                                break
-                    elif d == "RIGHT":
-                        for c_check in range(c + 1, grid_size):
-                            if (r, c_check) in active_blocks:
-                                blocked = True
-                                break
-
-                    if not blocked:
-                        escaped = coord
-                        break
-
-                if escaped:
-                    active_blocks.pop(escaped)
-                    solved_count += 1
-                else:
+        all_cells = [(r, c) for r in range(grid_size) for c in range(grid_size)]
+        
+        for attempt in range(20000):
+            if len(placed_arrows) >= target_count:
+                break
+            empty_cells = [cell for cell in all_cells if cell not in placed_arrows]
+            if not empty_cells:
+                break
+            r, c = local_random.choice(empty_cells)
+            shuffled_dirs = list(directions)
+            local_random.shuffle(shuffled_dirs)
+            
+            for d in shuffled_dirs:
+                is_path_free = True
+                if d == "UP":
+                    for r_check in range(0, r):
+                        if (r_check, c) in placed_arrows:
+                            is_path_free = False
+                            break
+                elif d == "DOWN":
+                    for r_check in range(r + 1, grid_size):
+                        if (r_check, c) in placed_arrows:
+                            is_path_free = False
+                            break
+                elif d == "LEFT":
+                    for c_check in range(0, c):
+                        if (r, c_check) in placed_arrows:
+                            is_path_free = False
+                            break
+                elif d == "RIGHT":
+                    for c_check in range(c + 1, grid_size):
+                        if (r, c_check) in placed_arrows:
+                            is_path_free = False
+                            break
+                if is_path_free:
+                    placed_arrows[(r, c)] = d
                     break
-
-            if solved_count == len(blocks):
-                return blocks
-
-        # Fallback layout pointing outward if solving check times out
+                    
         blocks = []
-        for idx, (r, c) in enumerate(chosen_cells):
-            d = "UP" if r < grid_size / 2 else "DOWN"
+        for idx, ((r, c), d) in enumerate(placed_arrows.items()):
             blocks.append({
                 "id": idx,
                 "row": r,
@@ -1655,6 +1644,65 @@ class ArrowGameService:
                 "dir": d
             })
         return blocks
+
+    @staticmethod
+    def generate_solvable_layout(grid_size: int) -> list:
+        # Fallback/compatibility method for older code
+        import time
+        seed = int(time.time() * 1000) % 1000000
+        return ArrowGameService.generate_solvable_layout_reverse(grid_size, int(grid_size * grid_size * 0.7), seed)
+
+    @staticmethod
+    def validate_arrow_telemetry_simulation(layout: list, grid_size: int, telemetry: list) -> bool:
+        active_by_id = {b["id"]: b for b in layout}
+        active_coords = {(b["row"], b["col"]): b["id"] for b in layout}
+        
+        for tap in telemetry:
+            block_id = tap.get("block_id")
+            reported_success = tap.get("success", False)
+            
+            if block_id not in active_by_id:
+                if reported_success:
+                    return False
+                continue
+                
+            b = active_by_id[block_id]
+            r, c, d = b["row"], b["col"], b["dir"]
+            
+            blocked = False
+            if d == "UP":
+                for r_check in range(0, r):
+                    if (r_check, c) in active_coords:
+                        blocked = True
+                        break
+            elif d == "DOWN":
+                for r_check in range(r + 1, grid_size):
+                    if (r_check, c) in active_coords:
+                        blocked = True
+                        break
+            elif d == "LEFT":
+                for c_check in range(0, c):
+                    if (r, c_check) in active_coords:
+                        blocked = True
+                        break
+            elif d == "RIGHT":
+                for c_check in range(c + 1, grid_size):
+                    if (r, c_check) in active_coords:
+                        blocked = True
+                        break
+            
+            actual_success = not blocked
+            if reported_success != actual_success:
+                return False
+                
+            if actual_success:
+                active_by_id.pop(block_id)
+                active_coords.pop((r, c))
+                
+        if len(active_coords) > 0:
+            return False
+            
+        return True
 
     @staticmethod
     def start_arrow_session(db: Session, user: User, contest_id: int, device_fingerprint: str, ip_address: str) -> dict:
@@ -1666,30 +1714,64 @@ class ArrowGameService:
             raise ValueError("Contest not found.")
         if contest.status != "ACTIVE" and contest.status != "UPCOMING":
             raise ValueError("Contest is not active.")
-        if contest.joined_slots >= contest.total_slots:
-            raise ValueError("Contest is full.")
 
         existing_attempt = db.query(ArrowAttempt).filter(
             ArrowAttempt.contest_id == contest_id,
             ArrowAttempt.user_id == user.id
         ).first()
+        
         if existing_attempt:
-            raise ValueError("You have already started or joined this contest.")
+            # Re-entrant session recovery
+            db_seed = db.query(ArrowPuzzleSeed).filter(
+                ArrowPuzzleSeed.contest_id == contest_id,
+                ArrowPuzzleSeed.user_id == user.id
+            ).first()
+            if not db_seed:
+                seed_val = random.randint(100000, 999999)
+                db_seed = ArrowPuzzleSeed(
+                    contest_id=contest_id,
+                    user_id=user.id,
+                    seed=seed_val,
+                    difficulty=contest.difficulty or "MEDIUM"
+                )
+                db.add(db_seed)
+                db.commit()
+            
+            layout_data = ArrowGameService.generate_solvable_layout_reverse(
+                contest.grid_size, contest.arrow_count, db_seed.seed
+            )
+            signature = ArrowAntiCheatService.generate_signature(existing_attempt.session_id, contest_id, user.id)
+            return {
+                "session_id": existing_attempt.session_id,
+                "layout": layout_data,
+                "started_at": existing_attempt.started_at,
+                "grid_size": contest.grid_size,
+                "duration_seconds": contest.duration_seconds,
+                "signature": signature
+            }
+
+        if contest.joined_slots >= contest.total_slots:
+            raise ValueError("Contest is full.")
 
         # Wallet balances validation and deduction
         WalletService.deduct_entry_fee(db, user, contest.entry_fee)
         contest.joined_slots += 1
 
-        # Retrieve or create solvable game layout
-        arrow_game = db.query(ArrowGame).filter(ArrowGame.contest_id == contest_id).first()
-        if not arrow_game:
-            layout_data = ArrowGameService.generate_solvable_layout(contest.grid_size)
-            arrow_game = ArrowGame(
-                contest_id=contest_id,
-                layout=json.dumps(layout_data)
-            )
-            db.add(arrow_game)
-            db.flush()
+        # Generate seed and store it
+        seed_val = random.randint(100000, 999999)
+        db_seed = ArrowPuzzleSeed(
+            contest_id=contest_id,
+            user_id=user.id,
+            seed=seed_val,
+            difficulty=contest.difficulty or "MEDIUM"
+        )
+        db.add(db_seed)
+        db.flush()
+
+        # Generate solvable layout
+        layout_data = ArrowGameService.generate_solvable_layout_reverse(
+            contest.grid_size, contest.arrow_count, seed_val
+        )
 
         session_id = str(uuid.uuid4())
         started_at = datetime.now(timezone.utc)
@@ -1716,7 +1798,7 @@ class ArrowGameService:
 
         return {
             "session_id": session_id,
-            "layout": json.loads(arrow_game.layout),
+            "layout": layout_data,
             "started_at": started_at,
             "grid_size": contest.grid_size,
             "duration_seconds": contest.duration_seconds,
@@ -1724,8 +1806,9 @@ class ArrowGameService:
         }
 
     @staticmethod
-    def calculate_score(seconds: float, moves: int) -> int:
-        score = 10000 - (seconds * 8) - (moves * 4)
+    def calculate_score(seconds: float, moves: int, duration_seconds: int, arrow_count: int, wrong_taps: int) -> int:
+        time_remaining = max(0.0, float(duration_seconds) - seconds)
+        score = (time_remaining * 10.0) + (arrow_count * 5.0) - (wrong_taps * 20.0)
         return max(0, int(score))
 
     @classmethod
@@ -1745,21 +1828,52 @@ class ArrowGameService:
             db.commit()
             raise ValueError("Invalid session signature.")
 
+        contest = db.query(ArrowContest).filter(ArrowContest.id == data.contest_id).first()
+        if not contest:
+            raise ValueError("Contest not found.")
+
+        db_seed = db.query(ArrowPuzzleSeed).filter(
+            ArrowPuzzleSeed.contest_id == data.contest_id,
+            ArrowPuzzleSeed.user_id == user.id
+        ).first()
+        if not db_seed:
+            raise ValueError("Puzzle seed not found for validation.")
+
+        layout = ArrowGameService.generate_solvable_layout_reverse(
+            contest.grid_size, contest.arrow_count, db_seed.seed
+        )
+
         telemetry_dicts = [{"block_id": t.block_id, "dt": t.dt, "success": t.success} for t in data.telemetry]
 
-        is_legit = ArrowAntiCheatService.validate_telemetry_kinematics(
+        is_legit_kinematics = ArrowAntiCheatService.validate_telemetry_kinematics(
             telemetry=telemetry_dicts,
             reported_time=data.completion_seconds,
             reported_moves=data.moves,
             started_at=attempt.started_at
         )
-
-        if not is_legit:
+        if not is_legit_kinematics:
             attempt.status = "SUSPICIOUS"
             db.commit()
-            raise ValueError("Anti-Cheat validation failed.")
+            raise ValueError("Anti-Cheat validation failed (Kinematics).")
 
-        score = cls.calculate_score(data.completion_seconds, data.moves)
+        is_legit_simulation = ArrowGameService.validate_arrow_telemetry_simulation(
+            layout=layout,
+            grid_size=contest.grid_size,
+            telemetry=telemetry_dicts
+        )
+        if not is_legit_simulation:
+            attempt.status = "SUSPICIOUS"
+            db.commit()
+            raise ValueError("Anti-Cheat validation failed (Simulation mismatch).")
+
+        wrong_taps = sum(1 for t in telemetry_dicts if not t.get("success", False))
+        score = cls.calculate_score(
+            seconds=data.completion_seconds,
+            moves=data.moves,
+            duration_seconds=contest.duration_seconds,
+            arrow_count=contest.arrow_count,
+            wrong_taps=wrong_taps
+        )
 
         attempt.score = score
         attempt.completion_seconds = data.completion_seconds
@@ -1770,7 +1884,6 @@ class ArrowGameService:
         attempt.submitted_at = datetime.now(timezone.utc)
         db.commit()
 
-        # Update leaderboard record
         leaderboard_entry = db.query(ArrowLeaderboard).filter(
             ArrowLeaderboard.contest_id == data.contest_id,
             ArrowLeaderboard.user_id == user.id
@@ -1791,7 +1904,6 @@ class ArrowGameService:
                 leaderboard_entry.completion_seconds = data.completion_seconds
         db.commit()
 
-        # Broadcast scores via WebSockets
         try:
             from app.websocket import arrow_leaderboard_manager, arrow_ws_manager
             arrow_leaderboard_manager.update_score(

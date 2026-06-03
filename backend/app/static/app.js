@@ -2760,6 +2760,48 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Arrow Difficulty Auto Preset
+    const acDiff = document.getElementById('ac-difficulty');
+    if (acDiff) {
+        acDiff.addEventListener('change', () => {
+            const diff = acDiff.value;
+            const sizeSelect = document.getElementById('ac-grid-size');
+            const countInput = document.getElementById('ac-arrow-count');
+            const durInput = document.getElementById('ac-duration');
+            
+            if (diff === 'EASY') {
+                if (sizeSelect) sizeSelect.value = '8';
+                if (countInput) countInput.value = '50';
+                if (durInput) durInput.value = '60';
+            } else if (diff === 'MEDIUM') {
+                if (sizeSelect) sizeSelect.value = '10';
+                if (countInput) countInput.value = '80';
+                if (durInput) durInput.value = '90';
+            } else if (diff === 'HARD') {
+                if (sizeSelect) sizeSelect.value = '12';
+                if (countInput) countInput.value = '150';
+                if (durInput) durInput.value = '120';
+            } else if (diff === 'EXPERT') {
+                if (sizeSelect) sizeSelect.value = '15';
+                if (countInput) countInput.value = '250';
+                if (durInput) durInput.value = '180';
+            }
+            // Trigger custom visibility check
+            if (sizeSelect) sizeSelect.dispatchEvent(new Event('change'));
+        });
+    }
+
+    // Arrow Grid Size Custom toggle
+    const acGridSelect = document.getElementById('ac-grid-size');
+    if (acGridSelect) {
+        acGridSelect.addEventListener('change', () => {
+            const customRow = document.getElementById('ac-custom-grid-row');
+            if (customRow) {
+                customRow.style.display = acGridSelect.value === 'custom' ? 'flex' : 'none';
+            }
+        });
+    }
+
     // 2. Add rule button for Arrows
     const btnAcAddRule = document.getElementById('btn-ac-add-prize-rule');
     if (btnAcAddRule) {
@@ -2787,13 +2829,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
+            let gridSize = 10;
+            const sizeVal = document.getElementById('ac-grid-size').value;
+            if (sizeVal === 'custom') {
+                gridSize = parseInt(document.getElementById('ac-grid-size-custom').value) || 10;
+            } else {
+                gridSize = parseInt(sizeVal);
+            }
+
             const payload = {
                 title: document.getElementById('ac-title').value.trim(),
                 entry_fee: parseFloat(document.getElementById('ac-fee').value),
                 total_slots: parseInt(document.getElementById('ac-slots').value),
                 prize_pool: parseFloat(document.getElementById('ac-pool').value),
-                grid_size: parseInt(document.getElementById('ac-grid-size').value),
+                grid_size: gridSize,
                 duration_seconds: parseInt(document.getElementById('ac-duration').value),
+                difficulty: document.getElementById('ac-difficulty').value,
+                arrow_count: parseInt(document.getElementById('ac-arrow-count').value),
                 start_time: new Date(document.getElementById('ac-start-time').value).toISOString(),
                 prize_rules: rules
             };
@@ -2816,6 +2868,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast("Go Arrows tournament launched successfully!");
                 acForm.reset();
                 document.getElementById('ac-prize-rules-list').innerHTML = '';
+                const customRow = document.getElementById('ac-custom-grid-row');
+                if (customRow) customRow.style.display = 'none';
                 loadArrowManager();
             } catch (err) {
                 showToast("Error: " + err.message, true);
@@ -2824,7 +2878,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 btn.disabled = false;
             }
         });
-    }
+    });
 });
 
 
@@ -2903,7 +2957,9 @@ async function loadArrowManager() {
                         </td>
                         <td>
                             <div style="font-size: 11px;">
-                                <div><strong>Grid Size:</strong> ${c.grid_size}x${c.grid_size}</div>
+                                <div><strong>Board Size:</strong> ${c.grid_size}x${c.grid_size}</div>
+                                <div><strong>Difficulty:</strong> <span class="badge badge-info" style="font-size: 9px; padding: 1px 4px; border-radius: 4px;">${c.difficulty || 'MEDIUM'}</span></div>
+                                <div><strong>Arrows:</strong> ${c.arrow_count || 'N/A'}</div>
                                 <div><strong>Solve Limit:</strong> ${c.duration_seconds}s</div>
                                 <div><strong>Start:</strong> ${startTimeStr}</div>
                                 <div><strong>End:</strong> ${endTimeStr}</div>

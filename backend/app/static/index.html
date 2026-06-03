@@ -1034,16 +1034,39 @@
                                 </div>
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label for="ac-grid-size">Grid Size</label>
-                                        <select id="ac-grid-size" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:10px; border-radius:6px; font-family:inherit; font-size:13px;">
-                                            <option value="3">3x3 Grid (Small)</option>
-                                            <option value="4" selected>4x4 Grid (Standard)</option>
-                                            <option value="5">5x5 Grid (Expert)</option>
+                                        <label for="ac-difficulty">Puzzle Difficulty</label>
+                                        <select id="ac-difficulty" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:10px; border-radius:6px; font-family:inherit; font-size:13px;">
+                                            <option value="EASY">Easy (8x8, ~50 arrows)</option>
+                                            <option value="MEDIUM" selected>Medium (10x10, ~80 arrows)</option>
+                                            <option value="HARD">Hard (12x12, ~150 arrows)</option>
+                                            <option value="EXPERT">Expert (15x15, ~250 arrows)</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
+                                        <label for="ac-grid-size">Board Size</label>
+                                        <select id="ac-grid-size" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:10px; border-radius:6px; font-family:inherit; font-size:13px;">
+                                            <option value="8">8x8 Grid</option>
+                                            <option value="10" selected>10x10 Grid</option>
+                                            <option value="12">12x12 Grid</option>
+                                            <option value="15">15x15 Grid</option>
+                                            <option value="custom">Custom (Specify below)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-row" id="ac-custom-grid-row" style="display: none;">
+                                    <div class="form-group">
+                                        <label for="ac-grid-size-custom">Custom Grid Size (e.g. 14)</label>
+                                        <input type="number" id="ac-grid-size-custom" value="10" min="3" max="20">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="ac-arrow-count">Total Arrow Count</label>
+                                        <input type="number" id="ac-arrow-count" value="80" min="5" max="350" required>
+                                    </div>
+                                    <div class="form-group">
                                         <label for="ac-duration">Solve Limit (seconds)</label>
-                                        <input type="number" id="ac-duration" value="120" min="10" required>
+                                        <input type="number" id="ac-duration" value="90" min="10" required>
                                     </div>
                                 </div>
                                 <div class="form-row">

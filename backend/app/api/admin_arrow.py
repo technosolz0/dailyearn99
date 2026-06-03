@@ -15,9 +15,6 @@ def create_arrow_contest(payload: ArrowContestCreate, db: Session = Depends(get_
     # Convert prize_rules model to JSON string
     rules_json = json.dumps([r.model_dump() for r in payload.prize_rules])
     
-    # Generate layout for the game immediately on creation
-    layout_data = ArrowGameService.generate_solvable_layout(payload.grid_size)
-
     db_contest = ArrowContest(
         title=payload.title,
         entry_fee=payload.entry_fee,
@@ -28,16 +25,11 @@ def create_arrow_contest(payload: ArrowContestCreate, db: Session = Depends(get_
         prize_rules=rules_json,
         grid_size=payload.grid_size,
         duration_seconds=payload.duration_seconds,
+        difficulty=payload.difficulty,
+        arrow_count=payload.arrow_count,
         status="UPCOMING"
     )
     db.add(db_contest)
-    db.flush()  # Populates db_contest.id
-
-    arrow_game = ArrowGame(
-        contest_id=db_contest.id,
-        layout=json.dumps(layout_data)
-    )
-    db.add(arrow_game)
     db.commit()
     db.refresh(db_contest)
 

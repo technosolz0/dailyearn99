@@ -39,6 +39,8 @@ class ArrowContestModel {
   final List<ArrowPrizeRuleModel>? prizeRules;
   final int gridSize;
   final int durationSeconds;
+  final String difficulty;
+  final int arrowCount;
 
   ArrowContestModel({
     required this.id,
@@ -53,6 +55,8 @@ class ArrowContestModel {
     this.prizeRules,
     required this.gridSize,
     required this.durationSeconds,
+    required this.difficulty,
+    required this.arrowCount,
   });
 
   factory ArrowContestModel.fromJson(Map<String, dynamic> json) {
@@ -73,6 +77,8 @@ class ArrowContestModel {
           : null,
       gridSize: json['grid_size'] as int,
       durationSeconds: json['duration_seconds'] as int,
+      difficulty: json['difficulty'] as String? ?? 'MEDIUM',
+      arrowCount: json['arrow_count'] as int? ?? 80,
     );
   }
 

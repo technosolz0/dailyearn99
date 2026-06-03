@@ -92,26 +92,6 @@ def start_arrow_session(
         )
         return session_data
     except ValueError as e:
-        if str(e) == "You have already started or joined this contest.":
-            from app.models import ArrowAttempt, ArrowGame
-            import json
-            att = db.query(ArrowAttempt).filter(
-                ArrowAttempt.contest_id == contest_id,
-                ArrowAttempt.user_id == current_user.id
-            ).first()
-            arrow_game = db.query(ArrowGame).filter(ArrowGame.contest_id == contest_id).first()
-            contest = db.query(ArrowContest).filter(ArrowContest.id == contest_id).first()
-            if att and arrow_game and contest:
-                from app.services import ArrowAntiCheatService
-                signature = ArrowAntiCheatService.generate_signature(att.session_id, contest_id, current_user.id)
-                return ArrowStartSessionResponse(
-                    session_id=att.session_id,
-                    layout=json.loads(arrow_game.layout),
-                    started_at=att.started_at,
-                    grid_size=contest.grid_size,
-                    duration_seconds=contest.duration_seconds,
-                    signature=signature
-                )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
