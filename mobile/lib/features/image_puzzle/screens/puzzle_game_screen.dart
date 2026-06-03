@@ -3,17 +3,24 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/puzzle_bloc.dart';
 import '../models/puzzle_models.dart';
 
-class PuzzleGameScreen extends StatelessWidget {
+class PuzzleGameScreen extends StatefulWidget {
   final int contestId;
   final String title;
   final String imageUrl;
 
   const PuzzleGameScreen({
-    Key? key,
+    super.key,
     required this.contestId,
     required this.title,
     required this.imageUrl,
-  }) : super(key: key);
+  });
+
+  @override
+  State<PuzzleGameScreen> createState() => _PuzzleGameScreenState();
+}
+
+class _PuzzleGameScreenState extends State<PuzzleGameScreen> {
+  int? _selectedTileIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +28,7 @@ class PuzzleGameScreen extends StatelessWidget {
       backgroundColor: const Color(0xFF0F0C20),
       appBar: AppBar(
         title: Text(
-          title.toUpperCase(),
+          widget.title.toUpperCase(),
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -68,12 +75,51 @@ class PuzzleGameScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildReferenceImage() {
+    return Center(
+      child: Container(
+        width: 80,
+        height: 80,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF8A2BE2), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF8A2BE2).withOpacity(0.3),
+              blurRadius: 10,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10.5),
+          child: Image.network(
+            widget.imageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: Colors.grey[900],
+                child: const Icon(
+                  Icons.broken_image,
+                  color: Colors.white30,
+                  size: 24,
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildGameplayArea(BuildContext context, PuzzleActiveState state) {
     return SafeArea(
       child: Column(
         children: [
           _buildStatsBar(state),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          _buildReferenceImage(),
+          const SizedBox(height: 12),
           Expanded(
             child: Center(
               child: AspectRatio(
@@ -97,38 +143,99 @@ class PuzzleGameScreen extends StatelessWidget {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(14),
-                    child: GridView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: state.gridSize,
-                        crossAxisSpacing: 1.0,
-                        mainAxisSpacing: 1.0,
-                      ),
-                      itemCount: state.pieces.length,
-                      itemBuilder: (context, index) {
-                        final piece = state.pieces[index];
-                        return DragTarget<int>(
-                          builder: (context, candidateData, rejectedData) {
-                            return Draggable<int>(
-                              data: index,
-                              feedback: _buildPieceWidget(
-                                piece,
-                                state.gridSize,
-                                isDragging: true,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final double boardSize = constraints.maxWidth;
+                        final double tileSize = boardSize / state.gridSize;
+
+                        return Stack(
+                          children: state.pieces.map((piece) {
+                            final double left =
+                                (piece.currentPos % state.gridSize) * tileSize;
+                            final double top =
+                                (piece.currentPos ~/ state.gridSize) * tileSize;
+                            final bool isSelected =
+                                _selectedTileIndex == piece.currentPos;
+
+                            return AnimatedPositioned(
+                              key: ValueKey(piece.pieceId),
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                              left: left,
+                              top: top,
+                              width: tileSize,
+                              height: tileSize,
+                              child: DragTarget<int>(
+                                builder:
+                                    (context, candidateData, rejectedData) {
+                                      return Draggable<int>(
+                                        data: piece.currentPos,
+                                        feedback: SizedBox(
+                                          width: tileSize,
+                                          height: tileSize,
+                                          child: _buildPieceWidget(
+                                            piece,
+                                            state.gridSize,
+                                            isDragging: true,
+                                          ),
+                                        ),
+                                        childWhenDragging: Opacity(
+                                          opacity: 0.2,
+                                          child: _buildPieceWidget(
+                                            piece,
+                                            state.gridSize,
+                                          ),
+                                        ),
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              if (_selectedTileIndex == null) {
+                                                _selectedTileIndex =
+                                                    piece.currentPos;
+                                              } else if (_selectedTileIndex ==
+                                                  piece.currentPos) {
+                                                _selectedTileIndex = null;
+                                              } else {
+                                                final int fromIdx =
+                                                    _selectedTileIndex!;
+                                                final int toIdx =
+                                                    piece.currentPos;
+                                                _selectedTileIndex = null;
+                                                BlocProvider.of<PuzzleBloc>(
+                                                  context,
+                                                ).add(
+                                                  SwapPiecesEvent(
+                                                    fromIdx,
+                                                    toIdx,
+                                                  ),
+                                                );
+                                              }
+                                            });
+                                          },
+                                          child: _buildPieceWidget(
+                                            piece,
+                                            state.gridSize,
+                                            isSelected: isSelected,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                onWillAcceptWithDetails: (details) =>
+                                    details.data != piece.currentPos,
+                                onAcceptWithDetails: (details) {
+                                  setState(() {
+                                    _selectedTileIndex = null;
+                                  });
+                                  BlocProvider.of<PuzzleBloc>(context).add(
+                                    SwapPiecesEvent(
+                                      details.data,
+                                      piece.currentPos,
+                                    ),
+                                  );
+                                },
                               ),
-                              childWhenDragging: Opacity(
-                                opacity: 0.2,
-                                child: _buildPieceWidget(piece, state.gridSize),
-                              ),
-                              child: _buildPieceWidget(piece, state.gridSize),
                             );
-                          },
-                          onWillAccept: (data) => data != null && data != index,
-                          onAccept: (fromIndex) {
-                            BlocProvider.of<PuzzleBloc>(
-                              context,
-                            ).add(SwapPiecesEvent(fromIndex, index));
-                          },
+                          }).toList(),
                         );
                       },
                     ),
@@ -149,10 +256,8 @@ class PuzzleGameScreen extends StatelessWidget {
     PuzzlePieceModel piece,
     int gridSize, {
     bool isDragging = false,
+    bool isSelected = false,
   }) {
-    double totalWidth = 300.0;
-    double originalGridItemSize = totalWidth / gridSize;
-
     // Col and row indices of original sorted layout positions
     int originalCol = piece.pieceId % gridSize;
     int originalRow = piece.pieceId ~/ gridSize;
@@ -180,7 +285,7 @@ class PuzzleGameScreen extends StatelessWidget {
               heightFactor: gridSize.toDouble(),
               alignment: Alignment(alignX, alignY),
               child: Image.network(
-                imageUrl,
+                widget.imageUrl,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
@@ -195,28 +300,11 @@ class PuzzleGameScreen extends StatelessWidget {
             ),
             if (isDragging)
               Container(color: Colors.black45)
-            else ...[
-              // Optional debug hints overlay
-              Positioned(
-                bottom: 4,
-                right: 4,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    '${piece.pieceId + 1}',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 8,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+            else if (isSelected) ...[
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFF00FFFF), width: 3),
+                  color: const Color(0xFF00FFFF).withOpacity(0.15),
                 ),
               ),
             ],
@@ -418,13 +506,6 @@ class PuzzleGameScreen extends StatelessWidget {
                   context,
                 ).add(SubmitPuzzleScoreEvent());
               },
-              child: const Text(
-                'SUBMIT SCORE',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.8,
-                ),
-              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF8A2BE2),
                 foregroundColor: Colors.white,
@@ -433,6 +514,13 @@ class PuzzleGameScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 elevation: 4,
+              ),
+              child: const Text(
+                'SUBMIT SCORE',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.8,
+                ),
               ),
             ),
           ),
@@ -492,7 +580,6 @@ class PuzzleGameScreen extends StatelessWidget {
                     context,
                   ).pop(); // Exit Gameplay view back to Lobby
                 },
-                child: const Text('CONTINUE'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF8A2BE2),
                   foregroundColor: Colors.white,
@@ -504,6 +591,7 @@ class PuzzleGameScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
+                child: const Text('CONTINUE'),
               ),
             ),
             const SizedBox(height: 8),
