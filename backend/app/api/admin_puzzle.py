@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 import json
 
 from app.core.database import get_db
-from app.models import ImagePuzzleContest, ImagePuzzleGame
+from app.models import ImagePuzzleContest, ImagePuzzleGame, ImagePuzzleAttempt, ImagePuzzleLeaderboard
 from app.schemas import ImagePuzzleContestCreate, ImagePuzzleContestResponse
 from app.services import PuzzleRewardService
 from app.core.security import get_current_admin
@@ -86,3 +86,20 @@ def toggle_puzzle_maintenance(enabled: bool):
 def get_puzzle_maintenance():
     from app.services import PuzzleGameService
     return {"maintenance_mode": PuzzleGameService.is_maintenance_mode()}
+
+
+@router.delete("/contests/{contest_id}")
+def delete_puzzle_contest(contest_id: int, db: Session = Depends(get_db)):
+    contest = db.query(ImagePuzzleContest).filter(ImagePuzzleContest.id == contest_id).first()
+    if not contest:
+        raise HTTPException(status_code=404, detail="Contest not found")
+        
+    # Delete related image_puzzle_leaderboard, attempts, and games
+    db.query(ImagePuzzleLeaderboard).filter(ImagePuzzleLeaderboard.contest_id == contest_id).delete()
+    db.query(ImagePuzzleAttempt).filter(ImagePuzzleAttempt.contest_id == contest_id).delete()
+    db.query(ImagePuzzleGame).filter(ImagePuzzleGame.contest_id == contest_id).delete()
+    
+    db.delete(contest)
+    db.commit()
+    return {"message": "Puzzle contest deleted successfully"}
+

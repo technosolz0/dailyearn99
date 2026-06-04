@@ -86,6 +86,63 @@ def ban_user(id: int, ban: bool, db: Session = Depends(get_db)):
     db.refresh(user)
     return user
 
+
+@router.delete("/users/{id}")
+def delete_user(id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not user.is_banned:
+        raise HTTPException(status_code=400, detail="Only banned users can be deleted")
+        
+    # Delete related records from all user-dependent tables:
+    from app.models import (
+        ContestParticipant, WalletTransaction, Referral, Spin, SpinAuditLog, 
+        UserQuestionHistory, ImagePuzzleAttempt, ImagePuzzleLeaderboard, 
+        WordAttempt, WordAnswer, WordLeaderboard, FruitMatch, FruitEvent, FruitScore, 
+        FruitLeaderboard, ArrowAttempt, ArrowLeaderboard, ArrowPuzzleSeed, Notification
+    )
+    
+    db.query(ContestParticipant).filter(ContestParticipant.user_id == id).delete()
+    db.query(WalletTransaction).filter(WalletTransaction.user_id == id).delete()
+    
+    # Referral table: user can be referrer or referred
+    db.query(Referral).filter((Referral.referrer_id == id) | (Referral.referred_user_id == id)).delete()
+    
+    db.query(Spin).filter(Spin.user_id == id).delete()
+    db.query(SpinAuditLog).filter(SpinAuditLog.user_id == id).delete()
+    db.query(UserQuestionHistory).filter(UserQuestionHistory.user_id == id).delete()
+    
+    db.query(ImagePuzzleAttempt).filter(ImagePuzzleAttempt.user_id == id).delete()
+    db.query(ImagePuzzleLeaderboard).filter(ImagePuzzleLeaderboard.user_id == id).delete()
+    
+    # WordAttempt has answers which must be deleted first
+    attempts = db.query(WordAttempt).filter(WordAttempt.user_id == id).all()
+    for att in attempts:
+        db.query(WordAnswer).filter(WordAnswer.attempt_id == att.id).delete()
+        db.delete(att)
+    db.query(WordLeaderboard).filter(WordLeaderboard.user_id == id).delete()
+    
+    # Fruit Slicing
+    matches = db.query(FruitMatch).filter(FruitMatch.user_id == id).all()
+    for m in matches:
+        db.query(FruitEvent).filter(FruitEvent.match_id == m.id).delete()
+        db.delete(m)
+    db.query(FruitScore).filter(FruitScore.user_id == id).delete()
+    db.query(FruitLeaderboard).filter(FruitLeaderboard.user_id == id).delete()
+    
+    # Go Arrows
+    db.query(ArrowAttempt).filter(ArrowAttempt.user_id == id).delete()
+    db.query(ArrowLeaderboard).filter(ArrowLeaderboard.user_id == id).delete()
+    db.query(ArrowPuzzleSeed).filter(ArrowPuzzleSeed.user_id == id).delete()
+    
+    db.query(Notification).filter(Notification.user_id == id).delete()
+    
+    db.delete(user)
+    db.commit()
+    return {"message": "User deleted successfully"}
+
+
 @router.post("/users/{id}/adjust-balance", response_model=UserResponse)
 def adjust_user_balance(id: int, request: AdminAdjustBalanceRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == id).first()
@@ -312,6 +369,21 @@ def update_contest_questions(id: int, questions: List[QuestionSchema], db: Sessi
     db.commit()
     db.refresh(contest)
     return contest
+
+
+@router.delete("/contests/{id}")
+def delete_contest(id: int, db: Session = Depends(get_db)):
+    contest = db.query(Contest).filter(Contest.id == id).first()
+    if not contest:
+        raise HTTPException(status_code=404, detail="Contest not found")
+        
+    # Delete related participants
+    db.query(ContestParticipant).filter(ContestParticipant.contest_id == id).delete()
+    
+    db.delete(contest)
+    db.commit()
+    return {"message": "Contest deleted successfully"}
+
 
 
 from app.schemas import (

@@ -1087,6 +1087,10 @@ function renderUsersTable(usersList) {
             ? `<button class="btn btn-action btn-unban" onclick="toggleBan(${u.id}, false)">Unban User</button>`
             : `<button class="btn btn-action btn-ban" onclick="toggleBan(${u.id}, true)">Ban User</button>`;
 
+        const deleteBtn = u.is_banned
+            ? `<button class="btn btn-action btn-ban" onclick="deleteUser(${u.id})">Delete User</button>`
+            : '';
+
         return `
             <tr>
                 <td>${u.id}</td>
@@ -1121,6 +1125,7 @@ function renderUsersTable(usersList) {
                 <td>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         ${banBtn}
+                        ${deleteBtn}
                         <button class="btn btn-action" style="background-color: rgba(0, 210, 255, 0.1); color: var(--primary); border: 1px solid rgba(0, 210, 255, 0.2);" onclick="openAdjustBalanceModal(${u.id}, '${u.name ? u.name.replace(/'/g, "\\'") : 'Anonymous'}', '${u.phone}')">Adjust Balance</button>
                         <button class="btn btn-action" style="background-color: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid var(--border-color);" onclick="viewUserDetails(${u.id})">View Details</button>
                     </div>
@@ -1304,6 +1309,24 @@ async function toggleBan(userId, ban) {
     }
 }
 
+async function deleteUser(userId) {
+    if (!confirm("Are you sure you want to permanently delete this banned user? This action cannot be undone and will delete all user metadata, transactions, history, and game records!")) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error(await res.text());
+
+        showToast("User deleted successfully!");
+        loadUsers();
+    } catch (err) {
+        showToast("Error deleting user: " + err.message, true);
+    }
+}
+
+window.deleteUser = deleteUser;
+
+
 // 2. Contests Operations
 async function loadContests() {
     try {
@@ -1333,6 +1356,8 @@ function renderContestsTable(contestsList) {
         const actionBtn = c.status !== 'COMPLETED'
             ? `<button class="btn btn-action btn-unban" onclick="completeContest(${c.id})">Complete</button>`
             : `<span class="text-muted" style="font-size:12px;">Payout Done</span>`;
+
+        const deleteBtn = `<button class="btn btn-action btn-ban" onclick="deleteContest(${c.id})">Delete</button>`;
 
         let rulesHtml = '';
         if (c.prize_rules && c.prize_rules.length > 0) {
@@ -1411,6 +1436,7 @@ function renderContestsTable(contestsList) {
                 <td>
                     <div style="display:flex; gap:8px;">
                         ${actionBtn}
+                        ${deleteBtn}
                     </div>
                 </td>
             </tr>
@@ -1603,6 +1629,23 @@ async function completeContest(contestId) {
         showToast("Error completing contest: " + err.message, true);
     }
 }
+
+async function deleteContest(contestId) {
+    if (!confirm("Are you sure you want to permanently delete this Trivia contest? This will delete all associated participants and attempts!")) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/contests/${contestId}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error(await res.text());
+        showToast("Contest deleted successfully!");
+        loadDashboardData();
+    } catch (err) {
+        showToast("Error deleting contest: " + err.message, true);
+    }
+}
+
+window.deleteContest = deleteContest;
+
 
 // Adjust Balance Modal Actions
 window.openAdjustBalanceModal = function (userId, name, phone) {
@@ -2168,6 +2211,8 @@ async function loadFruitManager() {
                     ? `<button class="btn btn-action btn-unban" onclick="completeFruitContest(${c.id})">Complete</button>`
                     : `<span class="text-muted" style="font-size:12px;">Payout Done</span>`;
 
+                const deleteBtn = `<button class="btn btn-action btn-ban" onclick="deleteFruitContest(${c.id})">Delete</button>`;
+
                 let rulesHtml = '';
                 if (c.prize_rules && c.prize_rules.length > 0) {
                     rulesHtml = `<div style="font-size: 11px; color: var(--text-muted); margin-top: 5px; display: flex; flex-direction: column; gap: 2px;">` +
@@ -2206,6 +2251,7 @@ async function loadFruitManager() {
                         <td>
                             <div style="display:flex; gap:8px;">
                                 ${actionBtn}
+                                ${deleteBtn}
                             </div>
                         </td>
                     </tr>
@@ -2235,6 +2281,21 @@ async function completeFruitContest(contestId) {
     }
 }
 
+async function deleteFruitContest(contestId) {
+    if (!confirm("Are you sure you want to permanently delete this Fruit Slicing contest? This will delete all associated matches and results!")) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/fruit-slicing/contests/${contestId}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error(await res.text());
+        showToast("Fruit contest deleted successfully!");
+        loadFruitManager();
+    } catch (err) {
+        showToast("Error deleting Fruit contest: " + err.message, true);
+    }
+}
+
+window.deleteFruitContest = deleteFruitContest;
 window.completeFruitContest = completeFruitContest;
 
 
@@ -2285,6 +2346,8 @@ async function loadPuzzleManager() {
                     ? `<button class="btn btn-action btn-unban" onclick="completePuzzleContest(${c.id})">Complete</button>`
                     : `<span class="text-muted" style="font-size:12px;">Payout Done</span>`;
 
+                const deleteBtn = `<button class="btn btn-action btn-ban" onclick="deletePuzzleContest(${c.id})">Delete</button>`;
+
                 let rulesHtml = '';
                 if (c.prize_rules && c.prize_rules.length > 0) {
                     rulesHtml = `<div style="font-size: 11px; color: var(--text-muted); margin-top: 5px; display: flex; flex-direction: column; gap: 2px;">` +
@@ -2326,6 +2389,7 @@ async function loadPuzzleManager() {
                         <td>
                             <div style="display:flex; gap:8px;">
                                 ${actionBtn}
+                                ${deleteBtn}
                             </div>
                         </td>
                     </tr>
@@ -2355,6 +2419,21 @@ async function completePuzzleContest(contestId) {
     }
 }
 
+async function deletePuzzleContest(contestId) {
+    if (!confirm("Are you sure you want to permanently delete this Puzzle contest? This will delete all associated attempts and games!")) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/puzzle/contests/${contestId}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error(await res.text());
+        showToast("Puzzle contest deleted successfully!");
+        loadPuzzleManager();
+    } catch (err) {
+        showToast("Error deleting Puzzle contest: " + err.message, true);
+    }
+}
+
+window.deletePuzzleContest = deletePuzzleContest;
 window.completePuzzleContest = completePuzzleContest;
 
 
@@ -2424,6 +2503,8 @@ async function loadWordManager() {
                     ? `<button class="btn btn-action btn-unban" onclick="completeWordContest(${c.id})">Complete</button>`
                     : `<span class="text-muted" style="font-size:12px;">Payout Done</span>`;
 
+                const deleteBtn = `<button class="btn btn-action btn-ban" onclick="deleteWordContest(${c.id})">Delete</button>`;
+
                 let rulesHtml = '';
                 if (c.prize_rules && c.prize_rules.length > 0) {
                     rulesHtml = `<div style="font-size: 11px; color: var(--text-muted); margin-top: 5px; display: flex; flex-direction: column; gap: 2px;">` +
@@ -2462,6 +2543,7 @@ async function loadWordManager() {
                         <td>
                             <div style="display:flex; gap:8px;">
                                 ${actionBtn}
+                                ${deleteBtn}
                             </div>
                         </td>
                     </tr>
@@ -2491,6 +2573,21 @@ async function completeWordContest(contestId) {
     }
 }
 
+async function deleteWordContest(contestId) {
+    if (!confirm("Are you sure you want to permanently delete this Word contest? This will delete all questions, attempts, and answers!")) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/word-puzzle/contests/${contestId}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error(await res.text());
+        showToast("Word contest deleted successfully!");
+        loadWordManager();
+    } catch (err) {
+        showToast("Error deleting Word contest: " + err.message, true);
+    }
+}
+
+window.deleteWordContest = deleteWordContest;
 window.completeWordContest = completeWordContest;
 
 async function loadWordManagerQuestions(contestId) {
@@ -2929,6 +3026,8 @@ async function loadArrowManager() {
                     ? `<button class="btn btn-action btn-unban" onclick="completeArrowContest(${c.id})">Complete</button>`
                     : `<span class="text-muted" style="font-size:12px;">Payout Done</span>`;
 
+                const deleteBtn = `<button class="btn btn-action btn-ban" onclick="deleteArrowContest(${c.id})">Delete</button>`;
+
                 let rulesHtml = '';
                 if (c.prize_rules && c.prize_rules.length > 0) {
                     rulesHtml = `<div style="font-size: 11px; color: var(--text-muted); margin-top: 5px; display: flex; flex-direction: column; gap: 2px;">` +
@@ -2969,6 +3068,7 @@ async function loadArrowManager() {
                         <td>
                             <div style="display:flex; gap:8px;">
                                 ${actionBtn}
+                                ${deleteBtn}
                             </div>
                         </td>
                     </tr>
@@ -2998,6 +3098,21 @@ async function completeArrowContest(contestId) {
     }
 }
 
+async function deleteArrowContest(contestId) {
+    if (!confirm("Are you sure you want to permanently delete this Go Arrows contest? This will delete all associated attempts and games!")) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/arrow/contests/${contestId}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error(await res.text());
+        showToast("Go Arrows contest deleted successfully!");
+        loadArrowManager();
+    } catch (err) {
+        showToast("Error deleting Go Arrows contest: " + err.message, true);
+    }
+}
+
+window.deleteArrowContest = deleteArrowContest;
 window.completeArrowContest = completeArrowContest;
 
 

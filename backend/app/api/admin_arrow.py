@@ -3,10 +3,10 @@ from sqlalchemy.orm import Session
 import json
 
 from app.core.database import get_db
-from app.models import ArrowContest, ArrowGame
+from app.models import ArrowContest, ArrowGame, ArrowAttempt, ArrowLeaderboard, ArrowPuzzleSeed
 from app.schemas import ArrowContestCreate, ArrowContestResponse
 from app.services import ArrowRewardService, ArrowGameService
-from app.core.security import get_current_user  # If authentication is required
+from app.core.security import get_current_user, get_current_admin
 
 router = APIRouter(prefix="/admin/arrow", tags=["admin-arrow"])
 
@@ -58,3 +58,21 @@ def toggle_arrow_maintenance(db: Session = Depends(get_db)):
     new_state = not ArrowGameService.is_maintenance_mode()
     ArrowGameService.set_maintenance_mode(new_state)
     return {"maintenance_mode": new_state}
+
+
+@router.delete("/contests/{contest_id}")
+def delete_arrow_contest(contest_id: int, db: Session = Depends(get_db), current_admin: str = Depends(get_current_admin)):
+    contest = db.query(ArrowContest).filter(ArrowContest.id == contest_id).first()
+    if not contest:
+        raise HTTPException(status_code=404, detail="Contest not found")
+        
+    # Delete related attempts, leaderboards, games, and seeds
+    db.query(ArrowAttempt).filter(ArrowAttempt.contest_id == contest_id).delete()
+    db.query(ArrowLeaderboard).filter(ArrowLeaderboard.contest_id == contest_id).delete()
+    db.query(ArrowGame).filter(ArrowGame.contest_id == contest_id).delete()
+    db.query(ArrowPuzzleSeed).filter(ArrowPuzzleSeed.contest_id == contest_id).delete()
+    
+    db.delete(contest)
+    db.commit()
+    return {"message": "Arrow contest deleted successfully"}
+

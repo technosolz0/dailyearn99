@@ -6,7 +6,7 @@ import random
 from typing import List, Optional
 
 from app.core.database import get_db
-from app.models import FruitContest
+from app.models import FruitContest, FruitLeaderboard, FruitScore, FruitMatch, FruitEvent
 from app.schemas import FruitContestCreate, FruitContestResponse
 from app.services import FruitRewardService
 from app.core.security import get_current_admin
@@ -95,3 +95,25 @@ def toggle_fruit_maintenance(enabled: bool):
 def get_fruit_maintenance():
     from app.services import FruitGameService
     return {"maintenance_mode": FruitGameService.is_maintenance_mode()}
+
+
+@router.delete("/contests/{contest_id}")
+def delete_fruit_contest(contest_id: int, db: Session = Depends(get_db)):
+    contest = db.query(FruitContest).filter(FruitContest.id == contest_id).first()
+    if not contest:
+        raise HTTPException(status_code=404, detail="Contest not found")
+        
+    # Delete related leaderboards, scores, and matches
+    db.query(FruitLeaderboard).filter(FruitLeaderboard.contest_id == contest_id).delete()
+    db.query(FruitScore).filter(FruitScore.contest_id == contest_id).delete()
+    
+    # Matches have events
+    matches = db.query(FruitMatch).filter(FruitMatch.contest_id == contest_id).all()
+    for m in matches:
+        db.query(FruitEvent).filter(FruitEvent.match_id == m.id).delete()
+        db.delete(m)
+        
+    db.delete(contest)
+    db.commit()
+    return {"message": "Fruit contest deleted successfully"}
+

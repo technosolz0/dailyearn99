@@ -5,7 +5,7 @@ import json
 from typing import List, Dict, Any
 
 from app.core.database import get_db
-from app.models import WordContest, WordQuestion
+from app.models import WordContest, WordQuestion, WordAttempt, WordAnswer, WordLeaderboard
 from app.schemas import CreateWordContestRequest, WordContestResponse
 from app.services import WordRewardService
 from app.core.security import get_current_admin
@@ -186,4 +186,28 @@ def toggle_word_maintenance(enabled: bool):
 def get_word_maintenance():
     from app.services import WordGameService
     return {"maintenance_mode": WordGameService.is_maintenance_mode()}
+
+
+@router.delete("/contests/{contest_id}")
+def delete_word_contest(contest_id: int, db: Session = Depends(get_db)):
+    contest = db.query(WordContest).filter(WordContest.id == contest_id).first()
+    if not contest:
+        raise HTTPException(status_code=404, detail="Contest not found")
+        
+    # Delete related attempts, answers, leaderboards, questions
+    # Note: WordQuestion has ForeignKey cascade.
+    # WordLeaderboard has ForeignKey cascade.
+    # WordAttempt has RESTRICT, so we must delete WordAnswer first, then WordAttempt.
+    attempts = db.query(WordAttempt).filter(WordAttempt.contest_id == contest_id).all()
+    for att in attempts:
+        db.query(WordAnswer).filter(WordAnswer.attempt_id == att.id).delete()
+        db.delete(att)
+    
+    db.query(WordLeaderboard).filter(WordLeaderboard.contest_id == contest_id).delete()
+    db.query(WordQuestion).filter(WordQuestion.contest_id == contest_id).delete()
+    
+    db.delete(contest)
+    db.commit()
+    return {"message": "Word contest deleted successfully"}
+
 
