@@ -41,7 +41,10 @@ class WordPuzzleLoadingState extends WordPuzzleState {}
 class WordPuzzleLobbyJoinedState extends WordPuzzleState {
   final String sessionId;
   final double feeDeducted;
-  WordPuzzleLobbyJoinedState({required this.sessionId, required this.feeDeducted});
+  WordPuzzleLobbyJoinedState({
+    required this.sessionId,
+    required this.feeDeducted,
+  });
 }
 
 class WordPuzzleActiveState extends WordPuzzleState {
@@ -101,7 +104,10 @@ class WordPuzzleActiveState extends WordPuzzleState {
 class WordPuzzleCompletedState extends WordPuzzleState {
   final int finalScore;
   final double completionTime;
-  WordPuzzleCompletedState({required this.finalScore, required this.completionTime});
+  WordPuzzleCompletedState({
+    required this.finalScore,
+    required this.completionTime,
+  });
 }
 
 class WordPuzzleErrorState extends WordPuzzleState {
@@ -116,7 +122,6 @@ class WordPuzzleBloc extends Bloc<WordPuzzleEvent, WordPuzzleState> {
   Timer? _ticker;
   StreamSubscription? _wsSubscription;
 
-  int _contestId = 0;
   String? _sessionId;
   String? _signature;
   int _score = 0;
@@ -136,26 +141,32 @@ class WordPuzzleBloc extends Bloc<WordPuzzleEvent, WordPuzzleState> {
     on<UpdateWordLeaderboardEvent>(_onUpdateLeaderboard);
   }
 
-  Future<void> _onJoinContest(JoinWordContestEvent event, Emitter<WordPuzzleState> emit) async {
+  Future<void> _onJoinContest(
+    JoinWordContestEvent event,
+    Emitter<WordPuzzleState> emit,
+  ) async {
     emit(WordPuzzleLoadingState());
     try {
-      _contestId = event.contestId;
       final joinResult = await _repository.joinWordContest(event.contestId);
       _sessionId = joinResult.sessionId;
 
-      emit(WordPuzzleLobbyJoinedState(
-        sessionId: joinResult.sessionId,
-        feeDeducted: joinResult.entryFeeDeducted,
-      ));
+      emit(
+        WordPuzzleLobbyJoinedState(
+          sessionId: joinResult.sessionId,
+          feeDeducted: joinResult.entryFeeDeducted,
+        ),
+      );
     } catch (e, stackTrace) {
       emit(WordPuzzleErrorState(ErrorHandler.handle(e, stackTrace)));
     }
   }
 
-  Future<void> _onStartContest(StartWordContestEvent event, Emitter<WordPuzzleState> emit) async {
+  Future<void> _onStartContest(
+    StartWordContestEvent event,
+    Emitter<WordPuzzleState> emit,
+  ) async {
     emit(WordPuzzleLoadingState());
     try {
-      _contestId = event.contestId;
       _sessionId = event.sessionId;
 
       final sessionData = await _repository.startWordContest(
@@ -175,13 +186,19 @@ class WordPuzzleBloc extends Bloc<WordPuzzleEvent, WordPuzzleState> {
       _questionStartTime = 0.0;
 
       try {
-        final initialRanks = await _repository.fetchLeaderboard(event.contestId);
-        _liveLeaderboard = initialRanks.map((item) => {
-          'user_id': item.userId,
-          'name': item.name,
-          'score': item.score,
-          'rank': item.rank,
-        }).toList();
+        final initialRanks = await _repository.fetchLeaderboard(
+          event.contestId,
+        );
+        _liveLeaderboard = initialRanks
+            .map(
+              (item) => {
+                'user_id': item.userId,
+                'name': item.name,
+                'score': item.score,
+                'rank': item.rank,
+              },
+            )
+            .toList();
       } catch (err) {
         print("Failed to fetch initial leaderboard: $err");
       }
@@ -195,26 +212,33 @@ class WordPuzzleBloc extends Bloc<WordPuzzleEvent, WordPuzzleState> {
       });
 
       _wsSubscription?.cancel();
-      _wsSubscription = _repository.connectToLeaderboard(event.contestId).listen((data) {
-        if (data is Map && data['type'] == 'leaderboard_update') {
-          _liveLeaderboard = data['data'] as List;
-          add(UpdateWordLeaderboardEvent(_liveLeaderboard));
-        }
-      }, onError: (err) {
-        print("Word Leaderboard socket failure: $err");
-      });
+      _wsSubscription = _repository
+          .connectToLeaderboard(event.contestId)
+          .listen(
+            (data) {
+              if (data is Map && data['type'] == 'leaderboard_update') {
+                _liveLeaderboard = data['data'] as List;
+                add(UpdateWordLeaderboardEvent(_liveLeaderboard));
+              }
+            },
+            onError: (err) {
+              print("Word Leaderboard socket failure: $err");
+            },
+          );
 
-      emit(WordPuzzleActiveState(
-        questions: _questions,
-        currentQuestionIndex: _currentIndex,
-        score: _score,
-        hintsUsed: _hintsUsed,
-        wrongAttempts: _wrongAttempts,
-        elapsedSeconds: 0.0,
-        remainingSeconds: _durationSeconds,
-        liveLeaderboard: _liveLeaderboard,
-        isSubmittingAnswer: false,
-      ));
+      emit(
+        WordPuzzleActiveState(
+          questions: _questions,
+          currentQuestionIndex: _currentIndex,
+          score: _score,
+          hintsUsed: _hintsUsed,
+          wrongAttempts: _wrongAttempts,
+          elapsedSeconds: 0.0,
+          remainingSeconds: _durationSeconds,
+          liveLeaderboard: _liveLeaderboard,
+          isSubmittingAnswer: false,
+        ),
+      );
     } catch (e, stackTrace) {
       emit(WordPuzzleErrorState(ErrorHandler.handle(e, stackTrace)));
     }
@@ -230,29 +254,38 @@ class WordPuzzleBloc extends Bloc<WordPuzzleEvent, WordPuzzleState> {
     if (remaining <= 0) {
       _ticker?.cancel();
       _stopwatch.stop();
-      emit(WordPuzzleCompletedState(
-        finalScore: _score,
-        completionTime: elapsed,
-      ));
+      emit(
+        WordPuzzleCompletedState(finalScore: _score, completionTime: elapsed),
+      );
     } else {
-      emit(currentState.copyWith(
-        elapsedSeconds: elapsed,
-        remainingSeconds: remaining,
-      ));
+      emit(
+        currentState.copyWith(
+          elapsedSeconds: elapsed,
+          remainingSeconds: remaining,
+        ),
+      );
     }
   }
 
-  void _onUpdateLeaderboard(UpdateWordLeaderboardEvent event, Emitter<WordPuzzleState> emit) {
+  void _onUpdateLeaderboard(
+    UpdateWordLeaderboardEvent event,
+    Emitter<WordPuzzleState> emit,
+  ) {
     if (state is! WordPuzzleActiveState) return;
     final currentState = state as WordPuzzleActiveState;
     emit(currentState.copyWith(liveLeaderboard: event.leaderboard));
   }
 
-  Future<void> _onSubmitAnswer(SubmitWordAnswerEvent event, Emitter<WordPuzzleState> emit) async {
+  Future<void> _onSubmitAnswer(
+    SubmitWordAnswerEvent event,
+    Emitter<WordPuzzleState> emit,
+  ) async {
     if (state is! WordPuzzleActiveState || _sessionId == null) return;
     final currentState = state as WordPuzzleActiveState;
 
-    emit(currentState.copyWith(isSubmittingAnswer: true, feedbackMessage: null));
+    emit(
+      currentState.copyWith(isSubmittingAnswer: true, feedbackMessage: null),
+    );
 
     try {
       final double totalElapsed = _stopwatch.elapsedMilliseconds / 1000.0;
@@ -278,42 +311,50 @@ class WordPuzzleBloc extends Bloc<WordPuzzleEvent, WordPuzzleState> {
         // Move to next question if available
         if (_currentIndex + 1 < _questions.length) {
           _currentIndex++;
-          emit(WordPuzzleActiveState(
-            questions: _questions,
-            currentQuestionIndex: _currentIndex,
-            score: _score,
-            hintsUsed: _hintsUsed,
-            wrongAttempts: _wrongAttempts,
-            elapsedSeconds: totalElapsed,
-            remainingSeconds: _durationSeconds - totalElapsed.floor(),
-            liveLeaderboard: _liveLeaderboard,
-            isSubmittingAnswer: false,
-            feedbackMessage: "Correct! Moving to next puzzle.",
-          ));
+          emit(
+            WordPuzzleActiveState(
+              questions: _questions,
+              currentQuestionIndex: _currentIndex,
+              score: _score,
+              hintsUsed: _hintsUsed,
+              wrongAttempts: _wrongAttempts,
+              elapsedSeconds: totalElapsed,
+              remainingSeconds: _durationSeconds - totalElapsed.floor(),
+              liveLeaderboard: _liveLeaderboard,
+              isSubmittingAnswer: false,
+              feedbackMessage: "Correct! Moving to next puzzle.",
+            ),
+          );
         } else {
           // Finished all puzzles
           _ticker?.cancel();
           _stopwatch.stop();
-          emit(WordPuzzleCompletedState(
-            finalScore: _score,
-            completionTime: totalElapsed,
-          ));
+          emit(
+            WordPuzzleCompletedState(
+              finalScore: _score,
+              completionTime: totalElapsed,
+            ),
+          );
         }
       } else {
         // Wrong answer, stay on same puzzle but display feedback
-        emit(currentState.copyWith(
-          score: _score,
-          hintsUsed: _hintsUsed,
-          wrongAttempts: _wrongAttempts,
-          isSubmittingAnswer: false,
-          feedbackMessage: "Incorrect answer. Penalty applied! Try again.",
-        ));
+        emit(
+          currentState.copyWith(
+            score: _score,
+            hintsUsed: _hintsUsed,
+            wrongAttempts: _wrongAttempts,
+            isSubmittingAnswer: false,
+            feedbackMessage: "Incorrect answer. Penalty applied! Try again.",
+          ),
+        );
       }
     } catch (e, stackTrace) {
-      emit(currentState.copyWith(
-        isSubmittingAnswer: false,
-        feedbackMessage: ErrorHandler.handle(e, stackTrace),
-      ));
+      emit(
+        currentState.copyWith(
+          isSubmittingAnswer: false,
+          feedbackMessage: ErrorHandler.handle(e, stackTrace),
+        ),
+      );
     }
   }
 

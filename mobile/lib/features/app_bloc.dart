@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -670,11 +669,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       add(LoadProfileEvent());
       add(FetchContestsEvent());
     } catch (e, stackTrace) {
-      emit(
-        state.copyWith(
-          contestsError: ErrorHandler.handle(e, stackTrace),
-        ),
-      );
+      emit(state.copyWith(contestsError: ErrorHandler.handle(e, stackTrace)));
     }
   }
 

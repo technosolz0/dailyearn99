@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/word_puzzle_bloc.dart';
-import '../models/word_puzzle_models.dart';
 
 class WordGameScreen extends StatefulWidget {
   final int contestId;
@@ -47,9 +46,9 @@ class _WordGameScreenState extends State<WordGameScreen> {
             _showSuccessDialog(context, state.finalScore, state.completionTime);
           } else if (state is WordPuzzleLobbyJoinedState) {
             // Automatically launch game session and start play instantly!
-            BlocProvider.of<WordPuzzleBloc>(context).add(
-              StartWordContestEvent(widget.contestId, state.sessionId),
-            );
+            BlocProvider.of<WordPuzzleBloc>(
+              context,
+            ).add(StartWordContestEvent(widget.contestId, state.sessionId));
           } else if (state is WordPuzzleErrorState) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
