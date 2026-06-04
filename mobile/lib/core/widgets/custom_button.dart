@@ -19,6 +19,10 @@ class CustomButton extends StatefulWidget {
   final double? width;
   final double height;
   final double borderRadius;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
+  final Gradient? gradient;
+  final BorderSide? borderSide;
 
   const CustomButton({
     super.key,
@@ -31,6 +35,10 @@ class CustomButton extends StatefulWidget {
     this.width,
     this.height = 50.0,
     this.borderRadius = 12.0,
+    this.backgroundColor,
+    this.foregroundColor,
+    this.gradient,
+    this.borderSide,
   });
 
   @override
@@ -123,6 +131,15 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
         color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(widget.borderRadius),
         border: Border.all(color: Colors.white.withOpacity(0.05)),
+      );
+    }
+
+    if (widget.backgroundColor != null || widget.gradient != null) {
+      return BoxDecoration(
+        color: widget.gradient == null ? widget.backgroundColor : null,
+        gradient: widget.gradient,
+        borderRadius: BorderRadius.circular(widget.borderRadius),
+        border: widget.borderSide != null ? Border.fromBorderSide(widget.borderSide!) : null,
       );
     }
 
@@ -233,6 +250,10 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
   Color _getTextColor() {
     if (widget.onPressed == null) {
       return AppTheme.textMuted;
+    }
+
+    if (widget.foregroundColor != null) {
+      return widget.foregroundColor!;
     }
 
     switch (widget.type) {

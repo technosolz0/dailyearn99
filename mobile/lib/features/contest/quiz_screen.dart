@@ -8,6 +8,7 @@ import 'package:dailyearn99/features/app_bloc.dart';
 import 'package:dailyearn99/features/contest/leaderboard_screen.dart';
 import 'package:dailyearn99/core/network/api_client.dart';
 import 'package:dailyearn99/core/utils/dependency_injection.dart';
+import 'package:dailyearn99/core/widgets/custom_button.dart';
 
 class QuizQuestion {
   final String text;
@@ -192,11 +193,12 @@ class _QuizScreenState extends State<QuizScreen> {
           style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
         ),
         const SizedBox(height: 32),
-        ElevatedButton(
+        CustomButton(
+          text: 'GO BACK TO LOBBY',
           onPressed: () {
             Navigator.pop(context);
           },
-          child: const Text('GO BACK TO LOBBY'),
+          type: CustomButtonType.primary,
         ),
       ],
     );
@@ -362,13 +364,12 @@ class _QuizScreenState extends State<QuizScreen> {
         ),
 
         // Next Button
-        ElevatedButton(
+        CustomButton(
+          text: _currentQuestionIndex == _questions.length - 1
+              ? 'SUBMIT ANSWERS'
+              : 'NEXT QUESTION',
           onPressed: _selectedAnswerIndex == -1 ? null : _nextQuestion,
-          child: Text(
-            _currentQuestionIndex == _questions.length - 1
-                ? 'SUBMIT ANSWERS'
-                : 'NEXT QUESTION',
-          ),
+          type: CustomButtonType.primary,
         ),
       ],
     );
@@ -427,7 +428,8 @@ class _QuizScreenState extends State<QuizScreen> {
         ),
         const SizedBox(height: 48),
 
-        ElevatedButton(
+        CustomButton(
+          text: 'VIEW LIVE LEADERBOARD 🏆',
           onPressed: () {
             // Direct user straight to live websocket leaderboard
             Navigator.pushReplacement(
@@ -438,7 +440,7 @@ class _QuizScreenState extends State<QuizScreen> {
               ),
             );
           },
-          child: const Text('VIEW LIVE LEADERBOARD 🏆'),
+          type: CustomButtonType.primary,
         ),
       ],
     );

@@ -17,6 +17,7 @@ import 'package:dailyearn99/features/profile/profile_screen.dart';
 import 'package:dailyearn99/core/constants/app_constants.dart';
 import 'package:dailyearn99/features/update/update_required_screen.dart';
 import 'package:dailyearn99/features/splash/splash_screen.dart';
+import 'package:safe_device/safe_device.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
@@ -54,10 +55,23 @@ class _DailyEarn99AppState extends State<DailyEarn99App> {
       // 1. Initialize Firebase Core
       await Firebase.initializeApp();
 
+      // Check for Jailbroken/Rooted device
+      bool isJailBroken = false;
+      try {
+        isJailBroken = await SafeDevice.isJailBroken;
+      } catch (e) {
+        print("Warning: SafeDevice security check failed to execute: $e");
+      }
+      if (isJailBroken) {
+        throw Exception(
+          "Security Violation: Jailbroken or Rooted device detected.",
+        );
+      }
+
       // Disable app verification for testing (reCAPTCHA / Play Integrity bypass)
       try {
         await FirebaseAuth.instance.setSettings(
-          appVerificationDisabledForTesting: true,
+          appVerificationDisabledForTesting: false,
         );
         print(
           "Firebase Auth: App verification disabled for testing successfully.",
@@ -86,8 +100,12 @@ class _DailyEarn99AppState extends State<DailyEarn99App> {
       }
     } catch (e) {
       if (mounted) {
+        String errMsg = e.toString();
+        if (errMsg.startsWith("Exception: ")) {
+          errMsg = errMsg.substring("Exception: ".length);
+        }
         setState(() {
-          _error = e.toString();
+          _error = errMsg;
         });
       }
     }

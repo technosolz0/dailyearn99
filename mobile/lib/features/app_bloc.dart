@@ -662,6 +662,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
           if (event.answers != null) 'answers': event.answers,
         },
       );
+      add(LoadProfileEvent());
       add(FetchContestsEvent());
     } catch (e, stackTrace) {
       emit(

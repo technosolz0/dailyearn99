@@ -11,6 +11,8 @@ import 'package:dailyearn99/features/image_puzzle/screens/puzzle_lobby_screen.da
 import 'package:dailyearn99/features/word_puzzle/screens/word_lobby_screen.dart';
 import 'package:dailyearn99/features/fruit_slicing/screens/fruit_lobby_screen.dart';
 import 'package:dailyearn99/features/go_arrows/screens/arrow_lobby_screen.dart';
+import 'package:dailyearn99/features/notifications/screens/notifications_screen.dart';
+import 'package:dailyearn99/core/widgets/custom_button.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -47,6 +49,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   expandedHeight: 120,
                   pinned: true,
                   backgroundColor: AppTheme.darkBg,
+                  actions: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.notifications_none_outlined,
+                        color: Colors.white,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const NotificationsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                   flexibleSpace: FlexibleSpaceBar(
                     titlePadding: const EdgeInsets.symmetric(
                       horizontal: 20,
@@ -61,7 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'target99 Lobbies',
+                              'DailyEarn99 Lobbies',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -198,7 +216,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         elevation: 4,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(color: AppTheme.accentPurple.withOpacity(0.5), width: 1.5),
+                          side: BorderSide(
+                            color: AppTheme.accentPurple.withOpacity(0.5),
+                            width: 1.5,
+                          ),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
@@ -218,13 +239,20 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: AppTheme.accentPurple.withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(6),
+                                          color: AppTheme.accentPurple
+                                              .withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
                                         ),
                                         child: const Text(
                                           'NEW GAME MODE',
@@ -293,7 +321,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         elevation: 4,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(color: AppTheme.accentCyan.withOpacity(0.5), width: 1.5),
+                          side: BorderSide(
+                            color: AppTheme.accentCyan.withOpacity(0.5),
+                            width: 1.5,
+                          ),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
@@ -313,13 +344,20 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: AppTheme.accentCyan.withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(6),
+                                          color: AppTheme.accentCyan
+                                              .withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
                                         ),
                                         child: const Text(
                                           'NEW GAME MODE',
@@ -388,7 +426,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         elevation: 4,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(color: const Color(0xFFFF4500).withOpacity(0.5), width: 1.5),
+                          side: BorderSide(
+                            color: const Color(0xFFFF4500).withOpacity(0.5),
+                            width: 1.5,
+                          ),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
@@ -408,13 +449,21 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFFF4500).withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(6),
+                                          color: const Color(
+                                            0xFFFF4500,
+                                          ).withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
                                         ),
                                         child: const Text(
                                           'NEW GAME MODE',
@@ -482,7 +531,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         elevation: 4,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(color: const Color(0xFFFF9900).withOpacity(0.5), width: 1.5),
+                          side: BorderSide(
+                            color: const Color(0xFFFF9900).withOpacity(0.5),
+                            width: 1.5,
+                          ),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
@@ -502,13 +554,21 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFFF9900).withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(6),
+                                          color: const Color(
+                                            0xFFFF9900,
+                                          ).withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
                                         ),
                                         child: const Text(
                                           'NEW GAME MODE',
@@ -821,40 +881,74 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: isCompleted
-                        ? ElevatedButton(
+                    child: () {
+                      if (contest.status == 'COMPLETED') {
+                        if (isCompleted) {
+                          return CustomButton(
+                            text: 'QUIZ COMPLETED',
                             onPressed: null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white.withOpacity(0.05),
-                            ),
-                            child: const Text(
-                              'QUIZ COMPLETED',
-                              style: TextStyle(color: AppTheme.textMuted),
-                            ),
-                          )
-                        : isJoined
-                        ? ElevatedButton(
+                            height: 44,
+                            borderRadius: 10,
+                          );
+                        } else {
+                          return CustomButton(
+                            text: 'CONTEST CLOSED',
+                            onPressed: null,
+                            height: 44,
+                            borderRadius: 10,
+                          );
+                        }
+                      } else if (contest.status == 'ACTIVE') {
+                        if (isCompleted) {
+                          return CustomButton(
+                            text: 'QUIZ COMPLETED',
+                            onPressed: null,
+                            height: 44,
+                            borderRadius: 10,
+                          );
+                        } else if (isJoined) {
+                          return CustomButton(
+                            text: 'PLAY QUIZ NOW',
                             onPressed: () {
                               _showLanguageSelectionSheet(context, contest);
                             },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.accentPurple,
-                            ),
-                            child: const Text(
-                              'PLAY QUIZ NOW',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          )
-                        : ElevatedButton(
+                            backgroundColor: AppTheme.accentPurple,
+                            foregroundColor: Colors.white,
+                            height: 44,
+                            borderRadius: 10,
+                          );
+                        } else {
+                          return CustomButton(
+                            text: 'REGISTRATION CLOSED',
+                            onPressed: null,
+                            height: 44,
+                            borderRadius: 10,
+                          );
+                        }
+                      } else {
+                        // UPCOMING
+                        if (isJoined) {
+                          return CustomButton(
+                            text: 'REGISTERED',
+                            onPressed: null,
+                            height: 44,
+                            borderRadius: 10,
+                          );
+                        } else {
+                          return CustomButton(
+                            text: contest.isFull ? 'SLOTS FULL' : 'JOIN CONTEST',
                             onPressed: contest.isFull
                                 ? null
                                 : () {
                                     _showJoinConfirmation(context, contest);
                                   },
-                            child: Text(
-                              contest.isFull ? 'SLOTS FULL' : 'JOIN CONTEST',
-                            ),
-                          ),
+                            type: CustomButtonType.primary,
+                            height: 44,
+                            borderRadius: 10,
+                          );
+                        }
+                      }
+                    }(),
                   ),
                 ],
               ),
@@ -965,7 +1059,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      ElevatedButton(
+                      CustomButton(
+                        text: 'START QUIZ NOW',
                         onPressed: () {
                           Navigator.pop(ctx);
                           Navigator.push(
@@ -983,11 +1078,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             }
                           });
                         },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.accentPurple,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text('START QUIZ NOW'),
+                        backgroundColor: AppTheme.accentPurple,
+                        foregroundColor: Colors.white,
                       ),
                     ],
                   ),
@@ -1222,7 +1314,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    ElevatedButton(
+                    CustomButton(
+                      text: 'ADD ₹${shortfall.ceil()} VIA UPI / BANK',
                       onPressed: () {
                         Navigator.pop(ctx);
                         DepositBottomSheet.show(
@@ -1230,15 +1323,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           defaultAmount: shortfall,
                         );
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.accentCyan,
-                        foregroundColor: Colors.black,
-                      ),
-                      child: Text('ADD ₹${shortfall.ceil()} VIA UPI / BANK'),
+                      backgroundColor: AppTheme.accentCyan,
+                      foregroundColor: Colors.black,
                     ),
                   ] else ...[
                     const SizedBox(height: 16),
-                    ElevatedButton(
+                    CustomButton(
+                      text: 'CONFIRM & REGISTER',
                       onPressed: () {
                         Navigator.pop(ctx);
                         context.read<AppBloc>().add(
@@ -1251,7 +1342,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         );
                       },
-                      child: const Text('CONFIRM & REGISTER'),
+                      type: CustomButtonType.primary,
                     ),
                   ],
                 ],

@@ -4,6 +4,7 @@ import 'package:dailyearn99/core/network/api_client.dart';
 import 'package:dailyearn99/core/utils/dependency_injection.dart';
 import 'package:dailyearn99/features/app_bloc.dart';
 import 'package:dailyearn99/features/contest/game_leaderboard_screen.dart';
+import 'package:dailyearn99/core/widgets/custom_button.dart';
 import '../bloc/arrow_bloc.dart';
 import '../models/arrow_models.dart';
 import '../repository/arrow_repository.dart';
@@ -325,60 +326,63 @@ class _ArrowLobbyScreenState extends State<ArrowLobbyScreen> {
                     borderRadius: BorderRadius.circular(2),
                   ),
                   const SizedBox(height: 16),
-
-                  if (isCompleted)
-                    ElevatedButton.icon(
-                      onPressed: () => _openLeaderboard(context, contest),
-                      icon: const Icon(Icons.emoji_events),
-                      label: const Text('LEADERBOARD / STANDINGS'),
-                      style: ElevatedButton.styleFrom(
+                  // CTA button depending on registration & play status
+                  if (contest.status == 'COMPLETED')
+                    if (isCompleted || isJoined)
+                      CustomButton(
+                        text: 'LEADERBOARD / STANDINGS',
+                        onPressed: () => _openLeaderboard(context, contest),
+                        icon: Icons.emoji_events,
                         backgroundColor: Colors.amber[700],
                         foregroundColor: Colors.white,
-                        minimumSize: const Size(double.infinity, 44),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    )
-                  else if (isJoined)
-                    if (isActive)
-                      ElevatedButton.icon(
-                        onPressed: () => _startGamePlay(context, contest),
-                        icon: const Icon(Icons.play_arrow),
-                        label: const Text('PLAY CHALLENGE NOW'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF9900),
-                          foregroundColor: Colors.black,
-                          minimumSize: const Size(double.infinity, 44),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
+                        height: 44,
+                        borderRadius: 10,
                       )
                     else
+                      CustomButton(
+                        text: 'CONTEST CLOSED',
+                        onPressed: null,
+                        height: 44,
+                        borderRadius: 10,
+                      )
+                  else if (contest.status == 'ACTIVE')
+                    if (isCompleted)
+                      CustomButton(
+                        text: 'LEADERBOARD / STANDINGS',
+                        onPressed: () => _openLeaderboard(context, contest),
+                        icon: Icons.emoji_events,
+                        backgroundColor: Colors.amber[700],
+                        foregroundColor: Colors.white,
+                        height: 44,
+                        borderRadius: 10,
+                      )
+                    else if (isJoined)
+                      CustomButton(
+                        text: 'PLAY CHALLENGE NOW',
+                        onPressed: () => _startGamePlay(context, contest),
+                        icon: Icons.play_arrow,
+                        backgroundColor: const Color(0xFFFF9900),
+                        foregroundColor: Colors.black,
+                        height: 44,
+                        borderRadius: 10,
+                      )
+                    else
+                      CustomButton(
+                        text: 'REGISTRATION CLOSED',
+                        onPressed: null,
+                        height: 44,
+                        borderRadius: 10,
+                      )
+                  else // UPCOMING
+                    if (isJoined)
                       Column(
                         children: [
-                          ElevatedButton.icon(
+                          CustomButton(
+                            text: 'STARTS AT ${contest.startTime.toLocal().hour.toString().padLeft(2, '0')}:${contest.startTime.toLocal().minute.toString().padLeft(2, '0')}',
                             onPressed: null,
-                            icon: const Icon(
-                              Icons.lock_clock,
-                              color: Colors.white38,
-                            ),
-                            label: Text(
-                              'STARTS AT ${contest.startTime.toLocal().hour.toString().padLeft(2, '0')}:${contest.startTime.toLocal().minute.toString().padLeft(2, '0')}',
-                              style: const TextStyle(
-                                color: Colors.white38,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white12,
-                              disabledBackgroundColor: Colors.white12,
-                              minimumSize: const Size(double.infinity, 44),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
+                            icon: Icons.lock_clock,
+                            height: 44,
+                            borderRadius: 10,
                           ),
                           const SizedBox(height: 8),
                           const Text(
@@ -392,25 +396,19 @@ class _ArrowLobbyScreenState extends State<ArrowLobbyScreen> {
                           ),
                         ],
                       )
-                  else
-                    ElevatedButton(
-                      onPressed: () => _showJoinConfirmation(context, contest),
-                      style: ElevatedButton.styleFrom(
+                    else
+                      CustomButton(
+                        text: contest.joinedSlots >= contest.totalSlots
+                            ? 'SLOTS FULL'
+                            : 'JOIN CHALLENGE (₹${contest.entryFee.toStringAsFixed(0)})',
+                        onPressed: contest.joinedSlots >= contest.totalSlots
+                            ? null
+                            : () => _showJoinConfirmation(context, contest),
                         backgroundColor: const Color(0xFFFF9900),
                         foregroundColor: Colors.black,
-                        minimumSize: const Size(double.infinity, 44),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                        height: 44,
+                        borderRadius: 10,
                       ),
-                      child: Text(
-                        'JOIN CHALLENGE (₹${contest.entryFee.toStringAsFixed(0)})',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -623,37 +621,30 @@ class _ArrowLobbyScreenState extends State<ArrowLobbyScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: OutlinedButton(
+                          child: CustomButton(
+                            text: 'CANCEL',
                             onPressed: () => Navigator.pop(ctx),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white60,
-                              side: const BorderSide(color: Colors.white24),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: const Text('CANCEL'),
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.white60,
+                            borderSide: const BorderSide(color: Colors.white24),
+                            height: 44,
+                            borderRadius: 10,
                           ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: ElevatedButton(
+                          child: CustomButton(
+                            text: 'CONFIRM & JOIN',
                             onPressed: !canAfford
                                 ? null
-                                : () async {
+                                : () {
                                     Navigator.pop(ctx);
                                     _joinContestAndPlay(context, contest);
                                   },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF9900),
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: const Text('CONFIRM & JOIN'),
+                            backgroundColor: const Color(0xFFFF9900),
+                            foregroundColor: Colors.black,
+                            height: 44,
+                            borderRadius: 10,
                           ),
                         ),
                       ],
@@ -718,7 +709,9 @@ class _ArrowLobbyScreenState extends State<ArrowLobbyScreen> {
         )
         .then((_) {
           _refreshContests();
-          context.read<AppBloc>().add(LoadProfileEvent());
+          if (context.mounted) {
+            context.read<AppBloc>().add(LoadProfileEvent());
+          }
         });
   }
 

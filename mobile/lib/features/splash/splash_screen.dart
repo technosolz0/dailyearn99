@@ -111,8 +111,14 @@ class SplashScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                 ),
-                const SizedBox(height: 16),
-                ElevatedButton(onPressed: onRetry, child: const Text('RETRY')),
+                if (!error!.contains("Jailbroken") &&
+                    !error!.contains("Rooted")) ...[
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: onRetry,
+                    child: const Text('RETRY'),
+                  ),
+                ],
               ] else
                 const CircularProgressIndicator(color: AppTheme.accentCyan),
             ],
