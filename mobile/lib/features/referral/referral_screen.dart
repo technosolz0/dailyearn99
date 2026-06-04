@@ -100,7 +100,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      details?.referralCode ?? 'T99_XXXX',
+                                      details?.referralCode ?? 'DE99XXXXX',
                                       style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,

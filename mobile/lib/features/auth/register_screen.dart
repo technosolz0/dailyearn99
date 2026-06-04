@@ -280,7 +280,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 CustomTextField(
                   controller: _referralController,
                   labelText: 'Referral Code (Optional)',
-                  hintText: 'e.g. T99_WXYZ',
+                  hintText: 'e.g. DE99WXYZ',
                   textCapitalization: TextCapitalization.characters,
                   prefixIcon: const Icon(Icons.card_giftcard_rounded, size: 20),
                 ),

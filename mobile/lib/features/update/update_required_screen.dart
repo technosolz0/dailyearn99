@@ -50,8 +50,10 @@ class _UpdateRequiredScreenState extends State<UpdateRequiredScreen>
     });
 
     // Simulate opening the store URL
-    print("Redirecting user to Play Store/App Store update URL: ${widget.updateUrl}");
-    
+    print(
+      "Redirecting user to Play Store/App Store update URL: ${widget.updateUrl}",
+    );
+
     await Future.delayed(const Duration(seconds: 2));
 
     if (mounted) {
@@ -104,10 +106,11 @@ class _UpdateRequiredScreenState extends State<UpdateRequiredScreen>
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: (widget.isMandatory
-                                    ? AppTheme.accentRed
-                                    : AppTheme.accentCyan)
-                                .withOpacity(0.35),
+                            color:
+                                (widget.isMandatory
+                                        ? AppTheme.accentRed
+                                        : AppTheme.accentCyan)
+                                    .withOpacity(0.35),
                             blurRadius: 30,
                             spreadRadius: 5,
                           ),
@@ -129,7 +132,9 @@ class _UpdateRequiredScreenState extends State<UpdateRequiredScreen>
                       fontSize: 26,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -0.5,
-                      color: widget.isMandatory ? AppTheme.accentRed : Colors.white,
+                      color: widget.isMandatory
+                          ? AppTheme.accentRed
+                          : Colors.white,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -147,8 +152,8 @@ class _UpdateRequiredScreenState extends State<UpdateRequiredScreen>
                       children: [
                         Text(
                           widget.isMandatory
-                              ? 'A critical update is required to continue playing on target99. This version contains essential security modifications, brand new lobbies, and performance improvements.'
-                              : 'A brand new version of target99 is available! Enjoy exciting new real-money gaming features, improved game transitions, and wallet synchronization enhancements.',
+                              ? 'A critical update is required to continue playing on Dailyearn99. This version contains essential security modifications, brand new lobbies, and performance improvements.'
+                              : 'A brand new version of Dailyearn99 is available! Enjoy exciting new real-money gaming features, improved game transitions, and wallet synchronization enhancements.',
                           style: const TextStyle(
                             fontSize: 13,
                             color: AppTheme.textMuted,
@@ -202,9 +207,7 @@ class _UpdateRequiredScreenState extends State<UpdateRequiredScreen>
                         ),
                       ),
                       child: _isRedirecting
-                          ? const CircularProgressIndicator(
-                              color: Colors.white,
-                            )
+                          ? const CircularProgressIndicator(color: Colors.white)
                           : const Text(
                               'UPDATE NOW',
                               style: TextStyle(

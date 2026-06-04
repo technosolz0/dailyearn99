@@ -15,10 +15,8 @@ class RazorpayService {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _RazorpayCheckoutSheet(
-        amount: amount,
-        onSuccess: onSuccess,
-      ),
+      builder: (ctx) =>
+          _RazorpayCheckoutSheet(amount: amount, onSuccess: onSuccess),
     );
   }
 }
@@ -27,10 +25,7 @@ class _RazorpayCheckoutSheet extends StatefulWidget {
   final double amount;
   final VoidCallback onSuccess;
 
-  const _RazorpayCheckoutSheet({
-    required this.amount,
-    required this.onSuccess,
-  });
+  const _RazorpayCheckoutSheet({required this.amount, required this.onSuccess});
 
   @override
   State<_RazorpayCheckoutSheet> createState() => _RazorpayCheckoutSheetState();
@@ -38,7 +33,7 @@ class _RazorpayCheckoutSheet extends StatefulWidget {
 
 class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
   final ApiClient _apiClient = getIt<ApiClient>();
-  
+
   bool _isLoadingOrder = true;
   String? _orderId;
   String? _keyId;
@@ -63,7 +58,7 @@ class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
         '/wallet/razorpay/create-order',
         data: {'amount': widget.amount},
       );
-      
+
       if (mounted) {
         setState(() {
           _orderId = response.data['order_id'] as String;
@@ -91,7 +86,7 @@ class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
 
     await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
-    
+
     setState(() {
       _paymentStepMessage = 'Connecting with $method gateway...';
     });
@@ -105,8 +100,9 @@ class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
 
     try {
       // Simulate Razorpay parameters
-      final mockPaymentId = 'pay_${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
-      
+      final mockPaymentId =
+          'pay_${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
+
       // Request validation from the server using mock signature bypass
       await _apiClient.post(
         '/wallet/razorpay/verify-payment',
@@ -126,14 +122,14 @@ class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
 
       await Future.delayed(const Duration(milliseconds: 1000));
       if (!mounted) return;
-      
+
       // Close sheet and execute success callback
       Navigator.pop(context);
-      
+
       // Refresh balance in BLoC
       context.read<AppBloc>().add(LoadProfileEvent());
       context.read<AppBloc>().add(FetchTransactionsEvent());
-      
+
       widget.onSuccess();
     } catch (e) {
       if (!mounted) return;
@@ -188,7 +184,7 @@ class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'target99 checkout',
+                            'Dailyearn99 checkout',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 14,
@@ -233,9 +229,7 @@ class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 48.0),
                 child: Center(
-                  child: CircularProgressIndicator(
-                    color: AppTheme.accentCyan,
-                  ),
+                  child: CircularProgressIndicator(color: AppTheme.accentCyan),
                 ),
               )
             else if (_errorMessage != null && !_isProcessingPayment)
@@ -281,7 +275,10 @@ class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
               )
             else if (_isProcessingPayment)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 48.0, horizontal: 24.0),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 48.0,
+                  horizontal: 24.0,
+                ),
                 child: Column(
                   children: [
                     if (_isPaymentSuccess)
@@ -305,10 +302,7 @@ class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
                     const SizedBox(height: 8),
                     const Text(
                       'Do not press back or close the checkout window.',
-                      style: TextStyle(
-                        color: AppTheme.textMuted,
-                        fontSize: 11,
-                      ),
+                      style: TextStyle(color: AppTheme.textMuted, fontSize: 11),
                     ),
                   ],
                 ),
@@ -405,11 +399,7 @@ class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppTheme.borderCol),
               ),
-              child: Icon(
-                icon,
-                color: AppTheme.accentCyan,
-                size: 20,
-              ),
+              child: Icon(icon, color: AppTheme.accentCyan, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(

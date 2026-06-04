@@ -9,6 +9,7 @@ import '../bloc/puzzle_bloc.dart';
 import '../models/puzzle_models.dart';
 import '../repository/puzzle_repository.dart';
 import 'puzzle_game_screen.dart';
+import 'package:dailyearn99/core/utils/date_formatter.dart';
 
 class PuzzleLobbyScreen extends StatefulWidget {
   const PuzzleLobbyScreen({Key? key}) : super(key: key);
@@ -355,11 +356,27 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
                         borderRadius: 10,
                       )
                     else
-                      CustomButton(
-                        text: 'CONTEST CLOSED',
-                        onPressed: null,
-                        height: 44,
-                        borderRadius: 10,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          CustomButton(
+                            text: 'CONTEST CLOSED',
+                            onPressed: null,
+                            height: 44,
+                            borderRadius: 10,
+                          ),
+                          const SizedBox(height: 6),
+                          Center(
+                            child: Text(
+                              'Started at: ${formatContestDateTime(contest.startTime)}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.white54,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       )
                   else if (contest.status == 'ACTIVE')
                     if (isCompleted)
@@ -383,11 +400,27 @@ class _PuzzleLobbyScreenState extends State<PuzzleLobbyScreen> {
                         borderRadius: 10,
                       )
                     else
-                      CustomButton(
-                        text: 'REGISTRATION CLOSED',
-                        onPressed: null,
-                        height: 44,
-                        borderRadius: 10,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          CustomButton(
+                            text: 'REGISTRATION CLOSED',
+                            onPressed: null,
+                            height: 44,
+                            borderRadius: 10,
+                          ),
+                          const SizedBox(height: 6),
+                          Center(
+                            child: Text(
+                              'Started at: ${formatContestDateTime(contest.startTime)}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.white54,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       )
                   else // UPCOMING
                     if (isJoined)

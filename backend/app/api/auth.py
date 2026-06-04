@@ -15,10 +15,10 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 mock_otp_store = {}
 
 def generate_referral_code() -> str:
-    # Generates a code like T99_WXYZ
+    # Generates a unique and random alphanumeric code like T99WXYZ (no special characters)
     chars = string.ascii_uppercase + string.digits
-    suffix = ''.join(random.choices(chars, k=4))
-    return f"T99_{suffix}"
+    suffix = ''.join(random.choices(chars, k=5))
+    return f"DE99{suffix}"
 
 @router.post("/send-otp")
 def send_otp(request: SendOTPRequest):

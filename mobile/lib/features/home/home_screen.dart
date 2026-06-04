@@ -13,6 +13,7 @@ import 'package:dailyearn99/features/fruit_slicing/screens/fruit_lobby_screen.da
 import 'package:dailyearn99/features/go_arrows/screens/arrow_lobby_screen.dart';
 import 'package:dailyearn99/features/notifications/screens/notifications_screen.dart';
 import 'package:dailyearn99/core/widgets/custom_button.dart';
+import 'package:dailyearn99/core/utils/date_formatter.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -812,7 +813,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        contest.status == 'ACTIVE' && contest.endTime != null
+                        (contest.status == 'ACTIVE' && isJoined && contest.endTime != null)
                             ? 'ENDS IN'
                             : 'START TIME',
                         style: const TextStyle(
@@ -821,12 +822,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      contest.status == 'ACTIVE' && contest.endTime != null
+                      (contest.status == 'ACTIVE' && isJoined && contest.endTime != null)
                           ? ContestCountdown(endTime: contest.endTime!)
                           : Text(
-                              '${contest.startTime.hour}:${contest.startTime.minute.toString().padLeft(2, '0')}',
-                              style: const TextStyle(
-                                fontSize: 14,
+                              (contest.status == 'COMPLETED' || (contest.status == 'ACTIVE' && !isJoined))
+                                  ? formatContestDateTime(contest.startTime)
+                                  : '${contest.startTime.hour}:${contest.startTime.minute.toString().padLeft(2, '0')}',
+                              style: TextStyle(
+                                fontSize: (contest.status == 'COMPLETED' || (contest.status == 'ACTIVE' && !isJoined)) ? 10 : 14,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -891,11 +894,27 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderRadius: 10,
                           );
                         } else {
-                          return CustomButton(
-                            text: 'CONTEST CLOSED',
-                            onPressed: null,
-                            height: 44,
-                            borderRadius: 10,
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              CustomButton(
+                                text: 'CONTEST CLOSED',
+                                onPressed: null,
+                                height: 44,
+                                borderRadius: 10,
+                              ),
+                              const SizedBox(height: 6),
+                              Center(
+                                child: Text(
+                                  'Started at: ${formatContestDateTime(contest.startTime)}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppTheme.textMuted,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
                           );
                         }
                       } else if (contest.status == 'ACTIVE') {
@@ -918,11 +937,27 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderRadius: 10,
                           );
                         } else {
-                          return CustomButton(
-                            text: 'REGISTRATION CLOSED',
-                            onPressed: null,
-                            height: 44,
-                            borderRadius: 10,
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              CustomButton(
+                                text: 'REGISTRATION CLOSED',
+                                onPressed: null,
+                                height: 44,
+                                borderRadius: 10,
+                              ),
+                              const SizedBox(height: 6),
+                              Center(
+                                child: Text(
+                                  'Started at: ${formatContestDateTime(contest.startTime)}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppTheme.textMuted,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
                           );
                         }
                       } else {

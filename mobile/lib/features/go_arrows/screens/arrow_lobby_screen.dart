@@ -9,6 +9,7 @@ import '../bloc/arrow_bloc.dart';
 import '../models/arrow_models.dart';
 import '../repository/arrow_repository.dart';
 import 'arrow_game_screen.dart';
+import 'package:dailyearn99/core/utils/date_formatter.dart';
 
 class ArrowLobbyScreen extends StatefulWidget {
   const ArrowLobbyScreen({super.key});
@@ -143,7 +144,8 @@ class _ArrowLobbyScreenState extends State<ArrowLobbyScreen> {
     bool isActive = contest.status == 'ACTIVE';
 
     final isJoined = user?.joinedArrowContestIds?.contains(contest.id) ?? false;
-    final isCompleted = user?.completedArrowContestIds?.contains(contest.id) ?? false;
+    final isCompleted =
+        user?.completedArrowContestIds?.contains(contest.id) ?? false;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -178,10 +180,7 @@ class _ArrowLobbyScreenState extends State<ArrowLobbyScreen> {
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [
-                        Color(0xFF2E1500),
-                        Color(0xFF140F2D),
-                      ],
+                      colors: [Color(0xFF2E1500), Color(0xFF140F2D)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -339,11 +338,27 @@ class _ArrowLobbyScreenState extends State<ArrowLobbyScreen> {
                         borderRadius: 10,
                       )
                     else
-                      CustomButton(
-                        text: 'CONTEST CLOSED',
-                        onPressed: null,
-                        height: 44,
-                        borderRadius: 10,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          CustomButton(
+                            text: 'CONTEST CLOSED',
+                            onPressed: null,
+                            height: 44,
+                            borderRadius: 10,
+                          ),
+                          const SizedBox(height: 6),
+                          Center(
+                            child: Text(
+                              'Started at: ${formatContestDateTime(contest.startTime)}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.white54,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       )
                   else if (contest.status == 'ACTIVE')
                     if (isCompleted)
@@ -367,48 +382,65 @@ class _ArrowLobbyScreenState extends State<ArrowLobbyScreen> {
                         borderRadius: 10,
                       )
                     else
-                      CustomButton(
-                        text: 'REGISTRATION CLOSED',
-                        onPressed: null,
-                        height: 44,
-                        borderRadius: 10,
-                      )
-                  else // UPCOMING
-                    if (isJoined)
                       Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           CustomButton(
-                            text: 'STARTS AT ${contest.startTime.toLocal().hour.toString().padLeft(2, '0')}:${contest.startTime.toLocal().minute.toString().padLeft(2, '0')}',
+                            text: 'REGISTRATION CLOSED',
                             onPressed: null,
-                            icon: Icons.lock_clock,
                             height: 44,
                             borderRadius: 10,
                           ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Aapne register kar liya hai! Challenge start hone ka wait karein.',
-                            style: TextStyle(
-                              color: Colors.orangeAccent,
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.bold,
+                          const SizedBox(height: 6),
+                          Center(
+                            child: Text(
+                              'Started at: ${formatContestDateTime(contest.startTime)}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.white54,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                            textAlign: TextAlign.center,
                           ),
                         ],
                       )
-                    else
-                      CustomButton(
-                        text: contest.joinedSlots >= contest.totalSlots
-                            ? 'SLOTS FULL'
-                            : 'JOIN CHALLENGE (₹${contest.entryFee.toStringAsFixed(0)})',
-                        onPressed: contest.joinedSlots >= contest.totalSlots
-                            ? null
-                            : () => _showJoinConfirmation(context, contest),
-                        backgroundColor: const Color(0xFFFF9900),
-                        foregroundColor: Colors.black,
-                        height: 44,
-                        borderRadius: 10,
-                      ),
+                  else // UPCOMING
+                  if (isJoined)
+                    Column(
+                      children: [
+                        CustomButton(
+                          text:
+                              'STARTS AT ${contest.startTime.toLocal().hour.toString().padLeft(2, '0')}:${contest.startTime.toLocal().minute.toString().padLeft(2, '0')}',
+                          onPressed: null,
+                          icon: Icons.lock_clock,
+                          height: 44,
+                          borderRadius: 10,
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Aapne register kar liya hai! Challenge start hone ka wait karein.',
+                          style: TextStyle(
+                            color: Colors.orangeAccent,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    )
+                  else
+                    CustomButton(
+                      text: contest.joinedSlots >= contest.totalSlots
+                          ? 'SLOTS FULL'
+                          : 'JOIN CHALLENGE (₹${contest.entryFee.toStringAsFixed(0)})',
+                      onPressed: contest.joinedSlots >= contest.totalSlots
+                          ? null
+                          : () => _showJoinConfirmation(context, contest),
+                      backgroundColor: const Color(0xFFFF9900),
+                      foregroundColor: Colors.black,
+                      height: 44,
+                      borderRadius: 10,
+                    ),
                 ],
               ),
             ),
@@ -601,8 +633,8 @@ class _ArrowLobbyScreenState extends State<ArrowLobbyScreen> {
                           '₹${userBalance.toStringAsFixed(2)}',
                           style: TextStyle(
                             color: canAfford
-                               ? Colors.cyanAccent
-                               : Colors.redAccent,
+                                ? Colors.cyanAccent
+                                : Colors.redAccent,
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
                           ),

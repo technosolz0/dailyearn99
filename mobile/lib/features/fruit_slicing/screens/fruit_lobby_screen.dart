@@ -9,6 +9,7 @@ import '../bloc/fruit_game_bloc.dart';
 import '../models/fruit_models.dart';
 import '../repository/fruit_repository.dart';
 import 'tournament_game_screen.dart';
+import 'package:dailyearn99/core/utils/date_formatter.dart';
 
 class FruitLobbyScreen extends StatefulWidget {
   const FruitLobbyScreen({Key? key}) : super(key: key);
@@ -321,11 +322,27 @@ class _FruitLobbyScreenState extends State<FruitLobbyScreen> {
                         borderRadius: 10,
                       )
                     else
-                      CustomButton(
-                        text: 'CONTEST CLOSED',
-                        onPressed: null,
-                        height: 44,
-                        borderRadius: 10,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          CustomButton(
+                            text: 'CONTEST CLOSED',
+                            onPressed: null,
+                            height: 44,
+                            borderRadius: 10,
+                          ),
+                          const SizedBox(height: 6),
+                          Center(
+                            child: Text(
+                              'Started at: ${formatContestDateTime(contest.startTime)}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.white54,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       )
                   else if (contest.status == 'ACTIVE')
                     if (isCompleted)
@@ -349,48 +366,65 @@ class _FruitLobbyScreenState extends State<FruitLobbyScreen> {
                         borderRadius: 10,
                       )
                     else
-                      CustomButton(
-                        text: 'REGISTRATION CLOSED',
-                        onPressed: null,
-                        height: 44,
-                        borderRadius: 10,
-                      )
-                  else // UPCOMING
-                    if (isJoined)
                       Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           CustomButton(
-                            text: 'STARTS AT ${contest.startTime.toLocal().hour.toString().padLeft(2, '0')}:${contest.startTime.toLocal().minute.toString().padLeft(2, '0')}',
+                            text: 'REGISTRATION CLOSED',
                             onPressed: null,
-                            icon: Icons.lock_clock,
                             height: 44,
                             borderRadius: 10,
                           ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Aapne register kar liya hai! Tournament start hone ka wait karein.',
-                            style: TextStyle(
-                              color: Colors.orangeAccent,
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.bold,
+                          const SizedBox(height: 6),
+                          Center(
+                            child: Text(
+                              'Started at: ${formatContestDateTime(contest.startTime)}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.white54,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                            textAlign: TextAlign.center,
                           ),
                         ],
                       )
-                    else
-                      CustomButton(
-                        text: contest.joinedSlots >= contest.totalSlots
-                            ? 'SLOTS FULL'
-                            : 'JOIN TOURNAMENT (₹${contest.entryFee.toStringAsFixed(0)})',
-                        onPressed: contest.joinedSlots >= contest.totalSlots
-                            ? null
-                            : () => _showJoinConfirmation(context, contest),
-                        backgroundColor: const Color(0xFFFF4500),
-                        foregroundColor: Colors.white,
-                        height: 44,
-                        borderRadius: 10,
-                      ),
+                  else // UPCOMING
+                  if (isJoined)
+                    Column(
+                      children: [
+                        CustomButton(
+                          text:
+                              'STARTS AT ${contest.startTime.toLocal().hour.toString().padLeft(2, '0')}:${contest.startTime.toLocal().minute.toString().padLeft(2, '0')}',
+                          onPressed: null,
+                          icon: Icons.lock_clock,
+                          height: 44,
+                          borderRadius: 10,
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Aapne register kar liya hai! Tournament start hone ka wait karein.',
+                          style: TextStyle(
+                            color: Colors.orangeAccent,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    )
+                  else
+                    CustomButton(
+                      text: contest.joinedSlots >= contest.totalSlots
+                          ? 'SLOTS FULL'
+                          : 'JOIN TOURNAMENT (₹${contest.entryFee.toStringAsFixed(0)})',
+                      onPressed: contest.joinedSlots >= contest.totalSlots
+                          ? null
+                          : () => _showJoinConfirmation(context, contest),
+                      backgroundColor: const Color(0xFFFF4500),
+                      foregroundColor: Colors.white,
+                      height: 44,
+                      borderRadius: 10,
+                    ),
                 ],
               ),
             ),
