@@ -308,33 +308,38 @@ class AppBloc extends Bloc<AppEvent, AppState> {
 
     // Dynamically check if the phone is already registered
     bool exists = false;
+    bool checkSuccessful = false;
     try {
+      final encodedPhone = Uri.encodeComponent(formattedPhone);
       final checkResponse = await _apiClient.get(
-        '/auth/check-phone/$formattedPhone',
+        '/auth/check-phone/$encodedPhone',
       );
       exists = checkResponse.data['exists'] as bool;
+      checkSuccessful = true;
     } catch (e) {
       print("Check phone failed: $e");
     }
 
-    if (event.isRegister && exists) {
-      emit(
-        state.copyWith(
-          isAuthLoading: false,
-          authError: 'Phone number already registered. Please login.',
-        ),
-      );
-      return;
-    }
+    if (checkSuccessful) {
+      if (event.isRegister && exists) {
+        emit(
+          state.copyWith(
+            isAuthLoading: false,
+            authError: 'Phone number already registered. Please login.',
+          ),
+        );
+        return;
+      }
 
-    if (!event.isRegister && !exists) {
-      emit(
-        state.copyWith(
-          isAuthLoading: false,
-          authError: 'Phone number not registered. Please sign up.',
-        ),
-      );
-      return;
+      if (!event.isRegister && !exists) {
+        emit(
+          state.copyWith(
+            isAuthLoading: false,
+            authError: 'Phone number not registered. Please sign up.',
+          ),
+        );
+        return;
+      }
     }
 
     // Developer/grading mock bypass active for numbers ending with '00'

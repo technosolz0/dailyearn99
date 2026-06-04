@@ -4,6 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:dailyearn99/core/theme/app_theme.dart';
 import 'package:dailyearn99/core/utils/dependency_injection.dart';
 import 'package:dailyearn99/core/network/api_client.dart';
@@ -54,6 +56,17 @@ class _DailyEarn99AppState extends State<DailyEarn99App> {
     try {
       // 1. Initialize Firebase Core
       await Firebase.initializeApp();
+
+      // Initialize App Check to secure API requests and bypass reCAPTCHA on real devices
+      try {
+        await FirebaseAppCheck.instance.activate(
+          providerAndroid: kDebugMode ? const AndroidDebugProvider() : const AndroidPlayIntegrityProvider(),
+          providerApple: kDebugMode ? const AppleDebugProvider() : const AppleDeviceCheckProvider(),
+        );
+        print("Firebase App Check: Activated successfully.");
+      } catch (appCheckError) {
+        print("Firebase App Check Warning: Failed to activate: $appCheckError");
+      }
 
       // Check for Jailbroken/Rooted device
       bool isJailBroken = false;

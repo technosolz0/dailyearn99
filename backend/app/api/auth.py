@@ -41,6 +41,11 @@ def send_otp(request: SendOTPRequest):
 @router.get("/check-phone/{phone}")
 def check_phone(phone: str, db: Session = Depends(get_db)):
     phone_clean = phone.strip()
+    # Restore the '+' sign if it was URL decoded/replaced with a space and stripped, 
+    # or if country code '91' is prefixed without '+'
+    if phone_clean.startswith('91') and len(phone_clean) == 12:
+        phone_clean = f"+{phone_clean}"
+        
     phones_to_check = [phone_clean]
     if not phone_clean.startswith('+'):
         phones_to_check.append(f"+91{phone_clean}")
