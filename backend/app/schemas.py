@@ -245,6 +245,7 @@ class SpinLogAdminResponse(BaseModel):
     id: int
     user_id: int
     user_phone: str
+    user_name: Optional[str] = None
     bet_amount: float
     multiplier: float
     win_amount: float

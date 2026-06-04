@@ -412,19 +412,20 @@ def get_spin_stats(db: Session = Depends(get_db)):
 def get_spin_logs(db: Session = Depends(get_db)):
     from app.models import Spin, User
     results = (
-        db.query(Spin, User.phone)
+        db.query(Spin, User.phone, User.name)
         .join(User, Spin.user_id == User.id)
         .order_by(Spin.created_at.desc())
         .limit(100)
         .all()
     )
     logs = []
-    for spin, phone in results:
+    for spin, phone, name in results:
         logs.append(
             SpinLogAdminResponse(
                 id=spin.id,
                 user_id=spin.user_id,
                 user_phone=phone,
+                user_name=name or phone,
                 bet_amount=spin.bet_amount,
                 multiplier=spin.multiplier,
                 win_amount=spin.win_amount,

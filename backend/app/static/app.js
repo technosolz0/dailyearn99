@@ -1135,10 +1135,21 @@ function renderUsersTable(usersList) {
     }).join('');
 }
 
-function viewUserDetails(userId) {
-    const u = state.users.find(x => x.id === userId);
+async function viewUserDetails(userId) {
+    let u = state.users ? state.users.find(x => x.id === userId) : null;
     if (!u) {
-        showToast("User details not found locally.", true);
+        try {
+            const res = await fetch(`${API_BASE}/admin/users`);
+            if (res.ok) {
+                state.users = await res.json();
+                u = state.users.find(x => x.id === userId);
+            }
+        } catch (e) {
+            console.error("Failed to load users dynamically:", e);
+        }
+    }
+    if (!u) {
+        showToast("User details not found.", true);
         return;
     }
     
@@ -1284,6 +1295,8 @@ function viewUserDetails(userId) {
     
     document.getElementById('user-details-modal').classList.add('show');
 }
+
+window.viewUserDetails = viewUserDetails;
 
 
 function filterUsersTable(query) {
@@ -2053,7 +2066,7 @@ async function loadSpinLogs() {
             return `
                 <tr>
                     <td>#${s.id}</td>
-                    <td><strong>${s.user_phone}</strong></td>
+                    <td><strong style="cursor: pointer; color: var(--primary);" onclick="viewUserDetails(${s.user_id})">${s.user_name || s.user_phone}</strong></td>
                     <td>₹${s.bet_amount.toFixed(2)}</td>
                     <td><span class="badge ${s.win_amount > 0 ? 'badge-success' : 'badge-warning'}">${s.multiplier}x</span></td>
                     <td><strong style="${winStyle}">${sign}₹${s.win_amount.toFixed(2)}</strong></td>
