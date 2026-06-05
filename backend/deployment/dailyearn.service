@@ -7,7 +7,7 @@ User=mak
 Group=www-data
 WorkingDirectory=/var/www/dailyearn99/backend
 Environment="PATH=/var/www/dailyearn99/backend/.venv/bin"
-ExecStart=/var/www/dailyearn99/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
+ExecStart=/var/www/dailyearn99/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 9900 --workers 4
 
 # Restart settings
 Restart=always
