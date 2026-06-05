@@ -12,12 +12,12 @@ class ApiConstants {
           : 'http://127.0.0.1:8000/api';
     }
     if (kIsWeb) {
-      return 'http://target99api.serwex.in/api';
+      return 'https://api.dailyearn99.in/api';
     }
     // Android emulator loops back to host via 10.0.2.2
     return Platform.isAndroid
-        ? 'http://target99api.serwex.in/api'
-        : 'http://target99api.serwex.in/api';
+        ? 'https://api.dailyearn99.in/api'
+        : 'https://api.dailyearn99.in/api';
   }
 
   static String get wsUrl {
@@ -28,11 +28,11 @@ class ApiConstants {
           : 'ws://127.0.0.1:8000/ws/leaderboard';
     }
     if (kIsWeb) {
-      return 'ws://target99api.serwex.in/ws/leaderboard';
+      return 'wss://api.dailyearn99.in/ws/leaderboard';
     }
     return Platform.isAndroid
-        ? 'ws://target99api.serwex.in/ws/leaderboard'
-        : 'ws://target99api.serwex.in/ws/leaderboard';
+        ? 'wss://api.dailyearn99.in/ws/leaderboard'
+        : 'wss://api.dailyearn99.in/ws/leaderboard';
   }
 
   // Endpoints
@@ -71,11 +71,11 @@ class ApiConstants {
           : 'ws://127.0.0.1:8000/ws/puzzle/leaderboard/$contestId';
     }
     if (kIsWeb) {
-      return 'ws://target99api.serwex.in/ws/puzzle/leaderboard/$contestId';
+      return 'wss://api.dailyearn99.in/ws/puzzle/leaderboard/$contestId';
     }
     return Platform.isAndroid
-        ? 'ws://target99api.serwex.in/ws/puzzle/leaderboard/$contestId'
-        : 'ws://target99api.serwex.in/ws/puzzle/leaderboard/$contestId';
+        ? 'wss://api.dailyearn99.in/ws/puzzle/leaderboard/$contestId'
+        : 'wss://api.dailyearn99.in/ws/puzzle/leaderboard/$contestId';
   }
 
   // Word Game APIs
@@ -93,11 +93,11 @@ class ApiConstants {
           : 'ws://127.0.0.1:8000/ws/word/leaderboard/$contestId';
     }
     if (kIsWeb) {
-      return 'ws://target99api.serwex.in/ws/word/leaderboard/$contestId';
+      return 'wss://api.dailyearn99.in/ws/word/leaderboard/$contestId';
     }
     return Platform.isAndroid
-        ? 'ws://target99api.serwex.in/ws/word/leaderboard/$contestId'
-        : 'ws://target99api.serwex.in/ws/word/leaderboard/$contestId';
+        ? 'wss://api.dailyearn99.in/ws/word/leaderboard/$contestId'
+        : 'wss://api.dailyearn99.in/ws/word/leaderboard/$contestId';
   }
 
   // Fruit Slicing APIs
@@ -115,11 +115,11 @@ class ApiConstants {
           : 'ws://127.0.0.1:8000/ws/fruit/leaderboard/$contestId';
     }
     if (kIsWeb) {
-      return 'ws://target99api.serwex.in/ws/fruit/leaderboard/$contestId';
+      return 'wss://api.dailyearn99.in/ws/fruit/leaderboard/$contestId';
     }
     return Platform.isAndroid
-        ? 'ws://target99api.serwex.in/ws/fruit/leaderboard/$contestId'
-        : 'ws://target99api.serwex.in/ws/fruit/leaderboard/$contestId';
+        ? 'wss://api.dailyearn99.in/ws/fruit/leaderboard/$contestId'
+        : 'wss://api.dailyearn99.in/ws/fruit/leaderboard/$contestId';
   }
 
   // Go Arrows APIs
@@ -136,10 +136,10 @@ class ApiConstants {
           : 'ws://127.0.0.1:8000/ws/arrow/leaderboard/$contestId';
     }
     if (kIsWeb) {
-      return 'ws://target99api.serwex.in/ws/arrow/leaderboard/$contestId';
+      return 'wss://api.dailyearn99.in/ws/arrow/leaderboard/$contestId';
     }
     return Platform.isAndroid
-        ? 'ws://target99api.serwex.in/ws/arrow/leaderboard/$contestId'
-        : 'ws://target99api.serwex.in/ws/arrow/leaderboard/$contestId';
+        ? 'wss://api.dailyearn99.in/ws/arrow/leaderboard/$contestId'
+        : 'wss://api.dailyearn99.in/ws/arrow/leaderboard/$contestId';
   }
 }

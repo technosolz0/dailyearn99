@@ -1,0 +1,22 @@
+[Unit]
+Description=DailyEarn99 FastAPI Application Backend
+After=network.target postgresql.service redis-server.service
+
+[Service]
+User=mak
+Group=www-data
+WorkingDirectory=/var/www/dailyearn99/backend
+Environment="PATH=/var/www/dailyearn99/backend/.venv/bin"
+ExecStart=/var/www/dailyearn99/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
+
+# Restart settings
+Restart=always
+RestartSec=5
+
+# Logging settings
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dailyearn-backend
+
+[Install]
+WantedBy=multi-user.target
