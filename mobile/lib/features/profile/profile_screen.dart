@@ -53,6 +53,37 @@ class ProfileScreen extends StatelessWidget {
                             color: AppTheme.textMuted,
                           ),
                         ),
+                        const SizedBox(height: 4),
+                        if (user?.kycStatus == "VERIFIED")
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              left: 5.0,
+                              right: 15,
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.accentEmerald.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: AppTheme.accentEmerald.withOpacity(
+                                    0.3,
+                                  ),
+                                ),
+                              ),
+                              child: const Text(
+                                'KYC OK',
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  color: AppTheme.accentEmerald,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),

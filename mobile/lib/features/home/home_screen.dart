@@ -35,6 +35,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return BlocBuilder<AppBloc, AppState>(
       builder: (context, state) {
         final user = state.currentUser;
+        final activeContests = state.contests.where((contest) {
+          final isCompleted =
+              user?.completedContestIds.contains(contest.id) ?? false;
+          return !isCompleted;
+        }).toList();
 
         return Scaffold(
           body: RefreshIndicator(
@@ -75,49 +80,62 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'DailyEarn99 Lobbies',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                'DailyEarn99 Lobbies',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
                               ),
-                            ),
-                            Text(
-                              'Welcome back, ${user?.phone ?? ""}',
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: AppTheme.textMuted,
+                              Text(
+                                'Welcome back, ${user?.phone ?? ""}',
+                                style: const TextStyle(
+                                  fontSize: 8,
+                                  color: AppTheme.textMuted,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                          ],
-                        ),
-                        if (user?.kycStatus == "VERIFIED")
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppTheme.accentEmerald.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: AppTheme.accentEmerald.withOpacity(0.3),
-                              ),
-                            ),
-                            child: const Text(
-                              'KYC OK',
-                              style: TextStyle(
-                                fontSize: 8,
-                                color: AppTheme.accentEmerald,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            ],
                           ),
+                        ),
+                        // if (user?.kycStatus == "VERIFIED")
+                        //   Padding(
+                        //     padding: const EdgeInsets.only(
+                        //       left: 5.0,
+                        //       right: 15,
+                        //     ),
+                        //     child: Container(
+                        //       padding: const EdgeInsets.symmetric(
+                        //         horizontal: 6,
+                        //         vertical: 2,
+                        //       ),
+                        //       decoration: BoxDecoration(
+                        //         color: AppTheme.accentEmerald.withOpacity(0.1),
+                        //         borderRadius: BorderRadius.circular(4),
+                        //         border: Border.all(
+                        //           color: AppTheme.accentEmerald.withOpacity(
+                        //             0.3,
+                        //           ),
+                        //         ),
+                        //       ),
+                        //       child: const Text(
+                        //         'KYC OK',
+                        //         style: TextStyle(
+                        //           fontSize: 8,
+                        //           color: AppTheme.accentEmerald,
+                        //           fontWeight: FontWeight.bold,
+                        //         ),
+                        //       ),
+                        //     ),
+                        //   ),
                       ],
                     ),
                   ),
@@ -632,7 +650,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         SizedBox(width: 8),
                         Text(
-                          'ACTIVE CONTESTS',
+                          'ACTIVE QUIZ CONTESTS',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -645,7 +663,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
                 // Contests List
-                if (state.isContestsLoading && state.contests.isEmpty)
+                if (state.isContestsLoading && activeContests.isEmpty)
                   const SliverFillRemaining(
                     child: Center(
                       child: CircularProgressIndicator(
@@ -653,7 +671,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   )
-                else if (state.contests.isEmpty)
+                else if (activeContests.isEmpty)
                   const SliverFillRemaining(
                     child: Center(
                       child: Text('No active contests at this moment.'),
@@ -662,13 +680,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 else
                   SliverList(
                     delegate: SliverChildBuilderDelegate((context, index) {
-                      final contest = state.contests[index];
+                      final contest = activeContests[index];
                       return _buildContestCard(context, contest, user);
-                    }, childCount: state.contests.length),
+                    }, childCount: activeContests.length),
                   ),
 
                 // Bottom padding
-                const SliverToBoxAdapter(child: SizedBox(height: 40)),
+                // const SliverToBoxAdapter(child: SizedBox(height: 40)),
               ],
             ),
           ),
@@ -813,7 +831,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        (contest.status == 'ACTIVE' && isJoined && contest.endTime != null)
+                        (contest.status == 'ACTIVE' &&
+                                isJoined &&
+                                contest.endTime != null)
                             ? 'ENDS IN'
                             : 'START TIME',
                         style: const TextStyle(
@@ -822,14 +842,22 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      (contest.status == 'ACTIVE' && isJoined && contest.endTime != null)
+                      (contest.status == 'ACTIVE' &&
+                              isJoined &&
+                              contest.endTime != null)
                           ? ContestCountdown(endTime: contest.endTime!)
                           : Text(
-                              (contest.status == 'COMPLETED' || (contest.status == 'ACTIVE' && !isJoined))
+                              (contest.status == 'COMPLETED' ||
+                                      (contest.status == 'ACTIVE' && !isJoined))
                                   ? formatContestDateTime(contest.startTime)
                                   : '${contest.startTime.hour}:${contest.startTime.minute.toString().padLeft(2, '0')}',
                               style: TextStyle(
-                                fontSize: (contest.status == 'COMPLETED' || (contest.status == 'ACTIVE' && !isJoined)) ? 10 : 14,
+                                fontSize:
+                                    (contest.status == 'COMPLETED' ||
+                                        (contest.status == 'ACTIVE' &&
+                                            !isJoined))
+                                    ? 10
+                                    : 14,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -971,7 +999,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         } else {
                           return CustomButton(
-                            text: contest.isFull ? 'SLOTS FULL' : 'JOIN CONTEST',
+                            text: contest.isFull
+                                ? 'SLOTS FULL'
+                                : 'JOIN CONTEST',
                             onPressed: contest.isFull
                                 ? null
                                 : () {
