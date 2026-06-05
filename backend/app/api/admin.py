@@ -388,7 +388,7 @@ def delete_contest(id: int, db: Session = Depends(get_db)):
 
 from app.schemas import (
     SpinStatsResponse, SpinLogAdminResponse, RTPSettingsResponse, 
-    RTPUpdateRequest, SuspiciousUserResponse
+    RTPUpdateRequest, RTPCreateRequest, SuspiciousUserResponse
 )
 
 @router.get("/spin/stats", response_model=SpinStatsResponse)
@@ -465,6 +465,42 @@ def update_rtp_settings(id: int, request: RTPUpdateRequest, db: Session = Depend
     db.refresh(rtp)
     return rtp
 
+@router.post("/rtp", response_model=RTPSettingsResponse)
+def create_rtp_settings(request: RTPCreateRequest, db: Session = Depends(get_db)):
+    from app.models import RTPSettings
+    import json
+    
+    try:
+        # Validate JSON formatting
+        parsed = json.loads(request.probability_json)
+        total_pct = sum(parsed.values())
+        if not (99.0 <= total_pct <= 101.0):
+            raise ValueError(f"Total probability sum must be 100% (got {total_pct}%)")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid probability weights JSON: {str(e)}")
+        
+    rtp = RTPSettings(
+        min_amount=request.min_amount,
+        max_amount=request.max_amount,
+        probability_json=request.probability_json,
+        enabled=request.enabled
+    )
+    db.add(rtp)
+    db.commit()
+    db.refresh(rtp)
+    return rtp
+
+@router.delete("/rtp/{id}")
+def delete_rtp_settings(id: int, db: Session = Depends(get_db)):
+    from app.models import RTPSettings
+    rtp = db.query(RTPSettings).filter(RTPSettings.id == id).first()
+    if not rtp:
+        raise HTTPException(status_code=404, detail="RTP setting override not found")
+    
+    db.delete(rtp)
+    db.commit()
+    return {"message": "RTP setting override deleted successfully"}
+
 @router.get("/suspicious-users", response_model=List[SuspiciousUserResponse])
 def get_suspicious_users(db: Session = Depends(get_db)):
     from app.models import Spin, User
@@ -523,4 +559,15 @@ def toggle_spin_maintenance(enabled: bool):
 def get_spin_maintenance():
     from app.services import SpinGameService
     return {"maintenance_mode": SpinGameService.is_maintenance_mode()}
+
+@router.post("/quiz/maintenance")
+def toggle_quiz_maintenance(enabled: bool):
+    from app.services import ContestService
+    ContestService.set_maintenance_mode(enabled)
+    return {"maintenance_mode": ContestService.is_maintenance_mode()}
+
+@router.get("/quiz/maintenance")
+def get_quiz_maintenance():
+    from app.services import ContestService
+    return {"maintenance_mode": ContestService.is_maintenance_mode()}
 

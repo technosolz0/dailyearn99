@@ -10,7 +10,8 @@ let state = {
     fruit_maintenance_active: false,
     puzzle_maintenance_active: false,
     word_maintenance_active: false,
-    arrow_maintenance_active: false
+    arrow_maintenance_active: false,
+    quiz_maintenance_active: false
 };
 
 // Global originalFetch Proxy to secure all API requests
@@ -29,7 +30,7 @@ window.fetch = async function (resource, init = {}) {
             }
         }
     }
-    
+
     try {
         const response = await originalFetch(resource, init);
         if (response.status === 401 && typeof resource === 'string' && resource.startsWith(API_BASE)) {
@@ -58,21 +59,21 @@ function handleUnauthorized() {
 async function handleAdminLogin(username, password) {
     const errorEl = document.getElementById('login-error');
     errorEl.style.display = 'none';
-    
+
     try {
         const response = await originalFetch(`${API_BASE}/admin/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
         });
-        
+
         if (!response.ok) {
             throw new Error("Invalid username or password");
         }
-        
+
         const data = await response.json();
         localStorage.setItem('adminToken', data.access_token);
-        
+
         const appContainer = document.querySelector('.app-container');
         if (appContainer) {
             appContainer.style.display = 'flex';
@@ -81,15 +82,15 @@ async function handleAdminLogin(username, password) {
         if (loginOverlay) {
             loginOverlay.classList.add('hidden');
         }
-        
+
         showToast("Authenticated successfully!");
-        
+
         // Reset inputs
         document.getElementById('login-username').value = '';
         document.getElementById('login-password').value = '';
-        
+
         loadDashboardData();
-        
+
         const urlParams = new URLSearchParams(window.location.search);
         const tabParam = urlParams.get('tab') || window.location.hash.substring(1);
         if (tabParam) {
@@ -154,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
             handleAdminLogin(u, p);
         });
     }
-    
+
     // Add logout event listener
     const logoutBtn = document.getElementById('btn-logout');
     if (logoutBtn) {
@@ -163,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast("Logged out successfully.");
         });
     }
-    
+
     // Add details modal close listeners
     const closeDetailsBtn = document.getElementById('btn-close-details-modal');
     if (closeDetailsBtn) {
@@ -201,9 +202,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (loginOverlay) {
                     loginOverlay.classList.add('hidden');
                 }
-                
+
                 loadDashboardData();
-                
+
                 // Handle URL parameter / Hash tab redirection
                 const urlParams = new URLSearchParams(window.location.search);
                 const tabParam = urlParams.get('tab') || window.location.hash.substring(1);
@@ -213,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         tabButton.click();
                     }
                 }
-                
+
                 // Automatically poll stats every 30 seconds if authenticated
                 setInterval(() => {
                     if (localStorage.getItem('adminToken')) {
@@ -1152,7 +1153,7 @@ async function viewUserDetails(userId) {
         showToast("User details not found.", true);
         return;
     }
-    
+
     const detailsContent = document.getElementById('user-details-content');
     detailsContent.innerHTML = `
         <!-- Profile & Status -->
@@ -1292,7 +1293,7 @@ async function viewUserDetails(userId) {
             </div>
         </div>
     `;
-    
+
     document.getElementById('user-details-modal').classList.add('show');
 }
 
@@ -1687,6 +1688,19 @@ window.toggleQuestions = function (contestId) {
 // Quiz Manager Actions and Helpers
 async function loadQuizManagerContests() {
     try {
+        // Fetch Quiz Maintenance status
+        const maintenanceRes = await fetch(`${API_BASE}/admin/quiz/maintenance`);
+        if (maintenanceRes.ok) {
+            const m = await maintenanceRes.json();
+            state.quiz_maintenance_active = m.maintenance_mode;
+            const btn = document.getElementById('btn-toggle-quiz-maintenance');
+            if (btn) {
+                btn.innerText = state.quiz_maintenance_active ? "Unlock Game Access" : "Lock Game Access";
+                btn.style.backgroundColor = state.quiz_maintenance_active ? 'var(--success)' : 'var(--error)';
+                btn.style.color = '#fff';
+            }
+        }
+
         const res = await fetch(`${API_BASE}/contests`);
         if (!res.ok) throw new Error("Failed to load contests.");
         const contests = await res.json();
@@ -1833,6 +1847,31 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 btnQMSaveQuestions.disabled = false;
                 btnQMSaveQuestions.innerText = "Save All Questions";
+            }
+        });
+    }
+
+    // Quiz Maintenance Toggle Button
+    const btnToggleQuizMaintenance = document.getElementById('btn-toggle-quiz-maintenance');
+    if (btnToggleQuizMaintenance) {
+        btnToggleQuizMaintenance.addEventListener('click', async () => {
+            const nextMode = !state.quiz_maintenance_active;
+            btnToggleQuizMaintenance.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/quiz/maintenance?enabled=${nextMode}`, {
+                    method: 'POST'
+                });
+                if (!res.ok) throw new Error("Failed to change maintenance status.");
+
+                state.quiz_maintenance_active = nextMode;
+                btnToggleQuizMaintenance.innerText = state.quiz_maintenance_active ? "Unlock Game Access" : "Lock Game Access";
+                btnToggleQuizMaintenance.style.backgroundColor = state.quiz_maintenance_active ? 'var(--success)' : 'var(--error)';
+                showToast(state.quiz_maintenance_active ? "Quiz Game has been LOCKED for maintenance." : "Quiz Game unlocked! Game access is live.");
+            } catch (err) {
+                showToast("Maintenance toggle error: " + err.message, true);
+            } finally {
+                btnToggleQuizMaintenance.disabled = false;
             }
         });
     }
@@ -1991,7 +2030,22 @@ async function loadRtpSettings() {
         // Update JSON editor with currently selected tier range
         const tierSelect = document.getElementById('rtp-tier-select');
         if (tierSelect) {
-            const tierVal = parseInt(tierSelect.value) || 1;
+            const prevSelectedVal = parseInt(tierSelect.value);
+
+            // Build option list dynamically
+            tierSelect.innerHTML = state.rtp_settings.map(r => {
+                const label = r.min_amount === r.max_amount
+                    ? `Exact Bet ₹${r.min_amount}`
+                    : `Bets ₹${r.min_amount} – ₹${r.max_amount}`;
+                return `<option value="${r.id}">${label}</option>`;
+            }).join('');
+
+            // Preserve selection if it still exists
+            if (prevSelectedVal && state.rtp_settings.some(r => r.id === prevSelectedVal)) {
+                tierSelect.value = prevSelectedVal;
+            }
+
+            const tierVal = parseInt(tierSelect.value);
             const setting = state.rtp_settings.find(r => r.id === tierVal);
             if (setting) {
                 // Pretty print JSON
@@ -2001,6 +2055,8 @@ async function loadRtpSettings() {
                 } catch (_) {
                     document.getElementById('rtp-json-editor').value = setting.probability_json;
                 }
+            } else {
+                document.getElementById('rtp-json-editor').value = '';
             }
         }
     } catch (err) {
@@ -2095,6 +2151,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 } catch (_) {
                     document.getElementById('rtp-json-editor').value = setting.probability_json;
                 }
+            } else {
+                document.getElementById('rtp-json-editor').value = '';
             }
         });
     }
@@ -2143,6 +2201,92 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 btn.disabled = false;
                 btn.innerText = "Save RTP Settings";
+            }
+        });
+    }
+
+    // 2.1 RTP Delete Tier button
+    const btnDeleteRtp = document.getElementById('btn-delete-rtp-tier');
+    if (btnDeleteRtp) {
+        btnDeleteRtp.addEventListener('click', async () => {
+            const tierId = parseInt(document.getElementById('rtp-tier-select').value);
+            if (isNaN(tierId)) {
+                showToast("Please select a tier to delete.", true);
+                return;
+            }
+            if (!confirm("Are you sure you want to delete this RTP setting override/tier?")) return;
+
+            btnDeleteRtp.disabled = true;
+            try {
+                const response = await fetch(`${API_BASE}/admin/rtp/${tierId}`, {
+                    method: 'DELETE'
+                });
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(errText || "Failed to delete tier.");
+                }
+                showToast("RTP tier deleted successfully!");
+                document.getElementById('rtp-tier-select').value = "";
+                await loadSpinEngineData();
+            } catch (err) {
+                console.error(err);
+                showToast("Error deleting RTP tier: " + err.message, true);
+            } finally {
+                btnDeleteRtp.disabled = false;
+            }
+        });
+    }
+
+    // 2.2 RTP Create Tier Form submission
+    const createRtpForm = document.getElementById('spin-rtp-create-form');
+    if (createRtpForm) {
+        createRtpForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const minBet = parseFloat(document.getElementById('rtp-create-min').value);
+            const maxBet = parseFloat(document.getElementById('rtp-create-max').value);
+            const rawJson = document.getElementById('rtp-create-json').value.trim();
+
+            if (isNaN(minBet) || isNaN(maxBet) || !rawJson) {
+                showToast("Please fill all creation fields.", true);
+                return;
+            }
+
+            const btn = createRtpForm.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerText = "Creating...";
+
+            try {
+                const parsed = JSON.parse(rawJson);
+                const sum = Object.values(parsed).reduce((a, b) => a + b, 0);
+                if (Math.abs(sum - 100) > 1.0) {
+                    throw new Error(`Total probability weights must sum to exactly 100%. (Current sum: ${sum}%)`);
+                }
+
+                const response = await fetch(`${API_BASE}/admin/rtp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        min_amount: minBet,
+                        max_amount: maxBet,
+                        probability_json: JSON.stringify(parsed),
+                        enabled: true
+                    })
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(errText || "Failed to create RTP setting.");
+                }
+
+                showToast("RTP setting tier/override created successfully!");
+                document.getElementById('rtp-create-json').value = '';
+                await loadSpinEngineData();
+            } catch (err) {
+                console.error(err);
+                showToast("Creation error: " + err.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Create Override / Tier";
             }
         });
     }
@@ -2878,7 +3022,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const sizeSelect = document.getElementById('ac-grid-size');
             const countInput = document.getElementById('ac-arrow-count');
             const durInput = document.getElementById('ac-duration');
-            
+
             if (diff === 'EASY') {
                 if (sizeSelect) sizeSelect.value = '8';
                 if (countInput) countInput.value = '50';

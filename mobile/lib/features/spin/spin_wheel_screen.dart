@@ -25,19 +25,23 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
   double _selectedChip = 10.0;
   bool _isSpinning = false;
 
-  // 12 sectors matching the backend segment indices
+  // 16 sectors matching the backend segment indices
   static const List<Map<String, dynamic>> wheelSectors = [
     {"label": "Lose", "isWin": false, "color": AppTheme.cardBg},
+    {"label": "0.1x", "isWin": true, "color": AppTheme.accentCyan},
+    {"label": "0.2x", "isWin": true, "color": AppTheme.accentPurple},
+    {"label": "0.4x", "isWin": true, "color": AppTheme.accentEmerald},
+    {"label": "0.5x", "isWin": true, "color": AppTheme.accentAmber},
+    {"label": "0.6x", "isWin": true, "color": AppTheme.accentCyan},
+    {"label": "0.8x", "isWin": true, "color": AppTheme.accentPurple},
+    {"label": "1x", "isWin": true, "color": AppTheme.accentEmerald},
     {"label": "1.1x", "isWin": true, "color": AppTheme.accentCyan},
     {"label": "Try Again", "isWin": false, "color": AppTheme.cardBg},
-    {"label": "1.5x", "isWin": true, "color": AppTheme.accentPurple},
-    {"label": "Better Luck", "isWin": false, "color": AppTheme.cardBg},
-    {"label": "2x", "isWin": true, "color": AppTheme.accentCyan},
-    {"label": "0x", "isWin": false, "color": AppTheme.cardBg},
-    {"label": "1x", "isWin": true, "color": AppTheme.accentEmerald},
-    {"label": "3x", "isWin": true, "color": AppTheme.accentAmber},
     {"label": "1.2x", "isWin": true, "color": AppTheme.accentPurple},
-    {"label": "Lose", "isWin": false, "color": AppTheme.cardBg},
+    {"label": "1.5x", "isWin": true, "color": AppTheme.accentEmerald},
+    {"label": "2x", "isWin": true, "color": AppTheme.accentCyan},
+    {"label": "Better Luck", "isWin": false, "color": AppTheme.cardBg},
+    {"label": "3x", "isWin": true, "color": AppTheme.accentAmber},
     {"label": "5x", "isWin": true, "color": AppTheme.accentAmber},
   ];
 
@@ -72,14 +76,16 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
     });
 
     // Pointer is at the top (270 degrees / -pi/2).
-    // Each sector is 30 degrees (pi / 6 radians).
-    // Sector center is: index * 30 + 15.
+    // Each sector is 360 / sectors.length degrees.
+    // Sector center is: index * sectorDegrees + (sectorDegrees / 2).
     // To align sector center with pointer (270 degrees):
-    // Rotation = 270 - (index * 30 + 15) degrees.
+    // Rotation = 270 - (index * sectorDegrees + (sectorDegrees / 2)) degrees.
     // We add 5 full rotations (360 * 5) for high excitement!
     final double currentAngle = _animation.value % (2 * pi);
+    final double sectorDegrees = 360.0 / wheelSectors.length;
     final double targetDegrees =
-        360 * 5 + (270.0 - (targetIndex * 30.0 + 15.0));
+        360 * 5 +
+        (270.0 - (targetIndex * sectorDegrees + (sectorDegrees / 2.0)));
     final double targetRadians = targetDegrees * pi / 180.0;
 
     _animation = Tween<double>(begin: currentAngle, end: targetRadians).animate(
@@ -88,7 +94,8 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
 
     // Tactile Haptic boundaries cross tracker
     double lastAngle = currentAngle;
-    final double sectorStep = 30.0 * pi / 180.0; // 30 degrees in radians
+    final double sectorStep =
+        (2 * pi) / wheelSectors.length; // sector angle in radians
 
     _animation.addListener(() {
       final double diff = (_animation.value - lastAngle).abs();

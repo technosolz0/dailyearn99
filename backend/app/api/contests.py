@@ -16,6 +16,8 @@ router = APIRouter(prefix="/contests", tags=["contests"])
 @router.get("", response_model=List[ContestResponse])
 def get_contests(db: Session = Depends(get_db)):
     from app.services import ContestService
+    if ContestService.is_maintenance_mode():
+        return []
     # Auto start/complete contests based on time if we want to simulate state transitions
     now = datetime.now()
     contests = db.query(Contest).all()
@@ -49,6 +51,12 @@ def join_contest(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    from app.services import ContestService
+    if ContestService.is_maintenance_mode():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Math Contest is currently under maintenance. Please try again later."
+        )
     contest = db.query(Contest).filter(Contest.id == request.contest_id).first()
     if not contest:
         raise HTTPException(
@@ -135,6 +143,12 @@ def get_contest_questions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    from app.services import ContestService
+    if ContestService.is_maintenance_mode():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Math Contest is currently under maintenance. Please try again later."
+        )
     # 1. Check if the user is a registered participant in this contest
     participant = (
         db.query(ContestParticipant)

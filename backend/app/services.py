@@ -241,19 +241,23 @@ class ReferralService:
 
 
 class SpinGameService:
-    # 12 Alternating glossy sectors on the real-money casino wheel
+    # 14 glossy sectors on the real-money casino wheel
     WHEEL_SEGMENTS = [
         {"label": "Lose", "multiplier": 0.0, "type": "LOSE"},
+        {"label": "0.1x", "multiplier": 0.1, "type": "WIN"},
+        {"label": "0.2x", "multiplier": 0.2, "type": "WIN"},
+        {"label": "0.4x", "multiplier": 0.4, "type": "WIN"},
+        {"label": "0.5x", "multiplier": 0.5, "type": "WIN"},
+        {"label": "0.6x", "multiplier": 0.6, "type": "WIN"},
+        {"label": "0.8x", "multiplier": 0.8, "type": "WIN"},
+        {"label": "1x", "multiplier": 1.0, "type": "WIN"},
         {"label": "1.1x", "multiplier": 1.1, "type": "WIN"},
         {"label": "Try Again", "multiplier": 0.0, "type": "LOSE"},
-        {"label": "1.5x", "multiplier": 1.5, "type": "WIN"},
-        {"label": "Better Luck Next Time", "multiplier": 0.0, "type": "LOSE"},
-        {"label": "2x", "multiplier": 2.0, "type": "WIN"},
-        {"label": "0x", "multiplier": 0.0, "type": "LOSE"},
-        {"label": "1x", "multiplier": 1.0, "type": "WIN"},
-        {"label": "3x", "multiplier": 3.0, "type": "WIN"},
         {"label": "1.2x", "multiplier": 1.2, "type": "WIN"},
-        {"label": "Lose", "multiplier": 0.0, "type": "LOSE"},
+        {"label": "1.5x", "multiplier": 1.5, "type": "WIN"},
+        {"label": "2x", "multiplier": 2.0, "type": "WIN"},
+         {"label": "Better Luck Next Time", "multiplier": 0.0, "type": "LOSE"},
+        {"label": "3x", "multiplier": 3.0, "type": "WIN"},
         {"label": "5x", "multiplier": 5.0, "type": "WIN"},
     ]
 
@@ -262,8 +266,16 @@ class SpinGameService:
         "0x": 0.0,
         "Better Luck Next Time": 0.0,
         "Try Again": 0.0,
+        "0.1x": 0.1,
+        "0.2x": 0.2,
+        "0.4x": 0.4,
+        
+        "0.5x": 0.5,
+        "0.6x": 0.6,
+        "0.8x": 0.8,
         "1x": 1.0,
         "1.1x": 1.1,
+
         "1.2x": 1.2,
         "1.5x": 1.5,
         "2x": 2.0,
@@ -371,15 +383,30 @@ class SpinGameService:
         # 3. Dynamic weighted random result selection
         from app.models import RTPSettings
         import json
+        
+        # First check for exact-match override
         rtp = (
             db.query(RTPSettings)
             .filter(
-                RTPSettings.min_amount <= bet_amount,
-                RTPSettings.max_amount >= bet_amount,
+                RTPSettings.min_amount == bet_amount,
+                RTPSettings.max_amount == bet_amount,
                 RTPSettings.enabled == True
             )
             .first()
         )
+        
+        # Fallback to checking ranges (ordered by narrowest range first)
+        if not rtp:
+            rtp = (
+                db.query(RTPSettings)
+                .filter(
+                    RTPSettings.min_amount <= bet_amount,
+                    RTPSettings.max_amount >= bet_amount,
+                    RTPSettings.enabled == True
+                )
+                .order_by((RTPSettings.max_amount - RTPSettings.min_amount).asc())
+                .first()
+            )
 
         if rtp:
             weights = json.loads(rtp.probability_json)
@@ -472,6 +499,15 @@ class SpinGameService:
 
 
 class ContestService:
+    _maintenance_mode = False
+
+    @classmethod
+    def set_maintenance_mode(cls, enabled: bool):
+        cls._maintenance_mode = enabled
+
+    @classmethod
+    def is_maintenance_mode(cls) -> bool:
+        return cls._maintenance_mode
     @staticmethod
     def complete_contest(db: Session, contest_id: int) -> dict:
         import json

@@ -234,6 +234,12 @@ class RTPUpdateRequest(BaseModel):
     probability_json: str
     enabled: bool
 
+class RTPCreateRequest(BaseModel):
+    min_amount: float
+    max_amount: float
+    probability_json: str
+    enabled: bool = True
+
 class SpinStatsResponse(BaseModel):
     total_spins: int
     total_winnings_paid: float
