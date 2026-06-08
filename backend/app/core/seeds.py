@@ -1,3 +1,9 @@
+import os
+import sys
+
+# Add the parent directory of 'app' to Python path so we can run this script directly
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 from sqlalchemy.orm import Session
 from app.models import User
 
@@ -294,3 +300,18 @@ def seed_rtp_settings(db: Session):
     db.bulk_save_objects(settings)
     db.commit()
 
+
+if __name__ == "__main__":
+    from app.core.database import SessionLocal
+    db = SessionLocal()
+    try:
+        print("Starting manual database seeding...")
+        print("Seeding test users...")
+        seed_test_users(db)
+        print("Seeding RTP settings...")
+        seed_rtp_settings(db)
+        print("Database seeding completed successfully!")
+    except Exception as e:
+        print(f"Error during database seeding: {e}")
+    finally:
+        db.close()
