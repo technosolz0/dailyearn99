@@ -190,19 +190,9 @@ def seed_rtp_settings(db: Session):
     from app.models import RTPSettings
     import json
 
-    # Self-healing db re-seed logic
-    existing_count = db.query(RTPSettings).count()
-    if existing_count > 0:
-        first_rtp = db.query(RTPSettings).first()
-        try:
-            prob = json.loads(first_rtp.probability_json)
-            if "10x" in prob:
-                return
-        except Exception:
-            pass
-        # Clear stale records to trigger a clean re-seed
-        db.query(RTPSettings).delete()
-        db.commit()
+    # Clear stale records to trigger a clean re-seed with latest multipliers
+    db.query(RTPSettings).delete()
+    db.commit()
 
     # Dynamic RTP settings matching specification
     settings = [
