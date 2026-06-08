@@ -241,22 +241,31 @@ class ReferralService:
 
 
 class SpinGameService:
-    # 14 glossy sectors on the real-money casino wheel
+    # 25 glossy sectors on the real-money casino wheel matching frontend exactly
     WHEEL_SEGMENTS = [
         {"label": "Lose", "multiplier": 0.0, "type": "LOSE"},
         {"label": "0.1x", "multiplier": 0.1, "type": "WIN"},
+        {"label": "10x", "multiplier": 10.0, "type": "WIN"},
         {"label": "0.2x", "multiplier": 0.2, "type": "WIN"},
+        {"label": "15x", "multiplier": 15.0, "type": "WIN"},
         {"label": "0.4x", "multiplier": 0.4, "type": "WIN"},
+        {"label": "20x", "multiplier": 20.0, "type": "WIN"},
         {"label": "0.5x", "multiplier": 0.5, "type": "WIN"},
+        {"label": "25x", "multiplier": 25.0, "type": "WIN"},
         {"label": "0.6x", "multiplier": 0.6, "type": "WIN"},
+        {"label": "30x", "multiplier": 30.0, "type": "WIN"},
         {"label": "0.8x", "multiplier": 0.8, "type": "WIN"},
+        {"label": "35x", "multiplier": 35.0, "type": "WIN"},
         {"label": "1x", "multiplier": 1.0, "type": "WIN"},
+        {"label": "40x", "multiplier": 40.0, "type": "WIN"},
         {"label": "1.1x", "multiplier": 1.1, "type": "WIN"},
+        {"label": "45x", "multiplier": 45.0, "type": "WIN"},
         {"label": "Try Again", "multiplier": 0.0, "type": "LOSE"},
+        {"label": "50x", "multiplier": 50.0, "type": "WIN"},
         {"label": "1.2x", "multiplier": 1.2, "type": "WIN"},
         {"label": "1.5x", "multiplier": 1.5, "type": "WIN"},
         {"label": "2x", "multiplier": 2.0, "type": "WIN"},
-         {"label": "Better Luck Next Time", "multiplier": 0.0, "type": "LOSE"},
+        {"label": "Better Luck Next Time", "multiplier": 0.0, "type": "LOSE"},
         {"label": "3x", "multiplier": 3.0, "type": "WIN"},
         {"label": "5x", "multiplier": 5.0, "type": "WIN"},
     ]
@@ -269,18 +278,25 @@ class SpinGameService:
         "0.1x": 0.1,
         "0.2x": 0.2,
         "0.4x": 0.4,
-        
         "0.5x": 0.5,
         "0.6x": 0.6,
         "0.8x": 0.8,
         "1x": 1.0,
         "1.1x": 1.1,
-
         "1.2x": 1.2,
         "1.5x": 1.5,
         "2x": 2.0,
         "3x": 3.0,
-        "5x": 5.0
+        "5x": 5.0,
+        "10x": 10.0,
+        "15x": 15.0,
+        "20x": 20.0,
+        "25x": 25.0,
+        "30x": 30.0,
+        "35x": 35.0,
+        "40x": 40.0,
+        "45x": 45.0,
+        "50x": 50.0,
     }
 
     # In-memory idempotency check to prevent duplicate spins within 5 seconds
@@ -413,11 +429,20 @@ class SpinGameService:
         else:
             # Fallback to standard specifications
             if bet_amount < 50:
-                weights = {"Lose": 20.0, "1x": 20.0, "1.1x": 18.0, "1.2x": 15.0, "1.5x": 12.0, "2x": 8.0, "3x": 5.0, "5x": 2.0}
+                weights = {
+                    "Lose": 20.0, "1x": 20.0, "1.1x": 18.0, "1.2x": 15.0, "1.5x": 12.0, "2x": 8.0, "3x": 5.0, "5x": 1.91,
+                    "10x": 0.02, "15x": 0.02, "20x": 0.01, "25x": 0.01, "30x": 0.01, "35x": 0.01, "40x": 0.005, "45x": 0.003, "50x": 0.002
+                }
             elif bet_amount <= 100:
-                weights = {"Lose": 45.0, "1x": 20.0, "1.1x": 15.0, "1.2x": 8.0, "1.5x": 6.0, "2x": 4.0, "3x": 1.5, "5x": 0.5}
+                weights = {
+                    "Lose": 45.0, "1x": 20.0, "1.1x": 15.0, "1.2x": 8.0, "1.5x": 6.0, "2x": 4.0, "3x": 1.41, "5x": 0.5,
+                    "10x": 0.02, "15x": 0.02, "20x": 0.01, "25x": 0.01, "30x": 0.01, "35x": 0.01, "40x": 0.005, "45x": 0.003, "50x": 0.002
+                }
             else:
-                weights = {"Lose": 65.0, "1x": 15.0, "1.1x": 10.0, "1.2x": 5.0, "1.5x": 3.0, "2x": 1.5, "3x": 0.4, "5x": 0.1}
+                weights = {
+                    "Lose": 65.0, "1x": 15.0, "1.1x": 10.0, "1.2x": 5.0, "1.5x": 3.0, "2x": 1.41, "3x": 0.4, "5x": 0.1,
+                    "10x": 0.02, "15x": 0.02, "20x": 0.01, "25x": 0.01, "30x": 0.01, "35x": 0.01, "40x": 0.005, "45x": 0.003, "50x": 0.002
+                }
 
         outcomes = list(weights.keys())
         probabilities = list(weights.values())

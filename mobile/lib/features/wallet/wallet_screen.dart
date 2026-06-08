@@ -300,7 +300,6 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-
   void _showWithdrawalDialog(
     BuildContext context,
     double winBalance,
@@ -355,6 +354,26 @@ class _WalletScreenState extends State<WalletScreen> {
                         hintText: 'Enter amount to withdraw',
                         prefixText: '₹ ',
                       ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: 14,
+                          color: AppTheme.accentCyan,
+                        ),
+                        SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Note: You will receive the amount within 24 hours.',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.textMuted,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ],
@@ -413,12 +432,48 @@ class _WalletScreenState extends State<WalletScreen> {
                         ),
                       );
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Withdrawal request submitted! Pending Admin Approval.',
+                      showDialog(
+                        context: context,
+                        builder: (successCtx) => AlertDialog(
+                          backgroundColor: AppTheme.cardBg,
+                          title: const Row(
+                            children: [
+                              Icon(
+                                Icons.check_circle_rounded,
+                                color: AppTheme.accentEmerald,
+                                size: 24,
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                'Request Submitted',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
-                          backgroundColor: AppTheme.accentCyan,
+                          content: const Text(
+                            'Your withdrawal request has been submitted successfully.\n\nYou will receive the amount in your bank account under 24 hours, pending admin verification.',
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              color: Colors.white70,
+                              height: 1.4,
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(successCtx),
+                              child: const Text(
+                                'OK',
+                                style: TextStyle(
+                                  color: AppTheme.accentCyan,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     }

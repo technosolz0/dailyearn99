@@ -52,6 +52,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       resizeToAvoidBottomInset: true,
       body: BlocListener<AppBloc, AppState>(
         listener: (context, state) {
+          if (state.token != null && state.currentUser != null) {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+            return;
+          }
           if (state.otpSentMessage != null && !_otpSent) {
             setState(() {
               _otpSent = true;

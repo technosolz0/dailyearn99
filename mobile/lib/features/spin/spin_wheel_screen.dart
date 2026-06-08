@@ -25,18 +25,27 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
   double _selectedChip = 10.0;
   bool _isSpinning = false;
 
-  // 16 sectors matching the backend segment indices
+  // 25 sectors matching the backend segment indices
   static const List<Map<String, dynamic>> wheelSectors = [
     {"label": "Lose", "isWin": false, "color": AppTheme.cardBg},
     {"label": "0.1x", "isWin": true, "color": AppTheme.accentCyan},
+    {"label": "10x", "isWin": true, "color": AppTheme.accentAmber},
     {"label": "0.2x", "isWin": true, "color": AppTheme.accentPurple},
+    {"label": "15x", "isWin": true, "color": AppTheme.accentAmber},
     {"label": "0.4x", "isWin": true, "color": AppTheme.accentEmerald},
+    {"label": "20x", "isWin": true, "color": AppTheme.accentAmber},
     {"label": "0.5x", "isWin": true, "color": AppTheme.accentAmber},
+    {"label": "25x", "isWin": true, "color": AppTheme.accentAmber},
     {"label": "0.6x", "isWin": true, "color": AppTheme.accentCyan},
+    {"label": "30x", "isWin": true, "color": AppTheme.accentAmber},
     {"label": "0.8x", "isWin": true, "color": AppTheme.accentPurple},
+    {"label": "35x", "isWin": true, "color": AppTheme.accentAmber},
     {"label": "1x", "isWin": true, "color": AppTheme.accentEmerald},
+    {"label": "40x", "isWin": true, "color": AppTheme.accentAmber},
     {"label": "1.1x", "isWin": true, "color": AppTheme.accentCyan},
+    {"label": "45x", "isWin": true, "color": AppTheme.accentAmber},
     {"label": "Try Again", "isWin": false, "color": AppTheme.cardBg},
+    {"label": "50x", "isWin": true, "color": AppTheme.accentAmber},
     {"label": "1.2x", "isWin": true, "color": AppTheme.accentPurple},
     {"label": "1.5x", "isWin": true, "color": AppTheme.accentEmerald},
     {"label": "2x", "isWin": true, "color": AppTheme.accentCyan},

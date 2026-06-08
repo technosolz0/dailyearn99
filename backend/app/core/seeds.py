@@ -184,8 +184,19 @@ def seed_rtp_settings(db: Session):
     from app.models import RTPSettings
     import json
 
-    if db.query(RTPSettings).count() > 0:
-        return
+    # Self-healing db re-seed logic
+    existing_count = db.query(RTPSettings).count()
+    if existing_count > 0:
+        first_rtp = db.query(RTPSettings).first()
+        try:
+            prob = json.loads(first_rtp.probability_json)
+            if "10x" in prob:
+                return
+        except Exception:
+            pass
+        # Clear stale records to trigger a clean re-seed
+        db.query(RTPSettings).delete()
+        db.commit()
 
     # Dynamic RTP settings matching specification
     settings = [
@@ -206,7 +217,16 @@ def seed_rtp_settings(db: Session):
                 "1.5x": 10.0,
                 "2x": 5.0,
                 "3x": 3.0,
-                "5x": 2.0
+                "5x": 1.91,
+                "10x": 0.02,
+                "15x": 0.02,
+                "20x": 0.01,
+                "25x": 0.01,
+                "30x": 0.01,
+                "35x": 0.01,
+                "40x": 0.005,
+                "45x": 0.003,
+                "50x": 0.002
             }),
             enabled=True
         ),
@@ -227,7 +247,16 @@ def seed_rtp_settings(db: Session):
                 "1.5x": 6.0,
                 "2x": 4.0,
                 "3x": 3.0,
-                "5x": 1.0
+                "5x": 0.91,
+                "10x": 0.02,
+                "15x": 0.02,
+                "20x": 0.01,
+                "25x": 0.01,
+                "30x": 0.01,
+                "35x": 0.01,
+                "40x": 0.005,
+                "45x": 0.003,
+                "50x": 0.002
             }),
             enabled=True
         ),
@@ -248,7 +277,16 @@ def seed_rtp_settings(db: Session):
                 "1.5x": 2.0,
                 "2x": 1.0,
                 "3x": 0.7,
-                "5x": 0.3
+                "5x": 0.21,
+                "10x": 0.02,
+                "15x": 0.02,
+                "20x": 0.01,
+                "25x": 0.01,
+                "30x": 0.01,
+                "35x": 0.01,
+                "40x": 0.005,
+                "45x": 0.003,
+                "50x": 0.002
             }),
             enabled=True
         )

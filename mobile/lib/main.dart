@@ -60,8 +60,12 @@ class _DailyEarn99AppState extends State<DailyEarn99App> {
       // Initialize App Check to secure API requests and bypass reCAPTCHA on real devices
       try {
         await FirebaseAppCheck.instance.activate(
-          providerAndroid: kDebugMode ? const AndroidDebugProvider() : const AndroidPlayIntegrityProvider(),
-          providerApple: kDebugMode ? const AppleDebugProvider() : const AppleDeviceCheckProvider(),
+          providerAndroid: kDebugMode
+              ? const AndroidDebugProvider()
+              : const AndroidPlayIntegrityProvider(),
+          providerApple: kDebugMode
+              ? const AppleDebugProvider()
+              : const AppleDeviceCheckProvider(),
         );
         print("Firebase App Check: Activated successfully.");
       } catch (appCheckError) {
