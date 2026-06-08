@@ -114,17 +114,6 @@ def join_contest(
     contest.joined_slots += 1
     db.commit()
     db.refresh(contest)
-    
-    # Check if first contest joined by referred user to award referral bonus!
-    participation_count = (
-        db.query(ContestParticipant)
-        .filter(ContestParticipant.user_id == current_user.id)
-        .count()
-    )
-    if participation_count == 1:
-        # Trigger referral bonus!
-        ReferralService.check_and_trigger_referral(db, current_user)
-        db.refresh(current_user)
 
     # Boot the leaderboard manager for this contest
     leaderboard_manager.update_score(

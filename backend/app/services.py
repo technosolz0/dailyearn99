@@ -101,6 +101,10 @@ class WalletService:
         )
         db.add(transaction)
         db.commit()
+        
+        # Trigger referral bonus check
+        ReferralService.check_and_trigger_referral(db, user)
+        
         return transaction
 
     @staticmethod
@@ -188,7 +192,7 @@ class ReferralService:
             return
 
         # Find referrer
-        referrer = db.query(User).filter(User.referral_code == referred_user.referred_by).first()
+        referrer = db.query(User).filter(User.referral_code == referred_user.referred_by.upper()).first()
         if not referrer:
             return
 
@@ -503,6 +507,9 @@ class SpinGameService:
             device_id=device_id
         )
         db.add(audit)
+
+        # Trigger referral bonus check if applicable
+        ReferralService.check_and_trigger_referral(db, locked_user)
 
         db.commit()
 

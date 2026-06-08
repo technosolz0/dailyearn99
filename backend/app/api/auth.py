@@ -95,7 +95,7 @@ def verify_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
             
         referred_by_code = None
         if request.referred_by:
-            referred_by_code = request.referred_by.strip()
+            referred_by_code = request.referred_by.strip().upper()
             # Validate that the referrer actually exists
             referrer = db.query(User).filter(User.referral_code == referred_by_code).first()
             if not referrer:
