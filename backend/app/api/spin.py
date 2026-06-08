@@ -51,7 +51,7 @@ def get_spin_history(
         multiplier = spin.multiplier
         matching_segments = [
             idx for idx, seg in enumerate(SpinGameService.WHEEL_SEGMENTS)
-            if (multiplier == 0.0 and seg["type"] == "LOSE") or (multiplier > 0.0 and seg["multiplier"] == multiplier)
+            if (abs(multiplier) < 1e-4 and seg["type"] == "LOSE") or (multiplier > 0.0 and abs(seg["multiplier"] - multiplier) < 1e-4)
         ]
         spin.segment_index = matching_segments[0] if matching_segments else 0
         spin.updated_balance = 0.0 # Not needed for list
@@ -79,7 +79,7 @@ def get_spin_detail(
     multiplier = spin.multiplier
     matching_segments = [
         idx for idx, seg in enumerate(SpinGameService.WHEEL_SEGMENTS)
-        if (multiplier == 0.0 and seg["type"] == "LOSE") or (multiplier > 0.0 and seg["multiplier"] == multiplier)
+        if (abs(multiplier) < 1e-4 and seg["type"] == "LOSE") or (multiplier > 0.0 and abs(seg["multiplier"] - multiplier) < 1e-4)
     ]
     spin.segment_index = matching_segments[0] if matching_segments else 0
     spin.updated_balance = 0.0

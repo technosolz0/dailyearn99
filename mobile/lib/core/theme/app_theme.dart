@@ -9,7 +9,11 @@ class AppTheme {
   static const Color accentEmerald = Color(0xFF00E676);
   static const Color accentAmber = Color(0xFFFFB300);
   static const Color accentRed = Color(0xFFFF1744);
-  
+  static const Color accentOrange = Color(0xFFFF6D00);
+  static const Color accentPink = Color(0xFFFF4081);
+  static const Color accentTeal = Color(0xFF1DE9B6);
+  static const Color accentIndigo = Color(0xFF651FFF);
+
   static const Color textMain = Color(0xFFF3F4F6);
   static const Color textMuted = Color(0xFF9CA3AF);
   static const Color borderCol = Color(0x1FFFFFFF);
@@ -34,26 +38,21 @@ class AppTheme {
           side: const BorderSide(color: borderCol, width: 1),
         ),
       ),
-      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).copyWith(
-        titleLarge: GoogleFonts.inter(
-          color: textMain,
-          fontWeight: FontWeight.bold,
-          fontSize: 22,
-        ),
-        titleMedium: GoogleFonts.inter(
-          color: textMain,
-          fontWeight: FontWeight.w600,
-          fontSize: 16,
-        ),
-        bodyLarge: GoogleFonts.inter(
-          color: textMain,
-          fontSize: 14,
-        ),
-        bodyMedium: GoogleFonts.inter(
-          color: textMuted,
-          fontSize: 12,
-        ),
-      ),
+      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme)
+          .copyWith(
+            titleLarge: GoogleFonts.inter(
+              color: textMain,
+              fontWeight: FontWeight.bold,
+              fontSize: 22,
+            ),
+            titleMedium: GoogleFonts.inter(
+              color: textMain,
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+            ),
+            bodyLarge: GoogleFonts.inter(color: textMain, fontSize: 14),
+            bodyMedium: GoogleFonts.inter(color: textMuted, fontSize: 12),
+          ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white.withOpacity(0.03),

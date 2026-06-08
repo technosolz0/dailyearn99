@@ -460,7 +460,7 @@ class SpinGameService:
         # Find matching segment indices on physical wheel
         matching_segments = [
             (idx, seg) for idx, seg in enumerate(cls.WHEEL_SEGMENTS)
-            if (multiplier == 0.0 and seg["type"] == "LOSE") or (multiplier > 0.0 and seg["multiplier"] == multiplier)
+            if (abs(multiplier) < 1e-4 and seg["type"] == "LOSE") or (multiplier > 0.0 and abs(seg["multiplier"] - multiplier) < 1e-4)
         ]
         
         # Pick one at random to offer visual segment diversity (e.g. Try Again vs Better Luck)
