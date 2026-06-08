@@ -245,31 +245,32 @@ class ReferralService:
 
 
 class SpinGameService:
-    # 25 glossy sectors on the real-money casino wheel matching frontend exactly
+    # 26 glossy sectors on the real-money casino wheel matching frontend exactly
     WHEEL_SEGMENTS = [
         {"label": "Lose", "multiplier": 0.0, "type": "LOSE"},
         {"label": "0.1x", "multiplier": 0.1, "type": "WIN"},
         {"label": "10x", "multiplier": 10.0, "type": "WIN"},
         {"label": "0.2x", "multiplier": 0.2, "type": "WIN"},
         {"label": "15x", "multiplier": 15.0, "type": "WIN"},
+        {"label": "Better Luck", "multiplier": 0.0, "type": "LOSE"},
         {"label": "0.4x", "multiplier": 0.4, "type": "WIN"},
         {"label": "20x", "multiplier": 20.0, "type": "WIN"},
         {"label": "0.5x", "multiplier": 0.5, "type": "WIN"},
         {"label": "25x", "multiplier": 25.0, "type": "WIN"},
         {"label": "0.6x", "multiplier": 0.6, "type": "WIN"},
         {"label": "30x", "multiplier": 30.0, "type": "WIN"},
+        {"label": "Better Luck", "multiplier": 0.0, "type": "LOSE"},
         {"label": "0.8x", "multiplier": 0.8, "type": "WIN"},
         {"label": "35x", "multiplier": 35.0, "type": "WIN"},
         {"label": "1x", "multiplier": 1.0, "type": "WIN"},
         {"label": "40x", "multiplier": 40.0, "type": "WIN"},
         {"label": "1.1x", "multiplier": 1.1, "type": "WIN"},
         {"label": "45x", "multiplier": 45.0, "type": "WIN"},
-        {"label": "Try Again", "multiplier": 0.0, "type": "LOSE"},
+        {"label": "Lose", "multiplier": 0.0, "type": "LOSE"},
         {"label": "50x", "multiplier": 50.0, "type": "WIN"},
         {"label": "1.2x", "multiplier": 1.2, "type": "WIN"},
         {"label": "1.5x", "multiplier": 1.5, "type": "WIN"},
         {"label": "2x", "multiplier": 2.0, "type": "WIN"},
-        {"label": "Better Luck Next Time", "multiplier": 0.0, "type": "LOSE"},
         {"label": "3x", "multiplier": 3.0, "type": "WIN"},
         {"label": "5x", "multiplier": 5.0, "type": "WIN"},
     ]
@@ -278,6 +279,7 @@ class SpinGameService:
         "Lose": 0.0,
         "0x": 0.0,
         "Better Luck Next Time": 0.0,
+        "Better Luck": 0.0,
         "Try Again": 0.0,
         "0.1x": 0.1,
         "0.2x": 0.2,
