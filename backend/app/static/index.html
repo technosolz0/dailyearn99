@@ -76,7 +76,7 @@
                         <line x1="12" y1="4" x2="12" y2="20" />
                         <line x1="2" y1="12" x2="22" y2="12" />
                     </svg>
-                    Wallet Manager
+                    Wallet Managers
                 </button>
                 <button class="menu-item" data-tab="spin-engine">
                     <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -669,35 +669,47 @@
                                         style="width:100%; height:140px; background:#1e293b; color:#51ff00; border:1px solid #334155; padding:10px; border-radius:6px; font-family: monospace; resize:none; font-size:12px; margin-top:5px; line-height: 1.5;"></textarea>
                                     <span
                                         style="font-size: 9px; color: var(--text-muted); display: block; margin-top: 4px;">Make
-                                        sure the sum of all percentages is exactly 100%. Supported keys: "Lose", "0.1x", "0.2x", "0.4x", "0.5x", "0.6x", "0.8x", "1x", "1.1x", "1.2x", "1.5x", "2x", "3x", "5x", "10x", "20x", "30x", "40x", "50x".</span>
+                                        sure the sum of all percentages is exactly 100%. Supported keys: "Lose", "0.1x",
+                                        "0.2x", "0.4x", "0.5x", "0.6x", "0.8x", "1x", "1.1x", "1.2x", "1.5x", "2x",
+                                        "3x", "5x", "10x", "20x", "30x", "40x", "50x".</span>
                                 </div>
 
                                 <div style="display: flex; gap: 15px; margin-top: 15px;">
-                                    <button type="submit" class="btn btn-primary" style="flex: 1;">Save RTP Settings</button>
-                                    <button type="button" class="btn btn-ban" id="btn-delete-rtp-tier" style="flex: 1; background-color: var(--error); color: #fff;">Delete Selected</button>
+                                    <button type="submit" class="btn btn-primary" style="flex: 1;">Save RTP
+                                        Settings</button>
+                                    <button type="button" class="btn btn-ban" id="btn-delete-rtp-tier"
+                                        style="flex: 1; background-color: var(--error); color: #fff;">Delete
+                                        Selected</button>
                                 </div>
                             </form>
 
                             <!-- Add New RTP Tier / Specific Bet Override Form -->
-                            <form id="spin-rtp-create-form" class="contest-form" style="margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 20px;">
-                                <h3 style="font-size: 13px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 15px;">Add Specific Bet Override / Tier</h3>
+                            <form id="spin-rtp-create-form" class="contest-form"
+                                style="margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                                <h3
+                                    style="font-size: 13px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 15px;">
+                                    Add Specific Bet Override / Tier</h3>
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label for="rtp-create-min">Min Bet (₹)</label>
-                                        <input type="number" id="rtp-create-min" value="1001" min="1" step="any" required
+                                        <input type="number" id="rtp-create-min" value="1001" min="1" step="any"
+                                            required
                                             style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; margin-top: 5px;">
                                     </div>
                                     <div class="form-group">
                                         <label for="rtp-create-max">Max Bet (₹)</label>
-                                        <input type="number" id="rtp-create-max" value="1001" min="1" step="any" required
+                                        <input type="number" id="rtp-create-max" value="1001" min="1" step="any"
+                                            required
                                             style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; margin-top: 5px;">
                                     </div>
                                 </div>
                                 <div class="form-group" style="margin-bottom: 15px;">
                                     <label for="rtp-create-json">Probability Weights (JSON format)</label>
-                                    <textarea id="rtp-create-json" style="width:100%; height:120px; background:#1e293b; color:#51ff00; border:1px solid #334155; padding:10px; border-radius:6px; font-family: monospace; resize:none; font-size:12px; margin-top:5px; line-height: 1.5;"></textarea>
+                                    <textarea id="rtp-create-json"
+                                        style="width:100%; height:120px; background:#1e293b; color:#51ff00; border:1px solid #334155; padding:10px; border-radius:6px; font-family: monospace; resize:none; font-size:12px; margin-top:5px; line-height: 1.5;"></textarea>
                                     <span
-                                        style="font-size: 9px; color: var(--text-muted); display: block; margin-top: 4px;">Sum of all weights must be exactly 100%. Example weights:
+                                        style="font-size: 9px; color: var(--text-muted); display: block; margin-top: 4px;">Sum
+                                        of all weights must be exactly 100%. Example weights:
                                         {"Lose": 10.0, "1x": 10.0, "5x": 80.0}</span>
                                 </div>
                                 <button type="submit" class="btn btn-secondary btn-full">Create Override / Tier</button>
@@ -1426,17 +1438,23 @@
                                     <label for="port-ref-code">Default Promo Referral Code</label>
                                     <input type="text" id="port-ref-code" required style="text-transform: uppercase;">
                                 </div>
-                                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 15px;">Save Settings</button>
+                                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 15px;">Save
+                                    Settings</button>
                             </form>
                         </div>
                         <div class="card" style="display: flex; flex-direction: column;">
                             <div class="card-header">
                                 <h2>System Integration</h2>
                             </div>
-                            <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6; padding-top: 15px;">
-                                <p style="margin-bottom: 15px;">Updating these details dynamically refreshes the values across the main portfolio website in real-time.</p>
-                                <p style="margin-bottom: 15px;">Ensure the Android APK link is a fully qualified URL (e.g. starting with <code>https://</code>) so users can download the app successfully.</p>
-                                <p>Contact inquiries submitted by users through the website are recorded directly in the shared database and displayed on the table below.</p>
+                            <div
+                                style="font-size: 13px; color: var(--text-muted); line-height: 1.6; padding-top: 15px;">
+                                <p style="margin-bottom: 15px;">Updating these details dynamically refreshes the values
+                                    across the main portfolio website in real-time.</p>
+                                <p style="margin-bottom: 15px;">Ensure the Android APK link is a fully qualified URL
+                                    (e.g. starting with <code>https://</code>) so users can download the app
+                                    successfully.</p>
+                                <p>Contact inquiries submitted by users through the website are recorded directly in the
+                                    shared database and displayed on the table below.</p>
                             </div>
                         </div>
                     </div>
