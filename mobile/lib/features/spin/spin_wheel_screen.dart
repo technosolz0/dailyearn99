@@ -19,6 +19,7 @@ class SpinWheelScreen extends StatefulWidget {
 class _SpinWheelScreenState extends State<SpinWheelScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
+  late final WheelPainter _wheelPainter = WheelPainter(sectors: wheelSectors);
 
   // Store begin/end wheel angles explicitly so AnimatedBuilder
   // always reads the CURRENT spin's target — not a stale animation object.
@@ -37,26 +38,26 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
   //       8      9      10      11     12      13      14      15
   //       16     17     18      19
   static const List<Map<String, dynamic>> wheelSectors = [
-    {"label": "Lose",  "isWin": false, "color": AppTheme.cardBg},       // 0
-    {"label": "0.1x",  "isWin": true,  "color": AppTheme.accentCyan},   // 1
-    {"label": "10x",   "isWin": true,  "color": AppTheme.accentAmber},  // 2
-    {"label": "0.2x",  "isWin": true,  "color": AppTheme.accentPurple}, // 3
-    {"label": "0.4x",  "isWin": true,  "color": AppTheme.accentEmerald},// 4
-    {"label": "20x",   "isWin": true,  "color": AppTheme.accentPink},   // 5
-    {"label": "0.5x",  "isWin": true,  "color": AppTheme.accentTeal},   // 6
-    {"label": "0.6x",  "isWin": true,  "color": AppTheme.accentCyan},   // 7
-    {"label": "30x",   "isWin": true,  "color": AppTheme.accentAmber},  // 8
-    {"label": "0.8x",  "isWin": true,  "color": AppTheme.accentPurple}, // 9
-    {"label": "1x",    "isWin": true,  "color": AppTheme.accentEmerald},// 10
-    {"label": "40x",   "isWin": true,  "color": AppTheme.accentPink},   // 11
-    {"label": "1.1x",  "isWin": true,  "color": AppTheme.accentTeal},   // 12
-    {"label": "Lose",  "isWin": false, "color": AppTheme.cardBg},       // 13
-    {"label": "50x",   "isWin": true,  "color": AppTheme.accentRed},    // 14
-    {"label": "1.2x",  "isWin": true,  "color": AppTheme.accentPurple}, // 15
-    {"label": "1.5x",  "isWin": true,  "color": AppTheme.accentEmerald},// 16
-    {"label": "2x",    "isWin": true,  "color": AppTheme.accentCyan},   // 17
-    {"label": "3x",    "isWin": true,  "color": AppTheme.accentOrange}, // 18
-    {"label": "5x",    "isWin": true,  "color": AppTheme.accentAmber},  // 19
+    {"label": "Lose", "isWin": false, "color": AppTheme.cardBg}, // 0
+    {"label": "0.1x", "isWin": true, "color": AppTheme.accentCyan}, // 1
+    {"label": "10x", "isWin": true, "color": AppTheme.accentAmber}, // 2
+    {"label": "0.2x", "isWin": true, "color": AppTheme.accentPurple}, // 3
+    {"label": "0.4x", "isWin": true, "color": AppTheme.accentEmerald}, // 4
+    {"label": "20x", "isWin": true, "color": AppTheme.accentPink}, // 5
+    {"label": "0.5x", "isWin": true, "color": AppTheme.accentTeal}, // 6
+    {"label": "0.6x", "isWin": true, "color": AppTheme.accentCyan}, // 7
+    {"label": "30x", "isWin": true, "color": AppTheme.accentAmber}, // 8
+    {"label": "0.8x", "isWin": true, "color": AppTheme.accentPurple}, // 9
+    {"label": "1x", "isWin": true, "color": AppTheme.accentEmerald}, // 10
+    {"label": "40x", "isWin": true, "color": AppTheme.accentPink}, // 11
+    {"label": "1.1x", "isWin": true, "color": AppTheme.accentTeal}, // 12
+    {"label": "Lose", "isWin": false, "color": AppTheme.cardBg}, // 13
+    {"label": "50x", "isWin": true, "color": AppTheme.accentRed}, // 14
+    {"label": "1.2x", "isWin": true, "color": AppTheme.accentPurple}, // 15
+    {"label": "1.5x", "isWin": true, "color": AppTheme.accentEmerald}, // 16
+    {"label": "2x", "isWin": true, "color": AppTheme.accentCyan}, // 17
+    {"label": "3x", "isWin": true, "color": AppTheme.accentOrange}, // 18
+    {"label": "5x", "isWin": true, "color": AppTheme.accentAmber}, // 19
   ];
 
   @override
@@ -89,27 +90,46 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
   }
 
   void _triggerSpinAnimation(int targetIndex, SpinResultModel result) {
+    // ── 0. Dynamically match multiplier/label to wheelSectors ──
+    // This makes the frontend completely self-correcting and decoupled
+    // from backend index versions (e.g. 26-sector vs 20-sector mismatch).
+    int matchedIndex = -1;
+    final String targetLabel = result.wheelSegment.trim();
+    final bool isWin = result.winAmount > 0;
+
+    for (int i = 0; i < wheelSectors.length; i++) {
+      final sector = wheelSectors[i];
+      final String label = sector["label"] as String;
+      final bool sectorIsWin = sector["isWin"] as bool;
+
+      if (!isWin) {
+        if (!sectorIsWin &&
+            (label.toLowerCase() == 'lose' ||
+                label.toLowerCase() == 'better luck' ||
+                label.toLowerCase() == 'try again')) {
+          matchedIndex = i;
+          break;
+        }
+      } else {
+        if (label.toLowerCase() == targetLabel.toLowerCase()) {
+          matchedIndex = i;
+          break;
+        }
+      }
+    }
+
+    final int finalTargetIndex = matchedIndex != -1
+        ? matchedIndex
+        : targetIndex;
+
     // ── 1. Snapshot the current wheel angle BEFORE any controller reset ──
-    // _currentWheelAngle reads from _animationController.value which is still
-    // at 1.0 (previous spin done) or 0.0 (first spin). We normalise to [0, 2π).
     final double currentAngle = _currentWheelAngle % (2 * pi);
 
     final double sectorRadians = (2 * pi) / wheelSectors.length;
 
     // ── 2. Compute what wheel rotation makes the target sector face the pointer ──
-    // WheelPainter draws sector i starting at angle (i * sectorRadians) from 0
-    // (rightward / 3-o'clock, clockwise positive — Flutter canvas convention).
-    // Sector i centre is at: i * sectorRadians + sectorRadians / 2
-    //
-    // Transform.rotate(angle: R) rotates the widget clockwise by R.
-    // After rotation R the sector centre appears at screen-angle:
-    //   screenAngle = sectorCenterAngle + R
-    //
-    // The pointer sits at the TOP of the widget = 3π/2 (= 270° clockwise from right).
-    // We need:  sectorCenterAngle + R ≡ 3π/2  (mod 2π)
-    //           R = 3π/2 - sectorCenterAngle   (mod 2π)
     final double sectorCenterAngle =
-        targetIndex * sectorRadians + (sectorRadians / 2.0);
+        finalTargetIndex * sectorRadians + (sectorRadians / 2.0);
 
     const double pointerAngle = 3 * pi / 2; // top of wheel
     double targetAngleNormalized =
@@ -117,25 +137,17 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
     if (targetAngleNormalized < 0) targetAngleNormalized += (2 * pi);
 
     // ── 3. How much ADDITIONAL rotation from current position to target? ──
-    // Always spin forward (positive / clockwise).
     double additionalRotation = targetAngleNormalized - currentAngle;
     if (additionalRotation < 0) additionalRotation += (2 * pi);
-    // Guarantee at least 5 full spins for visual excitement.
     final double totalRotation = (2 * pi * 5) + additionalRotation;
     final double endAngle = currentAngle + totalRotation;
 
-    // ── 4. Store begin/end in state fields then reset controller ──
-    // By storing the angles in state fields and using _animationController
-    // directly inside AnimatedBuilder, we avoid the stale-animation-reference
-    // bug that caused the wheel to stop at the wrong sector.
     setState(() {
       _isSpinning = true;
       _wheelBeginAngle = currentAngle;
       _wheelEndAngle = endAngle;
     });
 
-    // Haptic feedback every time the pointer crosses a sector boundary.
-    // Remove any leftover listener from a previous spin first.
     if (_hapticListener != null) {
       _animationController.removeListener(_hapticListener!);
     }
@@ -155,6 +167,8 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
       setState(() {
         _isSpinning = false;
       });
+      // Delay profile reload until the spin finishes to prevent performance lag
+      context.read<AppBloc>().add(LoadProfileEvent());
       _showResultOverlay(result);
     });
   }
@@ -462,13 +476,16 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                           // hold a stale reference to a previous Animation object.
                           AnimatedBuilder(
                             animation: _animationController,
+                            child: RepaintBoundary(
+                              child: CustomPaint(
+                                size: const Size(260, 260),
+                                painter: _wheelPainter,
+                              ),
+                            ),
                             builder: (context, child) {
                               return Transform.rotate(
                                 angle: _currentWheelAngle,
-                                child: CustomPaint(
-                                  size: const Size(260, 260),
-                                  painter: WheelPainter(sectors: wheelSectors),
-                                ),
+                                child: child,
                               );
                             },
                           ),
@@ -811,8 +828,26 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
 // Custom Painter to draw Wheel wedges cleanly
 class WheelPainter extends CustomPainter {
   final List<Map<String, dynamic>> sectors;
+  final List<TextPainter> _textPainters;
 
-  WheelPainter({required this.sectors});
+  WheelPainter({required this.sectors})
+    : _textPainters = sectors.map((sector) {
+        final label = sector["label"] as String;
+        final bool isWin = sector["isWin"] as bool;
+        final textPainter = TextPainter(
+          text: TextSpan(
+            text: label,
+            style: GoogleFonts.outfit(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              color: isWin ? Colors.black : Colors.white,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        );
+        textPainter.layout();
+        return textPainter;
+      }).toList();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -864,21 +899,7 @@ class WheelPainter extends CustomPainter {
       canvas.rotate(middleAngle);
 
       // Draw text
-      final label = sector["label"] as String;
-      final bool isWin = sector["isWin"] as bool;
-      final textPainter = TextPainter(
-        text: TextSpan(
-          text: label,
-          style: GoogleFonts.outfit(
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
-            color: isWin ? Colors.black : Colors.white,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      );
-
-      textPainter.layout();
+      final textPainter = _textPainters[i];
 
       // Position label inside the wedge radially
       final double offsetRadius = radius * 0.62;

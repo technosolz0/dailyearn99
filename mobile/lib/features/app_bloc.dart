@@ -861,9 +861,12 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   ) async {
     emit(state.copyWith(isSplashLoading: true, authError: null));
     try {
-      // 1. Fetch version and update configurations from Firebase Remote Config
+      // 1. Fetch version / update configs from Firebase Remote Config and initialize token security concurrently
       final remoteConfig = getIt<RemoteConfigService>();
-      await remoteConfig.initialize();
+      await Future.wait([
+        remoteConfig.initialize(),
+        _apiClient.initializeTokens(),
+      ]);
 
       final currentVersion = AppConstants.currentAppVersion;
       final minVersion = remoteConfig.minVersion;
@@ -902,9 +905,6 @@ class AppBloc extends Bloc<AppEvent, AppState> {
           serverLatestVersion: latestVersion,
         ),
       );
-
-      // 2. Initialize token security and profile session
-      await _apiClient.initializeTokens();
       if (_apiClient.hasToken) {
         final secureStorage = getIt<SecureStorageService>();
         // Load cached user profile instantly to avoid black/empty screens
@@ -990,9 +990,6 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       );
       final spinResult = SpinResultModel.fromJson(response.data);
       emit(state.copyWith(isSpinLoading: false, latestSpinResult: spinResult));
-
-      // Auto-trigger profile reload so wallet balances are synchronized instantly!
-      add(LoadProfileEvent());
     } catch (e, stackTrace) {
       emit(
         state.copyWith(

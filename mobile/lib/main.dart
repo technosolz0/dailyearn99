@@ -54,61 +54,49 @@ class _DailyEarn99AppState extends State<DailyEarn99App> {
 
   Future<void> _performInitialization() async {
     try {
-      // 1. Initialize Firebase Core
+      // 1. Initialize Firebase Core (must be first)
       await Firebase.initializeApp();
 
-      // Initialize App Check to secure API requests and bypass reCAPTCHA on real devices
-      try {
-        await FirebaseAppCheck.instance.activate(
+      // 2. Set up dependency injection container immediately (synchronous registration)
+      setupDependencyInjection();
+
+      // 3. Register notification listeners (non-blocking)
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      _setupForegroundNotificationListener();
+
+      // 4. Run secondary native channel check/config operations concurrently to optimize startup speed
+      final results = await Future.wait([
+        SafeDevice.isJailBroken.catchError((e) {
+          print("Warning: SafeDevice check failed: $e");
+          return false;
+        }),
+        FirebaseAppCheck.instance.activate(
           providerAndroid: kDebugMode
               ? const AndroidDebugProvider()
               : const AndroidPlayIntegrityProvider(),
           providerApple: kDebugMode
               ? const AppleDebugProvider()
               : const AppleDeviceCheckProvider(),
-        );
-        print("Firebase App Check: Activated successfully.");
-      } catch (appCheckError) {
-        print("Firebase App Check Warning: Failed to activate: $appCheckError");
-      }
+        ).then((_) {
+          print("Firebase App Check: Activated successfully.");
+        }).catchError((appCheckError) {
+          print("Firebase App Check Warning: Failed to activate: $appCheckError");
+        }),
+        FirebaseAuth.instance.setSettings(
+          appVerificationDisabledForTesting: false,
+        ).then((_) {
+          print("Firebase Auth: App verification settings set successfully.");
+        }).catchError((authSettingsError) {
+          print("Firebase Auth Warning: Failed to set auth settings: $authSettingsError");
+        }),
+      ]);
 
-      // Check for Jailbroken/Rooted device
-      bool isJailBroken = false;
-      try {
-        isJailBroken = await SafeDevice.isJailBroken;
-      } catch (e) {
-        print("Warning: SafeDevice security check failed to execute: $e");
-      }
+      final bool isJailBroken = results[0] as bool;
       if (isJailBroken) {
         throw Exception(
           "Security Violation: Jailbroken or Rooted device detected.",
         );
       }
-
-      // Disable app verification for testing (reCAPTCHA / Play Integrity bypass)
-      try {
-        await FirebaseAuth.instance.setSettings(
-          appVerificationDisabledForTesting: false,
-        );
-        print(
-          "Firebase Auth: App verification disabled for testing successfully.",
-        );
-      } catch (authSettingsError) {
-        print(
-          "Firebase Auth Warning: Failed to set auth settings: $authSettingsError",
-        );
-      }
-
-      // 2. Set background messaging handler
-      FirebaseMessaging.onBackgroundMessage(
-        _firebaseMessagingBackgroundHandler,
-      );
-
-      // 3. Set up dependency injection container
-      setupDependencyInjection();
-
-      // 4. Listen for foreground push notifications
-      _setupForegroundNotificationListener();
 
       if (mounted) {
         setState(() {

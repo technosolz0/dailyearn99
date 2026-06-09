@@ -27,7 +27,7 @@ class RemoteConfigService {
       // Configure fetch timeouts and instant updates during dev execution
       await _remoteConfig.setConfigSettings(
         RemoteConfigSettings(
-          fetchTimeout: const Duration(seconds: 10),
+          fetchTimeout: const Duration(seconds: 2),
           minimumFetchInterval: const Duration(seconds: 0),
         ),
       );
