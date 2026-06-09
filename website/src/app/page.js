@@ -1,13 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.dailyearn99.in/api";
 
 export default function Home() {
   const [copied, setCopied] = useState(false);
   const [activeFaq, setActiveFaq] = useState(null);
   const [isSpinning, setIsSpinning] = useState(false);
 
-  const referralCode = "DAILYEARN99";
+  const [config, setConfig] = useState({
+    apk_link: "https://api.dailyearn99.in/static/dailyearn99.apk",
+    referral_code: "DAILYEARN99"
+  });
+
+  useEffect(() => {
+    fetch(`${API_BASE}/portfolio/config`)
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error("Failed to fetch config");
+      })
+      .then(data => {
+        if (data) {
+          setConfig(data);
+        }
+      })
+      .catch(err => console.error("Error loading portfolio config:", err));
+  }, []);
+
+  const referralCode = config.referral_code || "DAILYEARN99";
 
   const handleCopy = () => {
     navigator.clipboard.writeText(referralCode);
@@ -65,7 +86,7 @@ export default function Home() {
           </p>
 
           <div className="hero-ctas" id="download">
-            <a href="https://api.dailyearn99.in/static/dailyearn99.apk" className="btn-primary" download>
+            <a href={config.apk_link} className="btn-primary" download>
               <span>📥</span> Download Android APK
             </a>
             <a href="#games" className="btn-secondary">

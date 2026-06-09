@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.dailyearn99.in/api";
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -11,16 +13,48 @@ export default function Contact() {
   });
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleSubmit = (e) => {
+  const [config, setConfig] = useState({
+    contact_email: "support@dailyearn99.in",
+    contact_phone: "+91 99999 99999",
+    contact_address: "DailyEarn 99 Tech Labs Pvt Ltd, Connaught Place, New Delhi, India - 110001",
+    office_hours: "Monday - Sunday, 24 Hours Active Online Support"
+  });
+
+  useEffect(() => {
+    fetch(`${API_BASE}/portfolio/config`)
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error("Failed to load contact configuration");
+      })
+      .then(data => {
+        if (data) {
+          setConfig(data);
+        }
+      })
+      .catch(err => console.error("Error loading contact config:", err));
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate API submission
-    setTimeout(() => {
-      setLoading(false);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/portfolio/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      });
+      if (!res.ok) throw new Error(await res.text());
       setSubmitted(true);
       setFormData({ name: "", email: "", subject: "", message: "" });
-    }, 1500);
+    } catch (err) {
+      console.error("Error submitting contact form:", err);
+      setError("Failed to submit message. Please check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -113,6 +147,11 @@ export default function Contact() {
                   />
                 </div>
 
+                {error && (
+                  <p style={{ color: "red", fontSize: "13px", marginTop: "-10px", marginBottom: "15px", textAlign: "center" }}>
+                    {error}
+                  </p>
+                )}
                 <button type="submit" className="btn-primary" style={{ width: "100%", justifyContent: "center" }} disabled={loading}>
                   {loading ? "Sending Message..." : "Send Message"}
                 </button>
@@ -128,7 +167,7 @@ export default function Contact() {
               <div className="contact-icon-bg">✉️</div>
               <div>
                 <h4>Email Support</h4>
-                <p>support@dailyearn99.in</p>
+                <p>{config.contact_email || "support@dailyearn99.in"}</p>
                 <p style={{ fontSize: "12px", marginTop: "4px" }}>Response time: Under 4 hours</p>
               </div>
             </div>
@@ -137,9 +176,7 @@ export default function Contact() {
               <div className="contact-icon-bg">📍</div>
               <div>
                 <h4>Office Location</h4>
-                <p>DailyEarn 99 Tech Labs Pvt Ltd</p>
-                <p>Connaught Place, New Delhi</p>
-                <p>India - 110001</p>
+                <p style={{ whiteSpace: "pre-line" }}>{config.contact_address || "DailyEarn 99 Tech Labs Pvt Ltd\nConnaught Place, New Delhi\nIndia - 110001"}</p>
               </div>
             </div>
 
@@ -147,8 +184,7 @@ export default function Contact() {
               <div className="contact-icon-bg">⏱️</div>
               <div>
                 <h4>Working Hours</h4>
-                <p>Monday - Sunday</p>
-                <p>24 Hours Active Online Support</p>
+                <p style={{ whiteSpace: "pre-line" }}>{config.office_hours || "Monday - Sunday\n24 Hours Active Online Support"}</p>
               </div>
             </div>
           </div>

@@ -8,7 +8,22 @@ export const metadata = {
   description: "Download DailyEarn 99 APK and play exciting skill-based games like Image Puzzle, Word Puzzle, Fruit Slicer, and Go Arrows to win real cash daily!",
 };
 
-export default function RootLayout({ children }) {
+async function getPortfolioConfig() {
+  try {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.dailyearn99.in/api';
+    const res = await fetch(`${apiBase}/portfolio/config`, { next: { revalidate: 60 } });
+    if (res.ok) return await res.json();
+  } catch (err) {
+    console.error("Error loading layout config:", err);
+  }
+  return {
+    contact_email: "support@dailyearn99.in",
+    contact_address: "New Delhi, India"
+  };
+}
+
+export default async function RootLayout({ children }) {
+  const config = await getPortfolioConfig();
   return (
     <html lang="en">
       <body className={inter.className}>
@@ -60,11 +75,11 @@ export default function RootLayout({ children }) {
               <div className="footer-info">
                 <div className="footer-info-item">
                   <span>✉️</span>
-                  <span>support@dailyearn99.in</span>
+                  <span>{config.contact_email || "support@dailyearn99.in"}</span>
                 </div>
                 <div className="footer-info-item">
                   <span>📍</span>
-                  <span>New Delhi, India</span>
+                  <span>{config.contact_address || "New Delhi, India"}</span>
                 </div>
               </div>
             </div>
@@ -72,8 +87,8 @@ export default function RootLayout({ children }) {
 
           <div className="container legal-disclaimer">
             <p className="disclaimer-text">
-              Disclaimer: DailyEarn 99 is a skill-based gaming platform. The games offered on this platform involve a substantial degree of skill. 
-              Participation in these contests is subject to our terms and conditions. Players must be 18 years or older and residing in eligible states to play for cash. 
+              Disclaimer: DailyEarn 99 is a skill-based gaming platform. The games offered on this platform involve a substantial degree of skill.
+              Participation in these contests is subject to our terms and conditions. Players must be 18 years or older and residing in eligible states to play for cash.
               States like Assam, Odisha, Telangana, Sikkim, Nagaland, and Andhra Pradesh do not permit cash skill games; residents of these states are not eligible to participate in cash contests.
             </p>
             <p className="copyright">© 2026 DailyEarn 99. All rights reserved.</p>
