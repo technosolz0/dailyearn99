@@ -19,42 +19,44 @@ class SpinWheelScreen extends StatefulWidget {
 class _SpinWheelScreenState extends State<SpinWheelScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
-  late Animation<double> _animation;
+
+  // Store begin/end wheel angles explicitly so AnimatedBuilder
+  // always reads the CURRENT spin's target — not a stale animation object.
+  double _wheelBeginAngle = 0.0;
+  double _wheelEndAngle = 0.0;
+
+  // Keep a reference so we can remove the haptic listener before each spin.
+  VoidCallback? _hapticListener;
 
   final _betController = TextEditingController(text: '10');
   double _selectedChip = 10.0;
   bool _isSpinning = false;
 
-  // 26 sectors matching the backend segment indices
+  // 20 sectors matching the backend segment indices (0-indexed)
+  // idx:  0      1       2      3       4       5      6       7
+  //       8      9      10      11     12      13      14      15
+  //       16     17     18      19
   static const List<Map<String, dynamic>> wheelSectors = [
-    {"label": "Lose", "isWin": false, "color": AppTheme.cardBg},
-    {"label": "0.1x", "isWin": true, "color": AppTheme.accentCyan},
-    {"label": "10x", "isWin": true, "color": AppTheme.accentAmber},
-    {"label": "0.2x", "isWin": true, "color": AppTheme.accentPurple},
-    {"label": "15x", "isWin": true, "color": AppTheme.accentOrange},
-
-    {"label": "Better Luck", "isWin": false, "color": AppTheme.cardBg},
-    {"label": "0.4x", "isWin": true, "color": AppTheme.accentEmerald},
-    {"label": "20x", "isWin": true, "color": AppTheme.accentPink},
-    {"label": "0.5x", "isWin": true, "color": AppTheme.accentTeal},
-    {"label": "25x", "isWin": true, "color": AppTheme.accentIndigo},
-    {"label": "0.6x", "isWin": true, "color": AppTheme.accentCyan},
-    {"label": "30x", "isWin": true, "color": AppTheme.accentAmber},
-
-    {"label": "Better Luck", "isWin": false, "color": AppTheme.cardBg},
-    {"label": "0.8x", "isWin": true, "color": AppTheme.accentPurple},
-    {"label": "35x", "isWin": true, "color": AppTheme.accentOrange},
-    {"label": "1x", "isWin": true, "color": AppTheme.accentEmerald},
-    {"label": "40x", "isWin": true, "color": AppTheme.accentPink},
-    {"label": "1.1x", "isWin": true, "color": AppTheme.accentTeal},
-    {"label": "45x", "isWin": true, "color": AppTheme.accentIndigo},
-    {"label": "Lose", "isWin": false, "color": AppTheme.cardBg},
-    {"label": "50x", "isWin": true, "color": AppTheme.accentRed},
-    {"label": "1.2x", "isWin": true, "color": AppTheme.accentPurple},
-    {"label": "1.5x", "isWin": true, "color": AppTheme.accentEmerald},
-    {"label": "2x", "isWin": true, "color": AppTheme.accentCyan},
-    {"label": "3x", "isWin": true, "color": AppTheme.accentOrange},
-    {"label": "5x", "isWin": true, "color": AppTheme.accentAmber},
+    {"label": "Lose",  "isWin": false, "color": AppTheme.cardBg},       // 0
+    {"label": "0.1x",  "isWin": true,  "color": AppTheme.accentCyan},   // 1
+    {"label": "10x",   "isWin": true,  "color": AppTheme.accentAmber},  // 2
+    {"label": "0.2x",  "isWin": true,  "color": AppTheme.accentPurple}, // 3
+    {"label": "0.4x",  "isWin": true,  "color": AppTheme.accentEmerald},// 4
+    {"label": "20x",   "isWin": true,  "color": AppTheme.accentPink},   // 5
+    {"label": "0.5x",  "isWin": true,  "color": AppTheme.accentTeal},   // 6
+    {"label": "0.6x",  "isWin": true,  "color": AppTheme.accentCyan},   // 7
+    {"label": "30x",   "isWin": true,  "color": AppTheme.accentAmber},  // 8
+    {"label": "0.8x",  "isWin": true,  "color": AppTheme.accentPurple}, // 9
+    {"label": "1x",    "isWin": true,  "color": AppTheme.accentEmerald},// 10
+    {"label": "40x",   "isWin": true,  "color": AppTheme.accentPink},   // 11
+    {"label": "1.1x",  "isWin": true,  "color": AppTheme.accentTeal},   // 12
+    {"label": "Lose",  "isWin": false, "color": AppTheme.cardBg},       // 13
+    {"label": "50x",   "isWin": true,  "color": AppTheme.accentRed},    // 14
+    {"label": "1.2x",  "isWin": true,  "color": AppTheme.accentPurple}, // 15
+    {"label": "1.5x",  "isWin": true,  "color": AppTheme.accentEmerald},// 16
+    {"label": "2x",    "isWin": true,  "color": AppTheme.accentCyan},   // 17
+    {"label": "3x",    "isWin": true,  "color": AppTheme.accentOrange}, // 18
+    {"label": "5x",    "isWin": true,  "color": AppTheme.accentAmber},  // 19
   ];
 
   @override
@@ -68,9 +70,6 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
       duration: const Duration(seconds: 4),
     );
 
-    // Initialize animation to 0 radians
-    _animation = Tween<double>(begin: 0, end: 0).animate(_animationController);
-
     // Fetch spin history
     context.read<AppBloc>().add(FetchSpinHistoryEvent());
   }
@@ -82,40 +81,74 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
     super.dispose();
   }
 
+  /// Returns the current interpolated wheel rotation angle in radians.
+  /// Uses _animationController.value (0.0 → 1.0) + easeOutCubic curve.
+  double get _currentWheelAngle {
+    final t = Curves.easeOutCubic.transform(_animationController.value);
+    return _wheelBeginAngle + (_wheelEndAngle - _wheelBeginAngle) * t;
+  }
+
   void _triggerSpinAnimation(int targetIndex, SpinResultModel result) {
+    // ── 1. Snapshot the current wheel angle BEFORE any controller reset ──
+    // _currentWheelAngle reads from _animationController.value which is still
+    // at 1.0 (previous spin done) or 0.0 (first spin). We normalise to [0, 2π).
+    final double currentAngle = _currentWheelAngle % (2 * pi);
+
+    final double sectorRadians = (2 * pi) / wheelSectors.length;
+
+    // ── 2. Compute what wheel rotation makes the target sector face the pointer ──
+    // WheelPainter draws sector i starting at angle (i * sectorRadians) from 0
+    // (rightward / 3-o'clock, clockwise positive — Flutter canvas convention).
+    // Sector i centre is at: i * sectorRadians + sectorRadians / 2
+    //
+    // Transform.rotate(angle: R) rotates the widget clockwise by R.
+    // After rotation R the sector centre appears at screen-angle:
+    //   screenAngle = sectorCenterAngle + R
+    //
+    // The pointer sits at the TOP of the widget = 3π/2 (= 270° clockwise from right).
+    // We need:  sectorCenterAngle + R ≡ 3π/2  (mod 2π)
+    //           R = 3π/2 - sectorCenterAngle   (mod 2π)
+    final double sectorCenterAngle =
+        targetIndex * sectorRadians + (sectorRadians / 2.0);
+
+    const double pointerAngle = 3 * pi / 2; // top of wheel
+    double targetAngleNormalized =
+        (pointerAngle - sectorCenterAngle) % (2 * pi);
+    if (targetAngleNormalized < 0) targetAngleNormalized += (2 * pi);
+
+    // ── 3. How much ADDITIONAL rotation from current position to target? ──
+    // Always spin forward (positive / clockwise).
+    double additionalRotation = targetAngleNormalized - currentAngle;
+    if (additionalRotation < 0) additionalRotation += (2 * pi);
+    // Guarantee at least 5 full spins for visual excitement.
+    final double totalRotation = (2 * pi * 5) + additionalRotation;
+    final double endAngle = currentAngle + totalRotation;
+
+    // ── 4. Store begin/end in state fields then reset controller ──
+    // By storing the angles in state fields and using _animationController
+    // directly inside AnimatedBuilder, we avoid the stale-animation-reference
+    // bug that caused the wheel to stop at the wrong sector.
     setState(() {
       _isSpinning = true;
+      _wheelBeginAngle = currentAngle;
+      _wheelEndAngle = endAngle;
     });
 
-    // Pointer is at the top (270 degrees / -pi/2).
-    // Each sector is 360 / sectors.length degrees.
-    // Sector center is: index * sectorDegrees + (sectorDegrees / 2).
-    // To align sector center with pointer (270 degrees):
-    // Rotation = 270 - (index * sectorDegrees + (sectorDegrees / 2)) degrees.
-    // We add 5 full rotations (360 * 5) for high excitement!
-    final double currentAngle = _animation.value % (2 * pi);
-    final double sectorDegrees = 360.0 / wheelSectors.length;
-    final double targetDegrees =
-        360 * 5 +
-        (270.0 - (targetIndex * sectorDegrees + (sectorDegrees / 2.0)));
-    final double targetRadians = targetDegrees * pi / 180.0;
-
-    _animation = Tween<double>(begin: currentAngle, end: targetRadians).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
-    );
-
-    // Tactile Haptic boundaries cross tracker
-    double lastAngle = currentAngle;
-    final double sectorStep =
-        (2 * pi) / wheelSectors.length; // sector angle in radians
-
-    _animation.addListener(() {
-      final double diff = (_animation.value - lastAngle).abs();
-      if (diff >= sectorStep * 0.8) {
+    // Haptic feedback every time the pointer crosses a sector boundary.
+    // Remove any leftover listener from a previous spin first.
+    if (_hapticListener != null) {
+      _animationController.removeListener(_hapticListener!);
+    }
+    final double sectorStep = (2 * pi) / wheelSectors.length;
+    double lastHapticAngle = currentAngle;
+    _hapticListener = () {
+      final double angle = _currentWheelAngle;
+      if ((angle - lastHapticAngle).abs() >= sectorStep * 0.8) {
         HapticFeedback.lightImpact();
-        lastAngle = _animation.value;
+        lastHapticAngle = angle;
       }
-    });
+    };
+    _animationController.addListener(_hapticListener!);
 
     _animationController.reset();
     _animationController.forward().then((_) {
@@ -425,11 +458,13 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                           ),
 
                           // Animated Custom Painter Canvas Wheel
+                          // Listen to _animationController directly so we NEVER
+                          // hold a stale reference to a previous Animation object.
                           AnimatedBuilder(
-                            animation: _animation,
+                            animation: _animationController,
                             builder: (context, child) {
                               return Transform.rotate(
-                                angle: _animation.value,
+                                angle: _currentWheelAngle,
                                 child: CustomPaint(
                                   size: const Size(260, 260),
                                   painter: WheelPainter(sectors: wheelSectors),

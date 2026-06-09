@@ -14,8 +14,8 @@ class Settings:
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60  # 1 hour
     
-    # Database path (defaults to local SQLite if not configured)
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./db.sqlite3")
+    # Database path (defaults to PostgreSQL if not configured)
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://dailyearn_db_user:ChooseAStrongDBPasswordHere!@localhost:5432/dailyearn_db")
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     

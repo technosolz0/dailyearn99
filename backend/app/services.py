@@ -245,41 +245,33 @@ class ReferralService:
 
 
 class SpinGameService:
-    # 26 glossy sectors on the real-money casino wheel matching frontend exactly
+    # 20 glossy sectors on the real-money casino wheel matching frontend exactly
     WHEEL_SEGMENTS = [
-        {"label": "Lose", "multiplier": 0.0, "type": "LOSE"},
-        {"label": "0.1x", "multiplier": 0.1, "type": "WIN"},
-        {"label": "10x", "multiplier": 10.0, "type": "WIN"},
-        {"label": "0.2x", "multiplier": 0.2, "type": "WIN"},
-        {"label": "15x", "multiplier": 15.0, "type": "WIN"},
-        {"label": "Better Luck", "multiplier": 0.0, "type": "LOSE"},
-        {"label": "0.4x", "multiplier": 0.4, "type": "WIN"},
-        {"label": "20x", "multiplier": 20.0, "type": "WIN"},
-        {"label": "0.5x", "multiplier": 0.5, "type": "WIN"},
-        {"label": "25x", "multiplier": 25.0, "type": "WIN"},
-        {"label": "0.6x", "multiplier": 0.6, "type": "WIN"},
-        {"label": "30x", "multiplier": 30.0, "type": "WIN"},
-        {"label": "Better Luck", "multiplier": 0.0, "type": "LOSE"},
-        {"label": "0.8x", "multiplier": 0.8, "type": "WIN"},
-        {"label": "35x", "multiplier": 35.0, "type": "WIN"},
-        {"label": "1x", "multiplier": 1.0, "type": "WIN"},
-        {"label": "40x", "multiplier": 40.0, "type": "WIN"},
-        {"label": "1.1x", "multiplier": 1.1, "type": "WIN"},
-        {"label": "45x", "multiplier": 45.0, "type": "WIN"},
-        {"label": "Lose", "multiplier": 0.0, "type": "LOSE"},
-        {"label": "50x", "multiplier": 50.0, "type": "WIN"},
-        {"label": "1.2x", "multiplier": 1.2, "type": "WIN"},
-        {"label": "1.5x", "multiplier": 1.5, "type": "WIN"},
-        {"label": "2x", "multiplier": 2.0, "type": "WIN"},
-        {"label": "3x", "multiplier": 3.0, "type": "WIN"},
-        {"label": "5x", "multiplier": 5.0, "type": "WIN"},
+        {"label": "Lose",  "multiplier": 0.0,  "type": "LOSE"},  # 0
+        {"label": "0.1x", "multiplier": 0.1,  "type": "WIN"},   # 1
+        {"label": "10x",  "multiplier": 10.0, "type": "WIN"},   # 2
+        {"label": "0.2x", "multiplier": 0.2,  "type": "WIN"},   # 3
+        {"label": "0.4x", "multiplier": 0.4,  "type": "WIN"},   # 4
+        {"label": "20x",  "multiplier": 20.0, "type": "WIN"},   # 5
+        {"label": "0.5x", "multiplier": 0.5,  "type": "WIN"},   # 6
+        {"label": "0.6x", "multiplier": 0.6,  "type": "WIN"},   # 7
+        {"label": "30x",  "multiplier": 30.0, "type": "WIN"},   # 8
+        {"label": "0.8x", "multiplier": 0.8,  "type": "WIN"},   # 9
+        {"label": "1x",   "multiplier": 1.0,  "type": "WIN"},   # 10
+        {"label": "40x",  "multiplier": 40.0, "type": "WIN"},   # 11
+        {"label": "1.1x", "multiplier": 1.1,  "type": "WIN"},   # 12
+        {"label": "Lose", "multiplier": 0.0,  "type": "LOSE"},  # 13
+        {"label": "50x",  "multiplier": 50.0, "type": "WIN"},   # 14
+        {"label": "1.2x", "multiplier": 1.2,  "type": "WIN"},   # 15
+        {"label": "1.5x", "multiplier": 1.5,  "type": "WIN"},   # 16
+        {"label": "2x",   "multiplier": 2.0,  "type": "WIN"},   # 17
+        {"label": "3x",   "multiplier": 3.0,  "type": "WIN"},   # 18
+        {"label": "5x",   "multiplier": 5.0,  "type": "WIN"},   # 19
     ]
 
     MULTIPLIER_MAP = {
         "Lose": 0.0,
         "0x": 0.0,
-        "Better Luck Next Time": 0.0,
-        "Better Luck": 0.0,
         "Try Again": 0.0,
         "0.1x": 0.1,
         "0.2x": 0.2,
@@ -295,13 +287,9 @@ class SpinGameService:
         "3x": 3.0,
         "5x": 5.0,
         "10x": 10.0,
-        "15x": 15.0,
         "20x": 20.0,
-        "25x": 25.0,
         "30x": 30.0,
-        "35x": 35.0,
         "40x": 40.0,
-        "45x": 45.0,
         "50x": 50.0,
     }
 
@@ -436,18 +424,27 @@ class SpinGameService:
             # Fallback to standard specifications
             if bet_amount < 50:
                 weights = {
-                    "Lose": 20.0, "1x": 20.0, "1.1x": 18.0, "1.2x": 15.0, "1.5x": 12.0, "2x": 8.0, "3x": 5.0, "5x": 1.91,
-                    "10x": 0.02, "15x": 0.02, "20x": 0.01, "25x": 0.01, "30x": 0.01, "35x": 0.01, "40x": 0.005, "45x": 0.003, "50x": 0.002
+                    "Lose": 20.0, "1x": 20.0, "1.1x": 18.0, "1.2x": 15.0, "1.5x": 12.0,
+                    "2x": 8.0, "3x": 5.0, "5x": 1.91,
+                    "10x": 0.02, "20x": 0.02, "30x": 0.01, "40x": 0.005, "50x": 0.002,
+                    "0.1x": 0.01, "0.2x": 0.01, "0.4x": 0.01,
+                    "0.5x": 0.01, "0.6x": 0.01, "0.8x": 0.01,
                 }
             elif bet_amount <= 100:
                 weights = {
-                    "Lose": 45.0, "1x": 20.0, "1.1x": 15.0, "1.2x": 8.0, "1.5x": 6.0, "2x": 4.0, "3x": 1.41, "5x": 0.5,
-                    "10x": 0.02, "15x": 0.02, "20x": 0.01, "25x": 0.01, "30x": 0.01, "35x": 0.01, "40x": 0.005, "45x": 0.003, "50x": 0.002
+                    "Lose": 45.0, "1x": 20.0, "1.1x": 15.0, "1.2x": 8.0, "1.5x": 6.0,
+                    "2x": 4.0, "3x": 1.41, "5x": 0.5,
+                    "10x": 0.02, "20x": 0.02, "30x": 0.01, "40x": 0.005, "50x": 0.002,
+                    "0.1x": 0.01, "0.2x": 0.01, "0.4x": 0.01,
+                    "0.5x": 0.01, "0.6x": 0.01, "0.8x": 0.01,
                 }
             else:
                 weights = {
-                    "Lose": 65.0, "1x": 15.0, "1.1x": 10.0, "1.2x": 5.0, "1.5x": 3.0, "2x": 1.41, "3x": 0.4, "5x": 0.1,
-                    "10x": 0.02, "15x": 0.02, "20x": 0.01, "25x": 0.01, "30x": 0.01, "35x": 0.01, "40x": 0.005, "45x": 0.003, "50x": 0.002
+                    "Lose": 65.0, "1x": 15.0, "1.1x": 10.0, "1.2x": 5.0, "1.5x": 3.0,
+                    "2x": 1.41, "3x": 0.4, "5x": 0.1,
+                    "10x": 0.02, "20x": 0.02, "30x": 0.01, "40x": 0.005, "50x": 0.002,
+                    "0.1x": 0.01, "0.2x": 0.01, "0.4x": 0.01,
+                    "0.5x": 0.01, "0.6x": 0.01, "0.8x": 0.01,
                 }
 
         outcomes = list(weights.keys())
@@ -463,7 +460,7 @@ class SpinGameService:
             if (abs(multiplier) < 1e-4 and seg["type"] == "LOSE") or (multiplier > 0.0 and abs(seg["multiplier"] - multiplier) < 1e-4)
         ]
         
-        # Pick one at random to offer visual segment diversity (e.g. Try Again vs Better Luck)
+        # Pick one at random when multiple LOSE segments exist (e.g. two "Lose" slots)
         segment_index, chosen_segment = random.choice(matching_segments)
         win_amount = bet_amount * multiplier
 
