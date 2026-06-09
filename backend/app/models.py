@@ -553,3 +553,30 @@ class Notification(Base):
     data_json = Column(String, nullable=True)  # JSON-serialized metadata
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class PortfolioConfig(Base):
+    __tablename__ = "portfolio_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contact_email = Column(String, nullable=True)
+    contact_phone = Column(String, nullable=True)
+    contact_address = Column(String, nullable=True)
+    office_hours = Column(String, nullable=True)
+    apk_link = Column(String, nullable=True)
+    telegram_link = Column(String, nullable=True)
+    instagram_link = Column(String, nullable=True)
+    referral_code = Column(String, nullable=True)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class PortfolioContactMessage(Base):
+    __tablename__ = "portfolio_contact_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    subject = Column(String, nullable=False)
+    message = Column(String, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+

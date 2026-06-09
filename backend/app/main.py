@@ -9,7 +9,7 @@ import os
 from app.core.config import settings
 from app.core.database import engine, Base, get_db
 from app.models import Contest
-from app.api import auth, contests, wallet, referral, admin, spin, puzzle_game, admin_puzzle, word_game, admin_word, fruit_game, admin_fruit, notifications, arrow_game, admin_arrow
+from app.api import auth, contests, wallet, referral, admin, spin, puzzle_game, admin_puzzle, word_game, admin_word, fruit_game, admin_fruit, notifications, arrow_game, admin_arrow, portfolio
 from app.websocket import manager, puzzle_ws_manager, word_ws_manager, fruit_ws_manager, arrow_ws_manager
 
 # Create database tables
@@ -17,7 +17,8 @@ from app.models import (
     Question, UserQuestionHistory, ImagePuzzleContest, ImagePuzzleGame, ImagePuzzleAttempt, ImagePuzzleLeaderboard,
     WordContest, WordQuestion, WordAttempt, WordAnswer, WordLeaderboard,
     FruitContest, FruitMatch, FruitEvent, FruitScore, FruitLeaderboard,
-    ArrowContest, ArrowGame, ArrowAttempt, ArrowLeaderboard, ArrowPuzzleSeed
+    ArrowContest, ArrowGame, ArrowAttempt, ArrowLeaderboard, ArrowPuzzleSeed,
+    PortfolioConfig, PortfolioContactMessage
 )  # Explicitly import to register on Base
 Base.metadata.create_all(bind=engine)
 
@@ -469,6 +470,8 @@ app.include_router(referral.router, prefix=settings.API_V1_STR)
 app.include_router(spin.router, prefix=settings.API_V1_STR)
 app.include_router(admin.public_router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)
+app.include_router(portfolio.public_router, prefix=settings.API_V1_STR)
+app.include_router(portfolio.admin_router, prefix=settings.API_V1_STR)
 
 app.include_router(puzzle_game.router, prefix=settings.API_V1_STR)
 app.include_router(admin_puzzle.router, prefix=settings.API_V1_STR)

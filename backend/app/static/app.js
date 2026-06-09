@@ -316,6 +316,10 @@ function updateHeaders(tab) {
             el.pageTitle.innerText = "Word Puzzle Manager";
             el.pageSubtitle.innerText = "Manage word puzzle contest lobbies, design vocabularies, and distribute rewards";
             break;
+        case 'portfolio-manager':
+            el.pageTitle.innerText = "Portfolio Website Manager";
+            el.pageSubtitle.innerText = "Configure portfolio settings and manage user contact inquiries";
+            break;
     }
 }
 
@@ -998,6 +1002,54 @@ function setupEventHandlers() {
             }
         });
     }
+
+    // Portfolio Config Form Submit
+    const portForm = document.getElementById('portfolio-config-form');
+    if (portForm) {
+        portForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const contact_email = document.getElementById('port-email').value.trim();
+            const contact_phone = document.getElementById('port-phone').value.trim();
+            const contact_address = document.getElementById('port-address').value.trim();
+            const office_hours = document.getElementById('port-hours').value.trim();
+            const apk_link = document.getElementById('port-apk').value.trim();
+            const telegram_link = document.getElementById('port-telegram').value.trim();
+            const instagram_link = document.getElementById('port-instagram').value.trim();
+            const referral_code = document.getElementById('port-ref-code').value.trim().toUpperCase();
+
+            const payload = {
+                contact_email,
+                contact_phone,
+                contact_address,
+                office_hours,
+                apk_link,
+                telegram_link,
+                instagram_link,
+                referral_code
+            };
+
+            const btn = portForm.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerText = "Saving...";
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/portfolio/config`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) throw new Error(await res.text());
+
+                showToast("Portfolio settings saved successfully!");
+                loadPortfolioManager();
+            } catch (err) {
+                showToast("Failed to save settings: " + err.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Save Settings";
+            }
+        });
+    }
 }
 
 // Data loading
@@ -1061,6 +1113,9 @@ function loadTabSpecificData(tab) {
             break;
         case 'word-manager':
             loadWordManager();
+            break;
+        case 'portfolio-manager':
+            loadPortfolioManager();
             break;
     }
 }
@@ -3271,6 +3326,90 @@ async function deleteArrowContest(contestId) {
 
 window.deleteArrowContest = deleteArrowContest;
 window.completeArrowContest = completeArrowContest;
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+async function loadPortfolioManager() {
+    try {
+        const configRes = await fetch(`${API_BASE}/portfolio/config`);
+        if (configRes.ok) {
+            const config = await configRes.json();
+            document.getElementById('port-email').value = config.contact_email || '';
+            document.getElementById('port-phone').value = config.contact_phone || '';
+            document.getElementById('port-address').value = config.contact_address || '';
+            document.getElementById('port-hours').value = config.office_hours || '';
+            document.getElementById('port-apk').value = config.apk_link || '';
+            document.getElementById('port-telegram').value = config.telegram_link || '';
+            document.getElementById('port-instagram').value = config.instagram_link || '';
+            document.getElementById('port-ref-code').value = config.referral_code || '';
+        }
+        await loadPortfolioInquiries();
+    } catch (err) {
+        showToast("Error loading portfolio: " + err.message, true);
+    }
+}
+
+async function loadPortfolioInquiries() {
+    try {
+        const queriesRes = await fetch(`${API_BASE}/admin/portfolio/contacts`);
+        if (!queriesRes.ok) throw new Error("Failed to load inquiries.");
+        const queries = await queriesRes.json();
+        renderPortfolioQueries(queries);
+    } catch (err) {
+        showToast(err.message, true);
+    }
+}
+
+function renderPortfolioQueries(queries) {
+    const tbody = document.getElementById('portfolio-queries-table-body');
+    if (!tbody) return;
+    if (queries.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="table-placeholder">No inquiries received yet.</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = queries.map(q => {
+        const dateStr = new Date(q.created_at).toLocaleString();
+        return `
+            <tr>
+                <td>${q.id}</td>
+                <td>${dateStr}</td>
+                <td><strong>${escapeHtml(q.name)}</strong></td>
+                <td><a href="mailto:${escapeHtml(q.email)}" style="color: var(--primary); text-decoration: underline;">${escapeHtml(q.email)}</a></td>
+                <td>${escapeHtml(q.subject)}</td>
+                <td><div style="max-width: 250px; overflow-wrap: break-word; font-size: 12px; color: var(--text-muted);">${escapeHtml(q.message)}</div></td>
+                <td>
+                    <button class="btn btn-action btn-ban" onclick="deleteQuery(${q.id})" style="background: rgba(255, 23, 68, 0.1); color: var(--error); border-color: rgba(255, 23, 68, 0.2);">Delete</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function deleteQuery(id) {
+    if (!confirm("Are you sure you want to delete this inquiry?")) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/portfolio/contacts/${id}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error(await res.text());
+        showToast("Inquiry deleted successfully.");
+        loadPortfolioInquiries();
+    } catch (err) {
+        showToast("Failed to delete inquiry: " + err.message, true);
+    }
+}
+
+window.deleteQuery = deleteQuery;
+window.loadPortfolioManager = loadPortfolioManager;
+
 
 
 

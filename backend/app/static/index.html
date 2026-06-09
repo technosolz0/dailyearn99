@@ -118,6 +118,13 @@
                     </svg>
                     Word Manager
                 </button>
+                <button class="menu-item" data-tab="portfolio-manager">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                    </svg>
+                    Portfolio Manager
+                </button>
             </nav>
 
             <div class="sidebar-footer">
@@ -1371,6 +1378,92 @@
                             </div>
                             <button type="button" class="btn btn-primary" id="btn-wqc-save-questions"
                                 style="padding: 10px 20px; font-size: 13px;">Save All Word Questions</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 12. PORTFOLIO MANAGER TAB -->
+                <section class="tab-panel" id="panel-portfolio-manager">
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>Portfolio Details & Settings</h2>
+                            </div>
+                            <form id="portfolio-config-form" class="contest-form" style="margin-top: 15px;">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="port-email">Support Email</label>
+                                        <input type="email" id="port-email" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="port-phone">Contact Phone</label>
+                                        <input type="text" id="port-phone" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="port-address">Office Address</label>
+                                    <input type="text" id="port-address" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="port-hours">Office / Support Hours</label>
+                                    <input type="text" id="port-hours" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="port-apk">Android APK Download Link</label>
+                                    <input type="text" id="port-apk" required>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="port-telegram">Telegram Channel Link</label>
+                                        <input type="text" id="port-telegram">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="port-instagram">Instagram Profile Link</label>
+                                        <input type="text" id="port-instagram">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="port-ref-code">Default Promo Referral Code</label>
+                                    <input type="text" id="port-ref-code" required style="text-transform: uppercase;">
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 15px;">Save Settings</button>
+                            </form>
+                        </div>
+                        <div class="card" style="display: flex; flex-direction: column;">
+                            <div class="card-header">
+                                <h2>System Integration</h2>
+                            </div>
+                            <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6; padding-top: 15px;">
+                                <p style="margin-bottom: 15px;">Updating these details dynamically refreshes the values across the main portfolio website in real-time.</p>
+                                <p style="margin-bottom: 15px;">Ensure the Android APK link is a fully qualified URL (e.g. starting with <code>https://</code>) so users can download the app successfully.</p>
+                                <p>Contact inquiries submitted by users through the website are recorded directly in the shared database and displayed on the table below.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card table-card" style="margin-top: 30px;">
+                        <div class="card-table-header">
+                            <h2>User Queries & Inquiries</h2>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Date</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Subject</th>
+                                        <th>Message</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="portfolio-queries-table-body">
+                                    <tr>
+                                        <td colspan="7" class="table-placeholder">Loading queries...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </section>

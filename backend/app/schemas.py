@@ -657,6 +657,53 @@ class ArrowLeaderboardItem(BaseModel):
         from_attributes = True
 
 
+class PortfolioConfigResponse(BaseModel):
+    id: int
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+    contact_address: Optional[str] = None
+    office_hours: Optional[str] = None
+    apk_link: Optional[str] = None
+    telegram_link: Optional[str] = None
+    instagram_link: Optional[str] = None
+    referral_code: Optional[str] = None
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PortfolioConfigUpdate(BaseModel):
+    contact_email: str
+    contact_phone: str
+    contact_address: str
+    office_hours: str
+    apk_link: str
+    telegram_link: Optional[str] = None
+    instagram_link: Optional[str] = None
+    referral_code: str
+
+
+class PortfolioContactMessageCreate(BaseModel):
+    name: str = Field(..., min_length=1)
+    email: str = Field(..., min_length=1)
+    subject: str = Field(..., min_length=1)
+    message: str = Field(..., min_length=1)
+
+
+class PortfolioContactMessageResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    subject: str
+    message: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+
 
 
 
