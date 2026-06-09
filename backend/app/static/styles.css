@@ -50,6 +50,8 @@ body {
     flex-direction: column;
     padding: 24px;
     flex-shrink: 0;
+    height: 100%;
+    overflow: hidden;
 }
 
 .sidebar-header {
