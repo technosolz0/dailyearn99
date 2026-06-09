@@ -51,11 +51,13 @@ body {
     padding: 24px;
     flex-shrink: 0;
     height: 100%;
-    overflow: hidden;
+    overflow: visible;
+    /* allow inner sidebar-menu scroll to work */
 }
 
 .sidebar-header {
-    margin-bottom: 40px;
+    margin-bottom: 20px;
+    /* reduced from 40px to give menu more room */
 }
 
 .logo {
@@ -88,6 +90,8 @@ body {
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
     padding-right: 4px;
+    padding-bottom: 8px;
+    /* ensure last item is not clipped by footer */
 }
 
 .menu-item {
@@ -207,8 +211,15 @@ body {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* KPI Cards Grid */
@@ -247,10 +258,25 @@ body {
     flex-shrink: 0;
 }
 
-.kpi-icon-wrapper.blue { background-color: rgba(0, 210, 255, 0.1); color: var(--primary); }
-.kpi-icon-wrapper.green { background-color: rgba(0, 230, 118, 0.1); color: var(--success); }
-.kpi-icon-wrapper.purple { background-color: rgba(213, 0, 249, 0.1); color: var(--purple); }
-.kpi-icon-wrapper.orange { background-color: rgba(255, 179, 0, 0.1); color: var(--warning); }
+.kpi-icon-wrapper.blue {
+    background-color: rgba(0, 210, 255, 0.1);
+    color: var(--primary);
+}
+
+.kpi-icon-wrapper.green {
+    background-color: rgba(0, 230, 118, 0.1);
+    color: var(--success);
+}
+
+.kpi-icon-wrapper.purple {
+    background-color: rgba(213, 0, 249, 0.1);
+    color: var(--purple);
+}
+
+.kpi-icon-wrapper.orange {
+    background-color: rgba(255, 179, 0, 0.1);
+    color: var(--warning);
+}
 
 .kpi-icon {
     width: 22px;
@@ -485,10 +511,25 @@ input:focus {
     text-transform: uppercase;
 }
 
-.badge-success { background-color: rgba(0, 230, 118, 0.1); color: var(--success); }
-.badge-warning { background-color: rgba(255, 179, 0, 0.1); color: var(--warning); }
-.badge-error { background-color: rgba(255, 23, 68, 0.1); color: var(--error); }
-.badge-info { background-color: rgba(0, 210, 255, 0.1); color: var(--primary); }
+.badge-success {
+    background-color: rgba(0, 230, 118, 0.1);
+    color: var(--success);
+}
+
+.badge-warning {
+    background-color: rgba(255, 179, 0, 0.1);
+    color: var(--warning);
+}
+
+.badge-error {
+    background-color: rgba(255, 23, 68, 0.1);
+    color: var(--error);
+}
+
+.badge-info {
+    background-color: rgba(0, 210, 255, 0.1);
+    color: var(--primary);
+}
 
 /* User detail elements */
 .user-cell {
@@ -526,9 +567,17 @@ input:focus {
     margin-top: 2px;
 }
 
-.bal-val.dep { color: var(--primary); }
-.bal-val.win { color: var(--success); }
-.bal-val.bon { color: var(--purple); }
+.bal-val.dep {
+    color: var(--primary);
+}
+
+.bal-val.win {
+    color: var(--success);
+}
+
+.bal-val.bon {
+    color: var(--purple);
+}
 
 /* Table Action Buttons */
 .btn-action {
@@ -835,6 +884,7 @@ input:focus {
         opacity: 0;
         transform: scale(0.95) translateY(10px);
     }
+
     to {
         opacity: 1;
         transform: scale(1) translateY(0);
@@ -934,5 +984,3 @@ input:focus {
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
-
-
