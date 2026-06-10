@@ -71,7 +71,7 @@ leaderboard_manager = LeaderboardManager()
 
 class WalletService:
     @staticmethod
-    def deduct_entry_fee(db: Session, user: User, entry_fee: float) -> WalletTransaction:
+    def deduct_entry_fee(db: Session, user: User, entry_fee: float, description: str = None) -> WalletTransaction:
         """
         Deduction Rules:
         - Max 10% of entry fee can be paid using Bonus Wallet.
@@ -98,7 +98,8 @@ class WalletService:
             user_id=user.id,
             type="ENTRY_FEE",
             amount=entry_fee,
-            status="SUCCESS"
+            status="SUCCESS",
+            description=description
         )
         db.add(transaction)
         db.commit()
@@ -109,13 +110,14 @@ class WalletService:
         return transaction
 
     @staticmethod
-    def credit_prize(db: Session, user: User, amount: float) -> WalletTransaction:
+    def credit_prize(db: Session, user: User, amount: float, description: str = None) -> WalletTransaction:
         user.winning_balance += amount
         transaction = WalletTransaction(
             user_id=user.id,
             type="PRIZE_WIN",
             amount=amount,
-            status="SUCCESS"
+            status="SUCCESS",
+            description=description
         )
         db.add(transaction)
         
@@ -131,13 +133,14 @@ class WalletService:
         return transaction
 
     @staticmethod
-    def process_deposit(db: Session, user: User, amount: float) -> WalletTransaction:
+    def process_deposit(db: Session, user: User, amount: float, description: str = "Deposit") -> WalletTransaction:
         user.deposit_balance += amount
         transaction = WalletTransaction(
             user_id=user.id,
             type="DEPOSIT",
             amount=amount,
-            status="SUCCESS"
+            status="SUCCESS",
+            description=description
         )
         db.add(transaction)
         db.commit()
@@ -154,7 +157,7 @@ class WalletService:
         return transaction
 
     @staticmethod
-    def process_withdrawal(db: Session, user: User, amount: float) -> WalletTransaction:
+    def process_withdrawal(db: Session, user: User, amount: float, description: str = "Withdrawal") -> WalletTransaction:
         if user.winning_balance < amount:
             raise ValueError("Insufficient winning balance to withdraw.")
         
@@ -163,7 +166,8 @@ class WalletService:
             user_id=user.id,
             type="WITHDRAWAL",
             amount=amount,
-            status="PENDING"  # Needs admin approval
+            status="PENDING",  # Needs admin approval
+            description=description
         )
         db.add(transaction)
         db.commit()
@@ -217,13 +221,15 @@ class ReferralService:
             user_id=referrer.id,
             type="REFERRAL_BONUS",
             amount=50.0,
-            status="SUCCESS"
+            status="SUCCESS",
+            description=f"Referral Bonus: Invited {referred_user.name or referred_user.phone}"
         )
         tx_referred = WalletTransaction(
             user_id=referred_user.id,
             type="REFERRAL_BONUS",
             amount=20.0,
-            status="SUCCESS"
+            status="SUCCESS",
+            description="Referral Bonus: Welcome Bonus"
         )
         db.add(tx_referrer)
         db.add(tx_referred)
@@ -387,7 +393,8 @@ class SpinGameService:
             user_id=user_id,
             type="ENTRY_FEE",
             amount=bet_amount,
-            status="SUCCESS"
+            status="SUCCESS",
+            description="Entry Fee: Spin Wheel"
         )
         db.add(tx_deduct)
 
@@ -472,7 +479,8 @@ class SpinGameService:
                 user_id=user_id,
                 type="PRIZE_WIN",
                 amount=win_amount,
-                status="SUCCESS"
+                status="SUCCESS",
+                description="Prize Win: Spin Wheel"
             )
             db.add(tx_win)
 
@@ -602,7 +610,7 @@ class ContestService:
                     payout_amount = contest.prize_pool * payout_pcts[p.rank]
                     
             if payout_amount > 0:
-                WalletService.credit_prize(db, user, payout_amount)
+                WalletService.credit_prize(db, user, payout_amount, description=f"Prize Win: Quiz Contest ({contest.title})")
                 payouts_made += 1
             else:
                 send_push_to_user(
@@ -708,7 +716,7 @@ class PuzzleGameService:
             raise ValueError("You have already started or joined this contest.")
 
         # Deduct entry fee using the central WalletService
-        WalletService.deduct_entry_fee(db, user, contest.entry_fee)
+        WalletService.deduct_entry_fee(db, user, contest.entry_fee, description=f"Entry Fee: Puzzle Contest ({contest.title})")
         contest.joined_slots += 1
 
         puzzle_game = db.query(ImagePuzzleGame).filter(ImagePuzzleGame.contest_id == contest_id).first()
@@ -904,7 +912,7 @@ class PuzzleRewardService:
                     payout_amount = contest.prize_pool * pcts[rank_idx]
 
             if payout_amount > 0:
-                WalletService.credit_prize(db, user, payout_amount)
+                WalletService.credit_prize(db, user, payout_amount, description=f"Prize Win: Puzzle Contest ({contest.title})")
                 payouts_made += 1
             else:
                 from app.core.notifications import send_push_to_user
@@ -972,7 +980,7 @@ class WordGameService:
             raise ValueError("You have already joined this contest.")
 
         # Deduct entry fee using central WalletService
-        WalletService.deduct_entry_fee(db, user, contest.entry_fee)
+        WalletService.deduct_entry_fee(db, user, contest.entry_fee, description=f"Entry Fee: Word Contest ({contest.title})")
         contest.joined_slots += 1
 
         session_id = str(uuid.uuid4())
@@ -1255,7 +1263,7 @@ class WordRewardService:
                 continue
 
             if payout_amount > 0.0:
-                WalletService.credit_prize(db, user, payout_amount)
+                WalletService.credit_prize(db, user, payout_amount, description=f"Prize Win: Word Contest ({contest.title})")
                 payouts_made += 1
             else:
                 from app.core.notifications import send_push_to_user
@@ -1405,7 +1413,7 @@ class FruitGameService:
             raise ValueError("You have already started or joined this contest.")
 
         # Deduct wallet entry fee via existing central WalletService
-        WalletService.deduct_entry_fee(db, user, contest.entry_fee)
+        WalletService.deduct_entry_fee(db, user, contest.entry_fee, description=f"Entry Fee: Fruit Contest ({contest.title})")
         contest.joined_slots += 1
 
         session_id = str(uuid.uuid4())
@@ -1611,7 +1619,7 @@ class FruitRewardService:
                 continue
 
             if payout_amount > 0.0:
-                WalletService.credit_prize(db, user, payout_amount)
+                WalletService.credit_prize(db, user, payout_amount, description=f"Prize Win: Fruit Contest ({contest.title})")
                 payouts_made += 1
             else:
                 from app.core.notifications import send_push_to_user
@@ -1847,7 +1855,7 @@ class ArrowGameService:
             raise ValueError("Contest is full.")
 
         # Wallet balances validation and deduction
-        WalletService.deduct_entry_fee(db, user, contest.entry_fee)
+        WalletService.deduct_entry_fee(db, user, contest.entry_fee, description=f"Entry Fee: Arrow Contest ({contest.title})")
         contest.joined_slots += 1
 
         # Generate seed and store it
@@ -2074,7 +2082,7 @@ class ArrowRewardService:
                     payout_amount = contest.prize_pool * pcts[rank_idx]
 
             if payout_amount > 0:
-                WalletService.credit_prize(db, user, payout_amount)
+                WalletService.credit_prize(db, user, payout_amount, description=f"Prize Win: Arrow Contest ({contest.title})")
                 if db_leaderboard:
                     db_leaderboard.prize_amount = payout_amount
                     db_leaderboard.is_paid = True

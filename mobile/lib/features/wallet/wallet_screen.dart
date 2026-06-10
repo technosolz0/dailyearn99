@@ -235,7 +235,9 @@ class _WalletScreenState extends State<WalletScreen> {
                           child: ListTile(
                             leading: Icon(iconData, color: iconColor),
                             title: Text(
-                              tx.type.replaceAll('_', ' '),
+                              tx.description != null && tx.description!.isNotEmpty
+                                  ? tx.description!
+                                  : tx.type.replaceAll('_', ' '),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,

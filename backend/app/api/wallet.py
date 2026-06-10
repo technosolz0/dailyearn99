@@ -46,13 +46,14 @@ def add_money(
             type="DEPOSIT",
             amount=request.amount,
             status="PENDING",
-            utr=utr_str
+            utr=utr_str,
+            description=f"Deposit via UTR ({utr_str})"
         )
         db.add(transaction)
         db.commit()
     else:
         # Default mock instant success route for gateway/testing if UTR is not supplied
-        WalletService.process_deposit(db, current_user, request.amount)
+        WalletService.process_deposit(db, current_user, request.amount, description="Instant Deposit")
         
     db.refresh(current_user)
     return current_user
@@ -82,7 +83,7 @@ def withdraw_money(
         current_user.kyc_status = "VERIFIED" # Mock auto-verification for PAN entry
         
     try:
-        WalletService.process_withdrawal(db, current_user, request.amount)
+        WalletService.process_withdrawal(db, current_user, request.amount, description=f"Withdrawal to Bank (PAN: {pan})")
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -165,7 +166,7 @@ def verify_razorpay_payment(
             detail="Payment verification failed. Invalid signature."
         )
         
-    WalletService.process_deposit(db, current_user, request.amount)
+    WalletService.process_deposit(db, current_user, request.amount, description="Deposit via Razorpay")
     db.refresh(current_user)
     return current_user
 

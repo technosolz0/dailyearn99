@@ -10,7 +10,7 @@ export default function Home() {
   const [isSpinning, setIsSpinning] = useState(false);
 
   const [config, setConfig] = useState({
-    apk_link: "https://api.dailyearn99.in/static/dailyearn99.apk",
+    apk_link: "https://play.google.com/store/apps/details?id=com.dailyearn99.dailyearn99",
     referral_code: "DAILYEARN99"
   });
 
@@ -120,8 +120,8 @@ export default function Home() {
 
               <div className="phone-wheel-container">
                 <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--accent-cyan)' }}>Wheel of Multipliers</span>
-                <div 
-                  className="dummy-wheel" 
+                <div
+                  className="dummy-wheel"
                   style={{
                     transform: isSpinning ? "rotate(1440deg)" : "rotate(0deg)",
                     transition: isSpinning ? "transform 4s cubic-bezier(0.1, 0.8, 0.1, 1)" : "none"
@@ -130,8 +130,8 @@ export default function Home() {
                 >
                   <div className="dummy-wheel-pin"></div>
                 </div>
-                <button 
-                  className="btn-primary" 
+                <button
+                  className="btn-primary"
                   style={{ padding: '8px 16px', fontSize: '12px', borderRadius: '8px' }}
                   onClick={triggerMockSpin}
                   disabled={isSpinning}

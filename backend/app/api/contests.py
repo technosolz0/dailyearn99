@@ -93,7 +93,7 @@ def join_contest(
         
     # Deduct entry fee using wallet service rules
     try:
-        WalletService.deduct_entry_fee(db, current_user, contest.entry_fee)
+        WalletService.deduct_entry_fee(db, current_user, contest.entry_fee, description=f"Entry Fee: Quiz Contest ({contest.title})")
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

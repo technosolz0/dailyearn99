@@ -166,7 +166,8 @@ def adjust_user_balance(id: int, request: AdminAdjustBalanceRequest, db: Session
         user_id=user.id,
         type=tx_type,
         amount=abs(request.amount),
-        status="SUCCESS"
+        status="SUCCESS",
+        description=f"Admin Adjustment: {wallet.capitalize()} Wallet"
     )
     db.add(transaction)
     db.commit()

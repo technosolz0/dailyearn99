@@ -153,6 +153,7 @@ class WalletTransaction(Base):
     status = Column(String, default="PENDING")  # PENDING, SUCCESS, FAILED
     utr = Column(String, unique=True, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    description = Column(String, nullable=True)
 
     user = relationship("User", back_populates="transactions")
 

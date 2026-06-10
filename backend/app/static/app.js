@@ -1613,7 +1613,10 @@ function renderTransactionHistoryTable(txList) {
             <tr>
                 <td>#${tx.id}</td>
                 <td>${userDetails}</td>
-                <td><span class="badge ${typeBadge}">${tx.type}</span></td>
+                <td>
+                    <span class="badge ${typeBadge}">${tx.type}</span>
+                    ${tx.description ? `<div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">${tx.description}</div>` : ''}
+                </td>
                 <td><strong style="${typeStyle}">${prefix}₹${tx.amount.toFixed(2)}</strong></td>
                 <td><span class="badge ${statusBadge}">${tx.status}</span></td>
                 <td>${dateStr}</td>

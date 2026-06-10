@@ -133,6 +133,7 @@ class TransactionResponse(BaseModel):
     amount: float
     status: str
     utr: Optional[str] = None
+    description: Optional[str] = None
     created_at: datetime
 
     class Config:

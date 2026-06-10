@@ -18,11 +18,7 @@ class PrizeRuleModel {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'min_rank': minRank,
-      'max_rank': maxRank,
-      'prize': prize,
-    };
+    return {'min_rank': minRank, 'max_rank': maxRank, 'prize': prize};
   }
 }
 
@@ -93,13 +89,19 @@ class ContestModel {
       status: json['status'] as String,
       prizeRules: json['prize_rules'] != null
           ? (json['prize_rules'] as List)
-              .map((item) => PrizeRuleModel.fromJson(item as Map<String, dynamic>))
-              .toList()
+                .map(
+                  (item) =>
+                      PrizeRuleModel.fromJson(item as Map<String, dynamic>),
+                )
+                .toList()
           : null,
       questions: json['questions'] != null
           ? (json['questions'] as List)
-              .map((item) => QuizQuestionModel.fromJson(item as Map<String, dynamic>))
-              .toList()
+                .map(
+                  (item) =>
+                      QuizQuestionModel.fromJson(item as Map<String, dynamic>),
+                )
+                .toList()
           : null,
       endTime: json['end_time'] != null
           ? DateTime.parse(json['end_time'] as String)
@@ -156,6 +158,7 @@ class TransactionModel {
   final double amount;
   final String status;
   final DateTime createdAt;
+  final String? description;
 
   TransactionModel({
     required this.id,
@@ -164,6 +167,7 @@ class TransactionModel {
     required this.amount,
     required this.status,
     required this.createdAt,
+    this.description,
   });
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
@@ -174,6 +178,7 @@ class TransactionModel {
       amount: (json['amount'] as num).toDouble(),
       status: json['status'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
+      description: json['description'] as String?,
     );
   }
 }
@@ -192,8 +197,13 @@ class ReferralDetailsModel {
   });
 
   factory ReferralDetailsModel.fromJson(Map<String, dynamic> json) {
-    final referralsList = (json['referrals'] as List?)
-            ?.map((item) => ReferralHistoryItemModel.fromJson(item as Map<String, dynamic>))
+    final referralsList =
+        (json['referrals'] as List?)
+            ?.map(
+              (item) => ReferralHistoryItemModel.fromJson(
+                item as Map<String, dynamic>,
+              ),
+            )
             .toList() ??
         [];
     return ReferralDetailsModel(

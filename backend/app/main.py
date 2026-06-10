@@ -72,6 +72,7 @@ def migrate_database():
 
     columns_transactions = [
         ("utr", "VARCHAR UNIQUE"),
+        ("description", "VARCHAR"),
     ]
     for col_name, col_type in columns_transactions:
         try:
