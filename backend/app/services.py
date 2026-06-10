@@ -7,6 +7,7 @@ from app.models import FruitLeaderboard
 from app.models import FruitScore
 from app.models import FruitContest
 from app.models import FruitMatch
+from app.models import FruitEvent
 from app.models import ImagePuzzleLeaderboard
 from app.models import ImagePuzzleContest
 from app.models import ImagePuzzleAttempt
@@ -1487,6 +1488,31 @@ class FruitGameService:
             is_verified=True
         )
         db.add(score_record)
+
+        # Save telemetry events in the database
+        import json
+        for swipe in data.telemetry:
+            if swipe.is_bomb_hit:
+                points_delta = -100
+                event_type = "BOMB_HIT"
+            else:
+                event_type = "SWIPE"
+                slice_count = len(swipe.sliced_items)
+                points_delta = slice_count * 10
+                if slice_count >= 5:
+                    points_delta += 50
+                elif slice_count >= 3:
+                    points_delta += 20
+
+            db_event = FruitEvent(
+                match_id=match_record.id,
+                event_type=event_type,
+                timestamp_ms=swipe.timestamp_ms,
+                coordinates=json.dumps([{"x": p.x, "y": p.y, "t": p.t} for p in swipe.path]),
+                sliced_items=json.dumps([{"id": item.id, "item_type": item.item_type, "slice_angle": item.slice_angle} for item in swipe.sliced_items]),
+                points_delta=points_delta
+            )
+            db.add(db_event)
 
         match_record.status = "SUBMITTED"
         match_record.submitted_at = datetime.now(timezone.utc)

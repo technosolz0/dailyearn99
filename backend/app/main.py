@@ -14,6 +14,7 @@ from app.websocket import manager, puzzle_ws_manager, word_ws_manager, fruit_ws_
 
 # Create database tables
 from app.models import (
+    User, Contest, ContestParticipant, WalletTransaction, Referral, Spin, RTPSettings, SpinAuditLog, Notification,
     Question, UserQuestionHistory, ImagePuzzleContest, ImagePuzzleGame, ImagePuzzleAttempt, ImagePuzzleLeaderboard,
     WordContest, WordQuestion, WordAttempt, WordAnswer, WordLeaderboard,
     FruitContest, FruitMatch, FruitEvent, FruitScore, FruitLeaderboard,
