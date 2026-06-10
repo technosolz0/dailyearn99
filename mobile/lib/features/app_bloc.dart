@@ -579,6 +579,9 @@ class AppBloc extends Bloc<AppEvent, AppState> {
           sound: true,
         );
         final fcmToken = await messaging.getToken();
+        print("=================== FCM TOKEN ===================");
+        print("$fcmToken");
+        print("=================================================");
         if (fcmToken != null) {
           add(RegisterFcmTokenEvent(fcmToken));
         }

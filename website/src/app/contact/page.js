@@ -38,15 +38,27 @@ export default function Contact() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Contact form submission triggered!");
+    console.log("Current API_BASE URL:", API_BASE);
+    console.log("Form data payload being sent:", formData);
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/portfolio/contact`, {
+      const url = `${API_BASE}/portfolio/contact`;
+      console.log("Fetching URL:", url);
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)
       });
-      if (!res.ok) throw new Error(await res.text());
+      console.log("Fetch response received. Status:", res.status, "OK:", res.ok);
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("API response error text:", errText);
+        throw new Error(errText);
+      }
+      const data = await res.json();
+      console.log("API response JSON data:", data);
       setSubmitted(true);
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch (err) {
@@ -54,6 +66,7 @@ export default function Contact() {
       setError("Failed to submit message. Please check your connection and try again.");
     } finally {
       setLoading(false);
+      console.log("Submission process finished, loading state set to false.");
     }
   };
 
