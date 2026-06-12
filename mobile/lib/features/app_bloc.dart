@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -265,6 +267,9 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   PhoneAuthCredential? _pendingCredential;
 
   AppBloc(this._apiClient) : super(AppState()) {
+    _apiClient.onUnauthenticated = () {
+      add(LogoutEvent());
+    };
     on<AppStartedEvent>(_onAppStarted);
     on<SendOtpEvent>(_onSendOtp);
     on<VerifyOtpEvent>(_onVerifyOtp);
@@ -286,6 +291,58 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     on<PlaySpinWheelEvent>(_onPlaySpinWheel);
     on<FetchSpinHistoryEvent>(_onFetchSpinHistory);
     on<ResetSpinEvent>(_onResetSpin);
+  }
+
+  Future<String> _getDeviceDetails() async {
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        return '${androidInfo.brand} ${androidInfo.model} (Android ${androidInfo.version.release})';
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        return '${iosInfo.name} ${iosInfo.model} (iOS ${iosInfo.systemVersion})';
+      }
+      return Platform.operatingSystem;
+    } catch (e) {
+      return 'Unknown Device';
+    }
+  }
+
+  Future<void> _updateFcmToken({bool force = false}) async {
+    try {
+      final secureStorage = getIt<SecureStorageService>();
+      final lastUpdateStr = await secureStorage.getLastFcmUpdateDate();
+      DateTime? lastUpdate;
+      if (lastUpdateStr != null) {
+        lastUpdate = DateTime.tryParse(lastUpdateStr);
+      }
+
+      final now = DateTime.now();
+      final shouldUpdate = force ||
+          lastUpdate == null ||
+          now.difference(lastUpdate).inDays >= 4;
+
+      if (shouldUpdate) {
+        final messaging = FirebaseMessaging.instance;
+        await messaging.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        final fcmToken = await messaging.getToken();
+        if (fcmToken != null && fcmToken.isNotEmpty) {
+          await _apiClient.post(
+            ApiConstants.registerFcmToken,
+            data: {'fcm_token': fcmToken},
+          );
+          await secureStorage.saveLastFcmUpdateDate(now.toIso8601String());
+          print("FCM token updated successfully (force: $force)");
+        }
+      }
+    } catch (e) {
+      print("Error in _updateFcmToken: $e");
+    }
   }
 
   Future<void> _onSendOtp(SendOtpEvent event, Emitter<AppState> emit) async {
@@ -453,9 +510,10 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       if (idToken.isEmpty) {
         throw Exception("Failed to retrieve Firebase ID token.");
       }
+      final deviceDetails = await _getDeviceDetails();
       final response = await _apiClient.post(
         ApiConstants.verifyOtp,
-        data: {'id_token': idToken},
+        data: {'id_token': idToken, 'device_details': deviceDetails},
       );
       final token = response.data['access_token'] as String;
       final refreshToken = response.data['refresh_token'] as String;
@@ -463,6 +521,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         accessToken: token,
         refreshToken: refreshToken,
       );
+      unawaited(_updateFcmToken(force: true));
       emit(state.copyWith(token: token, otpSentMessage: null));
       add(LoadProfileEvent());
     } catch (e, stackTrace) {
@@ -526,6 +585,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         }
       }
 
+      final deviceDetails = await _getDeviceDetails();
       final response = await _apiClient.post(
         ApiConstants.verifyOtp,
         data: {
@@ -539,6 +599,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
           'last_name': event.lastName?.isNotEmpty == true
               ? event.lastName
               : null,
+          'device_details': deviceDetails,
         },
       );
       final token = response.data['access_token'] as String;
@@ -547,6 +608,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         accessToken: token,
         refreshToken: refreshToken,
       );
+      unawaited(_updateFcmToken(force: true));
       emit(state.copyWith(token: token, otpSentMessage: null));
       add(LoadProfileEvent());
     } catch (e, stackTrace) {
@@ -570,24 +632,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       await getIt<SecureStorageService>().saveUser(user);
       emit(state.copyWith(isAuthLoading: false, currentUser: user));
 
-      // Request FCM permission and retrieve token
-      try {
-        final messaging = FirebaseMessaging.instance;
-        await messaging.requestPermission(
-          alert: true,
-          badge: true,
-          sound: true,
-        );
-        final fcmToken = await messaging.getToken();
-        print("=================== FCM TOKEN ===================");
-        print("$fcmToken");
-        print("=================================================");
-        if (fcmToken != null) {
-          add(RegisterFcmTokenEvent(fcmToken));
-        }
-      } catch (fcmError) {
-        print("FCM initialization warning: $fcmError");
-      }
+      unawaited(_updateFcmToken(force: false));
     } catch (e, stackTrace) {
       emit(
         state.copyWith(
@@ -909,6 +954,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         ),
       );
       if (_apiClient.hasToken) {
+        unawaited(_updateFcmToken(force: false));
         final secureStorage = getIt<SecureStorageService>();
         // Load cached user profile instantly to avoid black/empty screens
         final cachedUser = await secureStorage.getUser();

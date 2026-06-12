@@ -20,6 +20,8 @@ class User(Base):
     kyc_status = Column(String, default="PENDING")  # PENDING, VERIFIED, REJECTED
     is_banned = Column(Boolean, default=False)
     fcm_token = Column(String, nullable=True)
+    device_details = Column(String, nullable=True)
+    last_login = Column(DateTime, nullable=True)
     
     # Bank Details for Withdrawals
     bank_account_number = Column(String, nullable=True)

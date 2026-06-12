@@ -18,6 +18,15 @@ class SecureStorageService {
   static const String _accessTokenKey = 'access_token';
   static const String _refreshTokenKey = 'refresh_token';
   static const String _userKey = 'cached_user';
+  static const String _lastFcmUpdateKey = 'last_fcm_update';
+
+  Future<void> saveLastFcmUpdateDate(String date) async {
+    await _storage.write(key: _lastFcmUpdateKey, value: date);
+  }
+
+  Future<String?> getLastFcmUpdateDate() async {
+    return await _storage.read(key: _lastFcmUpdateKey);
+  }
 
   Future<void> saveAccessToken(String token) async {
     await _storage.write(key: _accessTokenKey, value: token);
@@ -38,6 +47,7 @@ class SecureStorageService {
   Future<void> clearTokens() async {
     await _storage.delete(key: _accessTokenKey);
     await _storage.delete(key: _refreshTokenKey);
+    await _storage.delete(key: _lastFcmUpdateKey);
   }
 
   Future<void> saveUser(UserModel user) async {

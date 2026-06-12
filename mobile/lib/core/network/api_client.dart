@@ -7,6 +7,7 @@ class ApiClient {
   final Dio _dio;
   final SecureStorageService _secureStorage;
   String? _token;
+  void Function()? onUnauthenticated;
 
   ApiClient(this._secureStorage)
     : _dio = Dio(
@@ -35,67 +36,73 @@ class ApiClient {
             final requestOptions = e.requestOptions;
             final path = requestOptions.path;
 
-            // Avoid infinite loops by checking retry flag and preventing refresh on auth endpoints
-            final isAuthEndpoint =
-                path.contains('/auth/refresh') ||
-                path.contains('/auth/verify-otp');
+            final isVerifyOtpEndpoint = path.contains('/auth/verify-otp');
+            final isRefreshEndpoint = path.contains('/auth/refresh');
             final isRetry = requestOptions.extra['isRetry'] == true;
 
-            if (!isAuthEndpoint && !isRetry) {
-              final refreshToken = await _secureStorage.getRefreshToken();
-              if (refreshToken != null) {
-                try {
-                  // Use a separate Dio instance to avoid interceptor side-effects during refresh
-                  final refreshDio = Dio(
-                    BaseOptions(
-                      baseUrl: ApiConstants.baseUrl,
-                      connectTimeout: const Duration(seconds: 15),
-                      receiveTimeout: const Duration(seconds: 15),
-                    ),
-                  );
-
-                  final refreshResponse = await refreshDio.post(
-                    '/auth/refresh',
-                    data: {'refresh_token': refreshToken},
-                  );
-
-                  if (refreshResponse.statusCode == 200 ||
-                      refreshResponse.statusCode == 201) {
-                    final newAccessToken =
-                        refreshResponse.data['access_token'] as String;
-                    final newRefreshToken =
-                        refreshResponse.data['refresh_token'] as String;
-
-                    // Save new tokens securely
-                    await saveTokens(
-                      accessToken: newAccessToken,
-                      refreshToken: newRefreshToken,
-                    );
-
-                    // Update request header and retry
-                    requestOptions.headers['Authorization'] =
-                        'Bearer $newAccessToken';
-                    requestOptions.extra['isRetry'] = true;
-
-                    final retryResponse = await _dio.request(
-                      requestOptions.path,
-                      options: Options(
-                        method: requestOptions.method,
-                        headers: requestOptions.headers,
-                        extra: requestOptions.extra,
+            if (!isVerifyOtpEndpoint) {
+              if (!isRefreshEndpoint && !isRetry) {
+                final refreshToken = await _secureStorage.getRefreshToken();
+                if (refreshToken != null) {
+                  try {
+                    // Use a separate Dio instance to avoid interceptor side-effects during refresh
+                    final refreshDio = Dio(
+                      BaseOptions(
+                        baseUrl: ApiConstants.baseUrl,
+                        connectTimeout: const Duration(seconds: 15),
+                        receiveTimeout: const Duration(seconds: 15),
                       ),
-                      data: requestOptions.data,
-                      queryParameters: requestOptions.queryParameters,
                     );
-                    return handler.resolve(retryResponse);
+
+                    final refreshResponse = await refreshDio.post(
+                      '/auth/refresh',
+                      data: {'refresh_token': refreshToken},
+                    );
+
+                    if (refreshResponse.statusCode == 200 ||
+                        refreshResponse.statusCode == 201) {
+                      final newAccessToken =
+                          refreshResponse.data['access_token'] as String;
+                      final newRefreshToken =
+                          refreshResponse.data['refresh_token'] as String;
+
+                      // Save new tokens securely
+                      await saveTokens(
+                        accessToken: newAccessToken,
+                        refreshToken: newRefreshToken,
+                      );
+
+                      // Update request header and retry
+                      requestOptions.headers['Authorization'] =
+                          'Bearer $newAccessToken';
+                      requestOptions.extra['isRetry'] = true;
+
+                      final retryResponse = await _dio.request(
+                        requestOptions.path,
+                        options: Options(
+                          method: requestOptions.method,
+                          headers: requestOptions.headers,
+                          extra: requestOptions.extra,
+                        ),
+                        data: requestOptions.data,
+                        queryParameters: requestOptions.queryParameters,
+                      );
+                      return handler.resolve(retryResponse);
+                    }
+                  } catch (refreshError) {
+                    // Refresh failed, clear tokens and let error propagate
+                    await clearTokens();
+                    onUnauthenticated?.call();
                   }
-                } catch (refreshError) {
-                  // Refresh failed, clear tokens and let error propagate
+                } else {
+                  // No refresh token, clear tokens
                   await clearTokens();
+                  onUnauthenticated?.call();
                 }
               } else {
-                // No refresh token, clear tokens
+                // If it is the refresh endpoint itself that returned 401, or already a retry that failed
                 await clearTokens();
+                onUnauthenticated?.call();
               }
             }
           }

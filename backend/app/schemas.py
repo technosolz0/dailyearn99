@@ -19,6 +19,7 @@ class VerifyOTPRequest(BaseModel):
     referred_by: Optional[str] = None  # Optional referral code during registration
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    device_details: Optional[str] = None
 
 class UserResponse(BaseModel):
     id: int
@@ -35,6 +36,8 @@ class UserResponse(BaseModel):
     kyc_status: str
     is_banned: bool
     fcm_token: Optional[str] = None
+    device_details: Optional[str] = None
+    last_login: Optional[datetime] = None
     bank_account_number: Optional[str] = None
     bank_ifsc_code: Optional[str] = None
     bank_account_holder_name: Optional[str] = None
