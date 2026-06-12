@@ -64,22 +64,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Future.delayed(const Duration(milliseconds: 300), () {
               _otpFocusNode.requestFocus();
             });
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.otpSentMessage!),
-                backgroundColor: AppTheme.accentCyan,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
+            ScaffoldMessenger.of(context)
+              ..clearSnackBars()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(state.otpSentMessage!),
+                  backgroundColor: AppTheme.accentCyan,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            context.read<AppBloc>().add(ClearAuthMessageEvent());
           }
           if (state.authError != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.authError!),
-                backgroundColor: AppTheme.accentRed,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
+            ScaffoldMessenger.of(context)
+              ..clearSnackBars()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(state.authError!),
+                  backgroundColor: AppTheme.accentRed,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            context.read<AppBloc>().add(ClearAuthMessageEvent());
           }
         },
         child: PremiumBackground(
@@ -284,7 +290,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 CustomTextField(
                   controller: _referralController,
                   labelText: 'Referral Code (Optional)',
-                  hintText: 'e.g. DE99WXYZ',
+                  hintText: 'e.g. DailyEarn99',
                   textCapitalization: TextCapitalization.characters,
                   prefixIcon: const Icon(Icons.card_giftcard_rounded, size: 20),
                 ),
@@ -538,13 +544,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       onPressed: () {
                         final otp = _otpController.text.trim();
                         if (otp.length < 6) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please enter a valid 6-digit OTP'),
-                              backgroundColor: AppTheme.accentPurple,
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
+                          ScaffoldMessenger.of(context)
+                            ..clearSnackBars()
+                            ..showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Please enter a valid 6-digit OTP',
+                                ),
+                                backgroundColor: AppTheme.accentPurple,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
                           return;
                         }
                         _verifyOtp(context, otp);
@@ -567,6 +577,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: TextButton(
                     onPressed: () {
                       FocusManager.instance.primaryFocus?.unfocus();
+                      context.read<AppBloc>().add(ClearAuthMessageEvent());
                       setState(() {
                         _otpSent = false;
                         _otpController.clear();
@@ -605,24 +616,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final phone = _phoneController.text.trim();
 
     if (firstName.isEmpty || lastName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter both your first and last name'),
-          backgroundColor: AppTheme.accentPurple,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Please enter both your first and last name'),
+            backgroundColor: AppTheme.accentPurple,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       return;
     }
 
     if (phone.isEmpty || phone.length < 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a valid 10-digit phone number'),
-          backgroundColor: AppTheme.accentPurple,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Please enter a valid 10-digit phone number'),
+            backgroundColor: AppTheme.accentPurple,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       return;
     }
 
@@ -633,15 +648,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _termsAccepted = true;
         });
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'You must agree to the Terms & Conditions to proceed',
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text(
+                'You must agree to the Terms & Conditions to proceed',
+              ),
+              backgroundColor: AppTheme.accentRed,
+              behavior: SnackBarBehavior.floating,
             ),
-            backgroundColor: AppTheme.accentRed,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+          );
         return;
       }
     }

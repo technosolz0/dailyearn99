@@ -121,16 +121,17 @@ class _ReferralScreenState extends State<ReferralScreen> {
                                           text: details.referralCode,
                                         ),
                                       );
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Referral code copied to clipboard!',
+                                      ScaffoldMessenger.of(context)
+                                        ..clearSnackBars()
+                                        ..showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Referral code copied to clipboard!',
+                                            ),
+                                            backgroundColor:
+                                                AppTheme.accentCyan,
                                           ),
-                                          backgroundColor: AppTheme.accentCyan,
-                                        ),
-                                      );
+                                        );
                                     }
                                   },
                                 ),

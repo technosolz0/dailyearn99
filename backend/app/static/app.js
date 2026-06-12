@@ -183,6 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupTabNavigation();
     setupEventHandlers();
+    setupPromoCodeHandlers();
 
     // Check initial authentication status
     const token = localStorage.getItem('adminToken');
@@ -319,6 +320,10 @@ function updateHeaders(tab) {
         case 'portfolio-manager':
             el.pageTitle.innerText = "Portfolio Website Manager";
             el.pageSubtitle.innerText = "Configure portfolio settings and manage user contact inquiries";
+            break;
+        case 'promo-codes':
+            el.pageTitle.innerText = "Promo & Referral Codes Manager";
+            el.pageSubtitle.innerText = "Create, edit, and delete default or custom promotional referral codes";
             break;
     }
 }
@@ -1116,6 +1121,9 @@ function loadTabSpecificData(tab) {
             break;
         case 'portfolio-manager':
             loadPortfolioManager();
+            break;
+        case 'promo-codes':
+            loadPromoCodes();
             break;
     }
 }
@@ -3412,6 +3420,144 @@ async function deleteQuery(id) {
 
 window.deleteQuery = deleteQuery;
 window.loadPortfolioManager = loadPortfolioManager;
+
+
+// ==========================================
+// PROMO CODES MANAGEMENT
+// ==========================================
+state.promoCodes = [];
+
+async function loadPromoCodes() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/promo-codes`);
+        if (!res.ok) throw new Error("Failed to load promo codes list.");
+        state.promoCodes = await res.json();
+        renderPromoCodesTable(state.promoCodes);
+    } catch (err) {
+        showToast(err.message, true);
+    }
+}
+
+function renderPromoCodesTable(promoList) {
+    const tbody = document.getElementById('promo-codes-table-body');
+    if (!tbody) return;
+    if (promoList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="table-placeholder">No promo codes found.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = promoList.map(p => {
+        return `
+            <tr>
+                <td><strong>${escapeHtml(p.code)}</strong></td>
+                <td>₹${p.bonus_amount.toFixed(2)}</td>
+                <td>${escapeHtml(p.description || '')}</td>
+                <td>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button class="btn btn-action" onclick="editPromoCode(${p.id})">Edit</button>
+                        <button class="btn btn-action btn-ban" onclick="deletePromoCode(${p.id})" style="background: rgba(255, 23, 68, 0.1); color: var(--error); border-color: rgba(255, 23, 68, 0.2);">Delete</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function editPromoCode(id) {
+    const promo = state.promoCodes.find(p => p.id === id);
+    if (!promo) return;
+
+    document.getElementById('promo-id').value = promo.id;
+    document.getElementById('promo-code').value = promo.code;
+    document.getElementById('promo-bonus').value = promo.bonus_amount;
+    document.getElementById('promo-description').value = promo.description || '';
+
+    document.getElementById('promo-form-title').innerText = "Edit Promo Referral Code";
+    document.getElementById('btn-promo-submit').innerText = "Save Changes";
+    document.getElementById('btn-promo-cancel').style.display = "block";
+}
+
+async function deletePromoCode(id) {
+    if (!confirm("Are you sure you want to delete this promo code?")) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/promo-codes/${id}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error(await res.text());
+        showToast("Promo code deleted successfully.");
+        loadPromoCodes();
+    } catch (err) {
+        showToast("Failed to delete promo code: " + err.message, true);
+    }
+}
+
+function setupPromoCodeHandlers() {
+    const promoForm = document.getElementById('promo-code-form');
+    if (promoForm) {
+        promoForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('promo-id').value;
+            const code = document.getElementById('promo-code').value.trim().toUpperCase();
+            const bonus_amount = parseFloat(document.getElementById('promo-bonus').value);
+            const description = document.getElementById('promo-description').value.trim();
+
+            const payload = {
+                code,
+                bonus_amount,
+                description
+            };
+
+            const isEdit = id && id.length > 0;
+            const url = isEdit ? `${API_BASE}/admin/promo-codes/${id}` : `${API_BASE}/admin/promo-codes`;
+            const method = isEdit ? 'PUT' : 'POST';
+
+            const btn = document.getElementById('btn-promo-submit');
+            btn.disabled = true;
+            btn.innerText = "Saving...";
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) throw new Error(await res.text());
+
+                showToast(isEdit ? "Promo code updated successfully!" : "Promo code created successfully!");
+                resetPromoForm();
+                loadPromoCodes();
+            } catch (err) {
+                showToast("Failed to save promo code: " + err.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = isEdit ? "Save Changes" : "Create Code";
+            }
+        });
+    }
+
+    const btnCancel = document.getElementById('btn-promo-cancel');
+    if (btnCancel) {
+        btnCancel.addEventListener('click', () => {
+            resetPromoForm();
+        });
+    }
+}
+
+function resetPromoForm() {
+    document.getElementById('promo-id').value = '';
+    document.getElementById('promo-code').value = '';
+    document.getElementById('promo-bonus').value = '25';
+    document.getElementById('promo-description').value = '';
+
+    document.getElementById('promo-form-title').innerText = "Create Promo Referral Code";
+    document.getElementById('btn-promo-submit').innerText = "Create Code";
+    document.getElementById('btn-promo-cancel').style.display = "none";
+}
+
+window.editPromoCode = editPromoCode;
+window.deletePromoCode = deletePromoCode;
+window.loadPromoCodes = loadPromoCodes;
+window.setupPromoCodeHandlers = setupPromoCodeHandlers;
 
 
 

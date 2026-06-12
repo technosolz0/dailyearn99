@@ -50,7 +50,7 @@ class _WordGameScreenState extends State<WordGameScreen> {
               context,
             ).add(StartWordContestEvent(widget.contestId, state.sessionId));
           } else if (state is WordPuzzleErrorState) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: Colors.redAccent,

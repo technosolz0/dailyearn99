@@ -45,7 +45,7 @@ class _PuzzleGameScreenState extends State<PuzzleGameScreen> {
           if (state is PuzzleSuccessState) {
             _showSuccessDialog(context, state.finalScore);
           } else if (state is PuzzleErrorState) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: Colors.redAccent,

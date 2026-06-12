@@ -312,7 +312,7 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
   void _executeSpinRequest() {
     final double betAmount = double.tryParse(_betController.text.trim()) ?? 0.0;
     if (betAmount < 1.0) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
         const SnackBar(
           content: Text('Minimum bet is ₹1.00.'),
           backgroundColor: AppTheme.accentRed,
@@ -321,7 +321,7 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
       return;
     }
     if (betAmount > 5000.0) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
         const SnackBar(
           content: Text('Daily responsible gaming limit is ₹5000.00.'),
           backgroundColor: AppTheme.accentRed,
@@ -344,7 +344,7 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
           prev.spinError != curr.spinError,
       listener: (context, state) {
         if (state.spinError != null && !_isSpinning) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
             SnackBar(
               content: Text(state.spinError!),
               backgroundColor: AppTheme.accentRed,

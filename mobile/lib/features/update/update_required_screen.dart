@@ -60,7 +60,7 @@ class _UpdateRequiredScreenState extends State<UpdateRequiredScreen>
       setState(() {
         _isRedirecting = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
         SnackBar(
           content: Text(
             'Navigating to update link:\n${widget.updateUrl}',

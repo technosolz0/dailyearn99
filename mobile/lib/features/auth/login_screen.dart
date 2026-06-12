@@ -55,22 +55,24 @@ class _LoginScreenState extends State<LoginScreen> {
             Future.delayed(const Duration(milliseconds: 300), () {
               _otpFocusNode.requestFocus();
             });
-            ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
               SnackBar(
                 content: Text(state.otpSentMessage!),
                 backgroundColor: AppTheme.accentCyan,
                 behavior: SnackBarBehavior.floating,
               ),
             );
+            context.read<AppBloc>().add(ClearAuthMessageEvent());
           }
           if (state.authError != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
               SnackBar(
                 content: Text(state.authError!),
                 backgroundColor: AppTheme.accentRed,
                 behavior: SnackBarBehavior.floating,
               ),
             );
+            context.read<AppBloc>().add(ClearAuthMessageEvent());
           }
         },
         child: PremiumBackground(
@@ -493,7 +495,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () {
                         final otp = _otpController.text.trim();
                         if (otp.length < 6) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                             const SnackBar(
                               content: Text('Please enter a valid 6-digit OTP'),
                               backgroundColor: AppTheme.accentPurple,
@@ -522,6 +524,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: TextButton(
                     onPressed: () {
                       FocusManager.instance.primaryFocus?.unfocus();
+                      context.read<AppBloc>().add(ClearAuthMessageEvent());
                       setState(() {
                         _otpSent = false;
                         _otpController.clear();
@@ -557,7 +560,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _requestOtp(BuildContext context) async {
     final phone = _phoneController.text.trim();
     if (phone.isEmpty || phone.length < 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
         const SnackBar(
           content: Text('Please enter a valid 10-digit phone number'),
           backgroundColor: AppTheme.accentPurple,
@@ -574,7 +577,7 @@ class _LoginScreenState extends State<LoginScreen> {
           _termsAccepted = true;
         });
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
           const SnackBar(
             content: Text(
               'You must agree to the Terms & Conditions to proceed',

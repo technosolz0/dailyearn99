@@ -122,7 +122,7 @@ class _WalletScreenState extends State<WalletScreen> {
                           onPressed: () {
                             if (user?.bankAccountNumber == null ||
                                 user!.bankAccountNumber!.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                                 const SnackBar(
                                   content: Text(
                                     '⚠️ Please add your bank details below before withdrawing winnings.',
@@ -390,7 +390,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     if (showKycStep) {
                       final pan = _panController.text.trim().toUpperCase();
                       if (pan.length != 10) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                           const SnackBar(
                             content: Text(
                               'Invalid PAN format (Must be 10 characters)',
@@ -410,7 +410,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       );
                       if (amt == null || amt <= 0) return;
                       if (amt > winBalance) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                           const SnackBar(
                             content: Text(
                               'Withdrawal amount exceeds Winning Balance',
@@ -691,7 +691,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     bank.isEmpty ||
                     acNo.isEmpty ||
                     ifsc.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                     const SnackBar(
                       content: Text('All fields are required.'),
                       backgroundColor: AppTheme.accentRed,
@@ -701,7 +701,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 }
 
                 if (acNo.length < 9 || acNo.length > 18) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                     const SnackBar(
                       content: Text(
                         'Account number must be between 9 and 18 digits.',
@@ -713,7 +713,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 }
 
                 if (ifsc.length != 11) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                     const SnackBar(
                       content: Text('IFSC code must be exactly 11 characters.'),
                       backgroundColor: AppTheme.accentRed,
@@ -732,7 +732,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   ),
                 );
 
-                ScaffoldMessenger.of(context).showSnackBar(
+                ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                   const SnackBar(
                     content: Text('Bank account details saved successfully!'),
                     backgroundColor: AppTheme.accentEmerald,

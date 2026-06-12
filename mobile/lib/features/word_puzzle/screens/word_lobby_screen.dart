@@ -712,7 +712,7 @@ class _WordLobbyScreenState extends State<WordLobbyScreen> {
     } catch (e) {
       if (context.mounted) {
         Navigator.pop(context); // Close loading spinner
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceAll('Exception: ', '')),
             backgroundColor: Colors.redAccent,

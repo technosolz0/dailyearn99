@@ -86,7 +86,9 @@ class ErrorHandler {
     if (errorString.contains('invalid-verification-code') ||
         errorString.contains('invalid otp') ||
         errorString.contains('wrong otp') ||
-        errorString.contains('sms-code-expired')) {
+        errorString.contains('sms-code-expired') ||
+        errorString.contains('session-expired') ||
+        errorString.contains('sms code has expired')) {
       return 'Invalid or expired OTP. Please check the code and try again.';
     }
 

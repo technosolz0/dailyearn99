@@ -1400,7 +1400,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         context.read<AppBloc>().add(
                           JoinContestEvent(contest.id),
                         );
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                           SnackBar(
                             content: Text('Registered for ${contest.title}!'),
                             backgroundColor: AppTheme.accentEmerald,

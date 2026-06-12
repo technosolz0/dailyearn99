@@ -204,7 +204,7 @@ class _ArrowGameScreenState extends State<ArrowGameScreen> with SingleTickerProv
           if (state is ArrowSuccessState) {
             _showSuccessDialog(context, state.finalScore);
           } else if (state is ArrowErrorState) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: Colors.redAccent,

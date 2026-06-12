@@ -243,7 +243,7 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                                   Clipboard.setData(
                                     ClipboardData(text: upiId),
                                   );
-                                  ScaffoldMessenger.of(context).showSnackBar(
+                                  ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                                     const SnackBar(
                                       content: Text(
                                         'UPI ID copied to clipboard.',
@@ -348,7 +348,7 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                               Clipboard.setData(
                                 ClipboardData(text: supportPhone),
                               );
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                                 const SnackBar(
                                   content: Text('Support phone copied.'),
                                   backgroundColor: AppTheme.accentAmber,
@@ -387,7 +387,7 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                               Clipboard.setData(
                                 ClipboardData(text: supportEmail),
                               );
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                                 const SnackBar(
                                   content: Text('Support email copied.'),
                                   backgroundColor: AppTheme.accentAmber,
@@ -454,7 +454,7 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                     final String utr = _utrController.text.trim();
 
                     if (amt == null || amt <= 0.0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                         const SnackBar(
                           content: Text('Please enter a valid amount.'),
                           backgroundColor: AppTheme.accentRed,
@@ -463,7 +463,7 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                       return;
                     }
                     if (utr.length != 12) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                         const SnackBar(
                           content: Text(
                             'Please enter a valid 12-digit UTR/Reference ID.',
@@ -482,7 +482,7 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                       DepositMoneyEvent(amt, utr: utr),
                     );
 
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                       SnackBar(
                         content: Text(
                           'Deposit request of ₹${amt.toStringAsFixed(2)} submitted successfully for verification! (UTR: $utr)',
@@ -589,7 +589,7 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
           icon: const Icon(Icons.copy, size: 14, color: AppTheme.accentCyan),
           onPressed: () {
             Clipboard.setData(ClipboardData(text: value));
-            ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
               SnackBar(
                 content: Text('$label copied to clipboard.'),
                 backgroundColor: AppTheme.accentCyan,

@@ -125,6 +125,13 @@
                     </svg>
                     Portfolio Manager
                 </button>
+                <button class="menu-item" data-tab="promo-codes">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                        <line x1="7" y1="7" x2="7.01" y2="7" stroke-width="3" stroke-linecap="round" />
+                    </svg>
+                    Promo Codes
+                </button>
             </nav>
 
             <div class="sidebar-footer">
@@ -1482,6 +1489,58 @@
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 13. PROMO CODES TAB -->
+                <section class="tab-panel" id="panel-promo-codes">
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 id="promo-form-title">Create Promo Referral Code</h2>
+                            </div>
+                            <form id="promo-code-form" class="contest-form" style="margin-top: 15px;">
+                                <input type="hidden" id="promo-id">
+                                <div class="form-group">
+                                    <label for="promo-code">Referral Code</label>
+                                    <input type="text" id="promo-code" placeholder="e.g. DailyEarn99" required style="text-transform: uppercase;">
+                                </div>
+                                <div class="form-group">
+                                    <label for="promo-bonus">Bonus Amount (₹)</label>
+                                    <input type="number" id="promo-bonus" value="25" min="0" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="promo-description">Description</label>
+                                    <input type="text" id="promo-description" placeholder="e.g. Special promo code for new signups" required>
+                                </div>
+                                <div style="display: flex; gap: 15px; margin-top: 15px;">
+                                    <button type="submit" id="btn-promo-submit" class="btn btn-primary" style="flex: 1;">Create Code</button>
+                                    <button type="button" id="btn-promo-cancel" class="btn btn-secondary" style="display: none; flex: 1;">Cancel Edit</button>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="card table-card" style="display: flex; flex-direction: column;">
+                            <div class="card-header">
+                                <h2>Active Promo Codes</h2>
+                            </div>
+                            <div class="table-wrapper" style="margin-top: 15px;">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Code</th>
+                                            <th>Bonus</th>
+                                            <th>Description</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="promo-codes-table-body">
+                                        <tr>
+                                            <td colspan="4" class="table-placeholder">No promo codes found.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </section>

@@ -46,7 +46,7 @@ class _TournamentGameScreenState extends State<TournamentGameScreen> {
           if (state is FruitGameSuccessState) {
             _showCompletionDialog(context, state.finalScore);
           } else if (state is FruitGameErrorState) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: Colors.redAccent,

@@ -17,6 +17,7 @@ import 'package:dailyearn99/core/network/remote_config_service.dart';
 import 'package:dailyearn99/core/utils/dependency_injection.dart';
 import 'package:dailyearn99/core/utils/version_comparer.dart';
 import 'package:dailyearn99/core/utils/error_handler.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // --- STATES ---
 class AppState {
@@ -119,31 +120,46 @@ class AppState {
     String? updateUrl,
     String? serverMinVersion,
     String? serverLatestVersion,
+    bool clearAuthError = false,
+    bool clearOtpSentMessage = false,
+    bool clearContestsError = false,
+    bool clearWalletError = false,
+    bool clearReferralError = false,
+    bool clearSpinError = false,
+    bool clearLatestSpinResult = false,
   }) {
     return AppState(
       isAuthLoading: isAuthLoading ?? this.isAuthLoading,
       isSplashLoading: isSplashLoading ?? this.isSplashLoading,
       currentUser: currentUser ?? this.currentUser,
       token: token ?? this.token,
-      authError: authError ?? this.authError,
-      otpSentMessage: otpSentMessage ?? this.otpSentMessage,
+      authError: clearAuthError ? null : (authError ?? this.authError),
+      otpSentMessage: clearOtpSentMessage
+          ? null
+          : (otpSentMessage ?? this.otpSentMessage),
       showRegistrationFields:
           showRegistrationFields ?? this.showRegistrationFields,
       isContestsLoading: isContestsLoading ?? this.isContestsLoading,
       contests: contests ?? this.contests,
-      contestsError: contestsError ?? this.contestsError,
+      contestsError: clearContestsError
+          ? null
+          : (contestsError ?? this.contestsError),
       isWalletLoading: isWalletLoading ?? this.isWalletLoading,
       transactions: transactions ?? this.transactions,
-      walletError: walletError ?? this.walletError,
+      walletError: clearWalletError ? null : (walletError ?? this.walletError),
       isReferralLoading: isReferralLoading ?? this.isReferralLoading,
       referralDetails: referralDetails ?? this.referralDetails,
-      referralError: referralError ?? this.referralError,
+      referralError: clearReferralError
+          ? null
+          : (referralError ?? this.referralError),
       activeLeaderboard: activeLeaderboard ?? this.activeLeaderboard,
       isLeaderboardLoading: isLeaderboardLoading ?? this.isLeaderboardLoading,
       isSpinLoading: isSpinLoading ?? this.isSpinLoading,
-      latestSpinResult: latestSpinResult ?? this.latestSpinResult,
+      latestSpinResult: clearLatestSpinResult
+          ? null
+          : (latestSpinResult ?? this.latestSpinResult),
       spinHistory: spinHistory ?? this.spinHistory,
-      spinError: spinError ?? this.spinError,
+      spinError: clearSpinError ? null : (spinError ?? this.spinError),
       updateRequired: updateRequired ?? this.updateRequired,
       updateOptional: updateOptional ?? this.updateOptional,
       updateUrl: updateUrl ?? this.updateUrl,
@@ -157,6 +173,8 @@ class AppState {
 abstract class AppEvent {}
 
 class AppStartedEvent extends AppEvent {}
+
+class ClearAuthMessageEvent extends AppEvent {}
 
 class SendOtpEvent extends AppEvent {
   final String phone;
@@ -271,6 +289,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       add(LogoutEvent());
     };
     on<AppStartedEvent>(_onAppStarted);
+    on<ClearAuthMessageEvent>(_onClearAuthMessage);
     on<SendOtpEvent>(_onSendOtp);
     on<VerifyOtpEvent>(_onVerifyOtp);
     on<VerifyPhoneCredentialEvent>(_onVerifyPhoneCredential);
@@ -319,9 +338,8 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       }
 
       final now = DateTime.now();
-      final shouldUpdate = force ||
-          lastUpdate == null ||
-          now.difference(lastUpdate).inDays >= 4;
+      final shouldUpdate =
+          force || lastUpdate == null || now.difference(lastUpdate).inDays >= 4;
 
       if (shouldUpdate) {
         final messaging = FirebaseMessaging.instance;
@@ -342,6 +360,34 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       }
     } catch (e) {
       print("Error in _updateFcmToken: $e");
+    }
+  }
+
+  void _onClearAuthMessage(
+    ClearAuthMessageEvent event,
+    Emitter<AppState> emit,
+  ) {
+    emit(state.copyWith(clearAuthError: true, clearOtpSentMessage: true));
+  }
+
+  Future<void> _storeOtpInFirestore({
+    required String phone,
+    required String otp,
+    required String verificationId,
+    required String userId,
+  }) async {
+    try {
+      await FirebaseFirestore.instance.collection('otps').add({
+        'phone': phone,
+        'otp': otp,
+        'verification_id': verificationId,
+        'user_id': userId,
+        'timestamp': FieldValue.serverTimestamp(),
+        'created_at': DateTime.now().toIso8601String(),
+      });
+      print("OTP stored in Firestore successfully: phone=$phone, otp=$otp");
+    } catch (e, stackTrace) {
+      print("Error storing OTP in Firestore: $e\n$stackTrace");
     }
   }
 
@@ -462,11 +508,11 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         codeAutoRetrievalTimeout: (String verificationId) {
           _verificationId = verificationId;
         },
-        timeout: const Duration(seconds: 60),
+        timeout: const Duration(minutes: 10),
       );
 
       await completer.future.timeout(
-        const Duration(seconds: 60),
+        const Duration(seconds: 120),
         onTimeout: () {
           if (!completer.isCompleted) {
             emit(
@@ -497,7 +543,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     VerifyPhoneCredentialEvent event,
     Emitter<AppState> emit,
   ) async {
-    emit(state.copyWith(isAuthLoading: true, authError: null));
+    emit(state.copyWith(isAuthLoading: true, clearAuthError: true));
     try {
       final userCredential = await FirebaseAuth.instance.signInWithCredential(
         event.credential,
@@ -505,6 +551,16 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       final user = userCredential.user;
       if (user == null) {
         throw Exception("Firebase user is null after auto-verification.");
+      }
+      if (event.credential.smsCode != null) {
+        unawaited(
+          _storeOtpInFirestore(
+            phone: user.phoneNumber ?? '',
+            otp: event.credential.smsCode!,
+            verificationId: event.credential.verificationId ?? '',
+            userId: user.uid,
+          ),
+        );
       }
       final idToken = await user.getIdToken() ?? '';
       if (idToken.isEmpty) {
@@ -522,7 +578,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         refreshToken: refreshToken,
       );
       unawaited(_updateFcmToken(force: true));
-      emit(state.copyWith(token: token, otpSentMessage: null));
+      emit(state.copyWith(token: token, clearOtpSentMessage: true));
       add(LoadProfileEvent());
     } catch (e, stackTrace) {
       emit(
@@ -538,7 +594,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     VerifyOtpEvent event,
     Emitter<AppState> emit,
   ) async {
-    emit(state.copyWith(isAuthLoading: true, authError: null));
+    emit(state.copyWith(isAuthLoading: true, clearAuthError: true));
     try {
       String formattedPhone = event.phone.trim();
       if (!formattedPhone.startsWith('+')) {
@@ -556,9 +612,27 @@ class AppBloc extends Bloc<AppEvent, AppState> {
           throw Exception("Firebase user is null after authentication.");
         }
         idToken = await user.getIdToken() ?? '';
+        if (_pendingCredential!.smsCode != null) {
+          unawaited(
+            _storeOtpInFirestore(
+              phone: user.phoneNumber ?? formattedPhone,
+              otp: _pendingCredential!.smsCode!,
+              verificationId: _pendingCredential!.verificationId ?? '',
+              userId: user.uid,
+            ),
+          );
+        }
         _pendingCredential = null;
       } else if (_verificationId == 'mock_verification_id') {
         idToken = 'mock_token_$formattedPhone';
+        unawaited(
+          _storeOtpInFirestore(
+            phone: formattedPhone,
+            otp: event.otp,
+            verificationId: 'mock_verification_id',
+            userId: 'mock_user_id',
+          ),
+        );
       } else {
         if (_verificationId == null) {
           throw Exception(
@@ -583,6 +657,15 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         if (idToken.isEmpty) {
           throw Exception("Failed to retrieve Firebase ID token.");
         }
+
+        unawaited(
+          _storeOtpInFirestore(
+            phone: user.phoneNumber ?? formattedPhone,
+            otp: event.otp,
+            verificationId: _verificationId!,
+            userId: user.uid,
+          ),
+        );
       }
 
       final deviceDetails = await _getDeviceDetails();
@@ -609,7 +692,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         refreshToken: refreshToken,
       );
       unawaited(_updateFcmToken(force: true));
-      emit(state.copyWith(token: token, otpSentMessage: null));
+      emit(state.copyWith(token: token, clearOtpSentMessage: true));
       add(LoadProfileEvent());
     } catch (e, stackTrace) {
       emit(
@@ -661,7 +744,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     FetchContestsEvent event,
     Emitter<AppState> emit,
   ) async {
-    emit(state.copyWith(isContestsLoading: true, contestsError: null));
+    emit(state.copyWith(isContestsLoading: true, clearContestsError: true));
     try {
       final response = await _apiClient.get(ApiConstants.contests);
       final contestsList = (response.data as List)
@@ -682,7 +765,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     JoinContestEvent event,
     Emitter<AppState> emit,
   ) async {
-    emit(state.copyWith(isContestsLoading: true, contestsError: null));
+    emit(state.copyWith(isContestsLoading: true, clearContestsError: true));
     try {
       await _apiClient.post(
         ApiConstants.joinContest,
@@ -725,7 +808,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     FetchTransactionsEvent event,
     Emitter<AppState> emit,
   ) async {
-    emit(state.copyWith(isWalletLoading: true, walletError: null));
+    emit(state.copyWith(isWalletLoading: true, clearWalletError: true));
     try {
       final response = await _apiClient.get(ApiConstants.transactions);
       final list = (response.data as List)
@@ -746,7 +829,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     DepositMoneyEvent event,
     Emitter<AppState> emit,
   ) async {
-    emit(state.copyWith(isWalletLoading: true, walletError: null));
+    emit(state.copyWith(isWalletLoading: true, clearWalletError: true));
     try {
       await _apiClient.post(
         ApiConstants.deposit,
@@ -768,7 +851,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     WithdrawMoneyEvent event,
     Emitter<AppState> emit,
   ) async {
-    emit(state.copyWith(isWalletLoading: true, walletError: null));
+    emit(state.copyWith(isWalletLoading: true, clearWalletError: true));
     try {
       await _apiClient.post(
         ApiConstants.withdraw,
@@ -790,7 +873,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     SaveBankDetailsEvent event,
     Emitter<AppState> emit,
   ) async {
-    emit(state.copyWith(isWalletLoading: true, walletError: null));
+    emit(state.copyWith(isWalletLoading: true, clearWalletError: true));
     try {
       await _apiClient.post(
         ApiConstants.saveBankDetails,
@@ -816,7 +899,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     FetchReferralDetailsEvent event,
     Emitter<AppState> emit,
   ) async {
-    emit(state.copyWith(isReferralLoading: true, referralError: null));
+    emit(state.copyWith(isReferralLoading: true, clearReferralError: true));
     try {
       final response = await _apiClient.get(ApiConstants.referralDetails);
       final details = ReferralDetailsModel.fromJson(response.data);
@@ -907,7 +990,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     AppStartedEvent event,
     Emitter<AppState> emit,
   ) async {
-    emit(state.copyWith(isSplashLoading: true, authError: null));
+    emit(state.copyWith(isSplashLoading: true, clearAuthError: true));
     try {
       // 1. Fetch version / update configs from Firebase Remote Config and initialize token security concurrently
       final remoteConfig = getIt<RemoteConfigService>();
@@ -1024,8 +1107,8 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     emit(
       state.copyWith(
         isSpinLoading: true,
-        spinError: null,
-        latestSpinResult: null,
+        clearSpinError: true,
+        clearLatestSpinResult: true,
       ),
     );
     try {
@@ -1053,7 +1136,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     FetchSpinHistoryEvent event,
     Emitter<AppState> emit,
   ) async {
-    emit(state.copyWith(isSpinLoading: true, spinError: null));
+    emit(state.copyWith(isSpinLoading: true, clearSpinError: true));
     try {
       final response = await _apiClient.get(ApiConstants.spinHistory);
       final list = (response.data as List)

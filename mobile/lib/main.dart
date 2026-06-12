@@ -61,7 +61,9 @@ class _DailyEarn99AppState extends State<DailyEarn99App> {
       setupDependencyInjection();
 
       // 3. Register notification listeners (non-blocking)
-      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseMessagingBackgroundHandler,
+      );
       _setupForegroundNotificationListener();
 
       // 4. Run secondary native channel check/config operations concurrently to optimize startup speed
@@ -70,25 +72,35 @@ class _DailyEarn99AppState extends State<DailyEarn99App> {
           print("Warning: SafeDevice check failed: $e");
           return false;
         }),
-        FirebaseAppCheck.instance.activate(
-          providerAndroid: kDebugMode
-              ? const AndroidDebugProvider()
-              : const AndroidPlayIntegrityProvider(),
-          providerApple: kDebugMode
-              ? const AppleDebugProvider()
-              : const AppleDeviceCheckProvider(),
-        ).then((_) {
-          print("Firebase App Check: Activated successfully.");
-        }).catchError((appCheckError) {
-          print("Firebase App Check Warning: Failed to activate: $appCheckError");
-        }),
-        FirebaseAuth.instance.setSettings(
-          appVerificationDisabledForTesting: false,
-        ).then((_) {
-          print("Firebase Auth: App verification settings set successfully.");
-        }).catchError((authSettingsError) {
-          print("Firebase Auth Warning: Failed to set auth settings: $authSettingsError");
-        }),
+        FirebaseAppCheck.instance
+            .activate(
+              providerAndroid: kDebugMode
+                  ? const AndroidDebugProvider()
+                  : const AndroidPlayIntegrityProvider(),
+              providerApple: kDebugMode
+                  ? const AppleDebugProvider()
+                  : const AppleDeviceCheckProvider(),
+            )
+            .then((_) {
+              print("Firebase App Check: Activated successfully.");
+            })
+            .catchError((appCheckError) {
+              print(
+                "Firebase App Check Warning: Failed to activate: $appCheckError",
+              );
+            }),
+        FirebaseAuth.instance
+            .setSettings(appVerificationDisabledForTesting: false)
+            .then((_) {
+              print(
+                "Firebase Auth: App verification settings set successfully.",
+              );
+            })
+            .catchError((authSettingsError) {
+              print(
+                "Firebase Auth Warning: Failed to set auth settings: $authSettingsError",
+              );
+            }),
       ]);
 
       final bool isJailBroken = results[0] as bool;
@@ -120,7 +132,7 @@ class _DailyEarn99AppState extends State<DailyEarn99App> {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final notification = message.notification;
       if (notification != null) {
-        scaffoldMessengerKey.currentState?.showSnackBar(
+        scaffoldMessengerKey.currentState?..clearSnackBars()..showSnackBar(
           SnackBar(
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -301,7 +313,7 @@ class _MainNavigationLayoutState extends State<MainNavigationLayout> {
                       print(
                         "Redirecting user to Play Store/App Store update URL: $updateUrl",
                       );
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                         SnackBar(
                           content: Text(
                             'Navigating to update link:\n$updateUrl',
