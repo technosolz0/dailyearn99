@@ -9,7 +9,8 @@ from app.schemas import (
     ImagePuzzleContestResponse,
     PuzzleStartSessionResponse,
     PuzzleScoreSubmissionRequest,
-    PuzzleLeaderboardItem
+    PuzzleLeaderboardItem,
+    JoinPuzzleContestRequest
 )
 from app.core.security import get_current_user
 from app.services import PuzzleGameService, PuzzleRewardService
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/puzzle", tags=["puzzle"])
 
 @router.get("/contests", response_model=List[ImagePuzzleContestResponse])
 def get_puzzle_contests(db: Session = Depends(get_db)):
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     
     # 1. Select upcoming contests to transition and trigger notifications
     upcoming_to_active = db.query(ImagePuzzleContest).filter(
@@ -68,11 +69,44 @@ def get_puzzle_contests(db: Session = Depends(get_db)):
     filtered_contests = []
     for c in contests:
         if c.status == "COMPLETED" and c.end_time:
-            c_end_utc = c.end_time.replace(tzinfo=timezone.utc) if c.end_time.tzinfo is None else c.end_time
-            if (now - c_end_utc).total_seconds() > 24 * 3600:
+            if (now - c.end_time).total_seconds() > 24 * 3600:
                 continue
         filtered_contests.append(c)
     return filtered_contests
+
+
+@router.post("/join")
+def join_puzzle_contest(
+    payload: JoinPuzzleContestRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        result = PuzzleGameService.join_puzzle_contest(
+            db=db,
+            user=current_user,
+            contest_id=payload.contest_id,
+            device_fingerprint=payload.device_fingerprint,
+            ip_address=payload.ip_address
+        )
+        return result
+    except ValueError as e:
+        if str(e) == "You have already joined this contest.":
+            from app.models import ImagePuzzleAttempt
+            att = db.query(ImagePuzzleAttempt).filter(
+                ImagePuzzleAttempt.contest_id == payload.contest_id,
+                ImagePuzzleAttempt.user_id == current_user.id
+            ).first()
+            if att:
+                return {
+                    "session_id": att.session_id,
+                    "entry_fee_deducted": 0.0,
+                    "status": "SUCCESS"
+                }
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 
 @router.post("/start/{contest_id}", response_model=PuzzleStartSessionResponse)

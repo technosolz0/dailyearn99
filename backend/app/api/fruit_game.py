@@ -25,7 +25,7 @@ def get_fruit_contests(db: Session = Depends(get_db)):
     Fetches all fruit slicing contests. Automatically transitions status from UPCOMING
     to ACTIVE and completes expired contests payouts.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     
     # 1. Select upcoming contests to transition and trigger notifications
     upcoming_to_active = db.query(FruitContest).filter(
@@ -75,8 +75,7 @@ def get_fruit_contests(db: Session = Depends(get_db)):
     filtered_contests = []
     for c in contests:
         if c.status == "COMPLETED" and c.end_time:
-            c_end_utc = c.end_time.replace(tzinfo=timezone.utc) if c.end_time.tzinfo is None else c.end_time
-            if (now - c_end_utc).total_seconds() > 24 * 3600:
+            if (now - c.end_time).total_seconds() > 24 * 3600:
                 continue
         filtered_contests.append(c)
     return filtered_contests
@@ -136,15 +135,14 @@ def start_fruit_contest(
         if not match_record:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found")
         
-        now = datetime.now(timezone.utc)
-        if now < match_record.start_time.replace(tzinfo=timezone.utc) or now > match_record.end_time.replace(tzinfo=timezone.utc):
+        if match_record.status != "ACTIVE":
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Contest is not active")
 
         return StartFruitContestResponse(
             session_id=session_id,
             seed=match_record.seed,
             duration_seconds=match_record.duration_seconds,
-            started_at=now,
+            started_at=datetime.utcnow(),
             signature=FruitGameService.start_fruit_session(db, current_user, contest_id, "unknown", "127.0.0.1")["signature"] # Return existing signature or generate dynamically
         )
     except ValueError as e:

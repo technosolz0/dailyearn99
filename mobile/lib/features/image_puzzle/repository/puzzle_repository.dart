@@ -32,6 +32,19 @@ class PuzzleRepository {
     return PuzzleSessionModel.fromJson(response.data);
   }
 
+  Future<Map<String, dynamic>> joinPuzzleContest(int contestId) async {
+    final payload = {
+      'contest_id': contestId,
+      'device_fingerprint': 'flutter_mobile_client_production',
+      'ip_address': '127.0.0.1',
+    };
+    final response = await _apiClient.post(
+      ApiConstants.puzzleJoin,
+      data: payload,
+    );
+    return response.data;
+  }
+
   Future<Map<String, dynamic>> submitPuzzleScore({
     required int contestId,
     required String sessionId,

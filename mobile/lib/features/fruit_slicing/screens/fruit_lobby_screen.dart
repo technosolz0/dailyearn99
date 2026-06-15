@@ -5,6 +5,7 @@ import 'package:dailyearn99/core/utils/dependency_injection.dart';
 import 'package:dailyearn99/features/app_bloc.dart';
 import 'package:dailyearn99/features/contest/game_leaderboard_screen.dart';
 import 'package:dailyearn99/core/widgets/custom_button.dart';
+import 'package:dailyearn99/core/widgets/contest_timer_widget.dart';
 import '../bloc/fruit_game_bloc.dart';
 import '../models/fruit_models.dart';
 import '../repository/fruit_repository.dart';
@@ -307,6 +308,15 @@ class _FruitLobbyScreenState extends State<FruitLobbyScreen> {
                     minHeight: 4,
                     borderRadius: BorderRadius.circular(2),
                   ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: ContestTimerWidget(
+                      startTime: contest.startTime,
+                      endTime: contest.endTime,
+                      status: contest.status,
+                      isJoined: isJoined,
+                    ),
+                  ),
                   const SizedBox(height: 16),
 
                   // CTA button depending on registration & play status
@@ -390,27 +400,12 @@ class _FruitLobbyScreenState extends State<FruitLobbyScreen> {
                       )
                   else // UPCOMING
                   if (isJoined)
-                    Column(
-                      children: [
-                        CustomButton(
-                          text:
-                              'STARTS AT ${contest.startTime.toLocal().hour.toString().padLeft(2, '0')}:${contest.startTime.toLocal().minute.toString().padLeft(2, '0')}',
-                          onPressed: null,
-                          icon: Icons.lock_clock,
-                          height: 44,
-                          borderRadius: 10,
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Aapne register kar liya hai! Tournament start hone ka wait karein.',
-                          style: TextStyle(
-                            color: Colors.orangeAccent,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                    CustomButton(
+                      text: 'REGISTERED (WAIT TO START)',
+                      onPressed: null,
+                      icon: Icons.lock_clock,
+                      height: 44,
+                      borderRadius: 10,
                     )
                   else
                     CustomButton(
@@ -707,18 +702,33 @@ class _FruitLobbyScreenState extends State<FruitLobbyScreen> {
         context.read<AppBloc>().add(LoadProfileEvent());
         Navigator.pop(context); // Close loading spinner
 
-        // 3. Start game
-        _startGamePlay(context, contest);
+        if (contest.status == 'ACTIVE') {
+          // 3. Start game if active
+          _startGamePlay(context, contest);
+        } else {
+          // Show registration success message
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(
+              const SnackBar(
+                content: Text('Registration successful! Contest starts soon.'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          _refreshContests();
+        }
       }
     } catch (e) {
       if (context.mounted) {
         Navigator.pop(context); // Close loading spinner
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceAll('Exception: ', '')),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
       }
     }
   }

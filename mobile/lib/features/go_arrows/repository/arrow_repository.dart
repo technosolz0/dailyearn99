@@ -31,6 +31,19 @@ class ArrowRepository {
     return ArrowSessionModel.fromJson(response.data);
   }
 
+  Future<Map<String, dynamic>> joinArrowContest(int contestId) async {
+    final payload = {
+      'contest_id': contestId,
+      'device_fingerprint': 'flutter_mobile_client_production',
+      'ip_address': '127.0.0.1',
+    };
+    final response = await _apiClient.post(
+      ApiConstants.arrowJoin,
+      data: payload,
+    );
+    return response.data;
+  }
+
   Future<Map<String, dynamic>> submitArrowScore({
     required int contestId,
     required String sessionId,

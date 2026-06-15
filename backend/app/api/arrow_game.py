@@ -9,7 +9,8 @@ from app.schemas import (
     ArrowContestResponse,
     ArrowStartSessionResponse,
     ArrowScoreSubmissionRequest,
-    ArrowLeaderboardItem
+    ArrowLeaderboardItem,
+    JoinArrowContestRequest
 )
 from app.core.security import get_current_user
 from app.services import ArrowGameService, ArrowRewardService
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/arrow", tags=["arrow"])
 
 @router.get("/contests", response_model=List[ArrowContestResponse])
 def get_arrow_contests(db: Session = Depends(get_db)):
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     
     # 1. Transition UPCOMING to ACTIVE when start time is reached
     upcoming_to_active = db.query(ArrowContest).filter(
@@ -66,11 +67,44 @@ def get_arrow_contests(db: Session = Depends(get_db)):
     filtered_contests = []
     for c in contests:
         if c.status == "COMPLETED" and c.end_time:
-            c_end_utc = c.end_time.replace(tzinfo=timezone.utc) if c.end_time.tzinfo is None else c.end_time
-            if (now - c_end_utc).total_seconds() > 24 * 3600:
+            if (now - c.end_time).total_seconds() > 24 * 3600:
                 continue
         filtered_contests.append(c)
     return filtered_contests
+
+
+@router.post("/join")
+def join_arrow_contest(
+    payload: JoinArrowContestRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        result = ArrowGameService.join_arrow_contest(
+            db=db,
+            user=current_user,
+            contest_id=payload.contest_id,
+            device_fingerprint=payload.device_fingerprint,
+            ip_address=payload.ip_address
+        )
+        return result
+    except ValueError as e:
+        if str(e) == "You have already joined this contest.":
+            from app.models import ArrowAttempt
+            att = db.query(ArrowAttempt).filter(
+                ArrowAttempt.contest_id == payload.contest_id,
+                ArrowAttempt.user_id == current_user.id
+            ).first()
+            if att:
+                return {
+                    "session_id": att.session_id,
+                    "entry_fee_deducted": 0.0,
+                    "status": "SUCCESS"
+                }
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 
 @router.post("/start/{contest_id}", response_model=ArrowStartSessionResponse)

@@ -13,6 +13,47 @@ router = APIRouter(prefix="/lottery", tags=["lottery"])
 
 @router.get("/draws", response_model=List[LotteryDrawResponse])
 def get_lottery_draws(db: Session = Depends(get_db)):
+    from datetime import datetime, timedelta
+    now = datetime.utcnow()
+    # Check if there are any open future draws
+    future_draws_count = (
+        db.query(LotteryDraw)
+        .filter(LotteryDraw.status == "OPEN", LotteryDraw.draw_time > now)
+        .count()
+    )
+    if future_draws_count == 0:
+        new_draws = [
+            LotteryDraw(
+                title="🎟️ Daily Quick Cash Draw #103",
+                ticket_price=10.0,
+                prize_pool=1000.0,
+                draw_time=now + timedelta(hours=2),
+                max_tickets=500,
+                joined_tickets=0,
+                status="OPEN"
+            ),
+            LotteryDraw(
+                title="💥 Weekly Bumper Sweepstakes #22",
+                ticket_price=50.0,
+                prize_pool=25000.0,
+                draw_time=now + timedelta(days=2),
+                max_tickets=1000,
+                joined_tickets=0,
+                status="OPEN"
+            ),
+            LotteryDraw(
+                title="💎 Mega Sunday Jackpot Lakhs #6",
+                ticket_price=200.0,
+                prize_pool=100000.0,
+                draw_time=now + timedelta(days=6),
+                max_tickets=2000,
+                joined_tickets=0,
+                status="OPEN"
+            )
+        ]
+        db.bulk_save_objects(new_draws)
+        db.commit()
+
     # Get active and recently completed draws
     return (
         db.query(LotteryDraw)

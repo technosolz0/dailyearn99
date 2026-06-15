@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_validator
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 import json
 
@@ -53,6 +53,13 @@ class UserResponse(BaseModel):
     joined_arrow_contest_ids: List[int] = []
     completed_arrow_contest_ids: List[int] = []
 
+    @field_validator("last_login", mode="after", check_fields=False)
+    @classmethod
+    def make_utc(cls, v):
+        if v and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
+
     class Config:
         from_attributes = True
 
@@ -88,6 +95,13 @@ class ContestResponse(BaseModel):
     status: str
     prize_rules: Optional[List[PrizeRuleSchema]] = None
     questions: Optional[List[QuestionSchema]] = None
+
+    @field_validator("start_time", "end_time", mode="after", check_fields=False)
+    @classmethod
+    def make_utc(cls, v):
+        if v and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
 
     @field_validator("prize_rules", mode="before")
     @classmethod
@@ -138,6 +152,13 @@ class TransactionResponse(BaseModel):
     utr: Optional[str] = None
     description: Optional[str] = None
     created_at: datetime
+
+    @field_validator("created_at", mode="after", check_fields=False)
+    @classmethod
+    def make_utc(cls, v):
+        if v and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
 
     class Config:
         from_attributes = True
@@ -220,6 +241,13 @@ class SpinResponse(BaseModel):
     segment_index: int
     created_at: datetime
     updated_balance: float
+
+    @field_validator("created_at", mode="after", check_fields=False)
+    @classmethod
+    def make_utc(cls, v):
+        if v and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
 
     class Config:
         from_attributes = True
@@ -311,6 +339,13 @@ class ImagePuzzleContestResponse(BaseModel):
     grid_size: int
     duration_seconds: int
 
+    @field_validator("start_time", "end_time", mode="after", check_fields=False)
+    @classmethod
+    def make_utc(cls, v):
+        if v and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
+
     @field_validator("prize_rules", mode="before")
     @classmethod
     def parse_prize_rules(cls, v):
@@ -333,6 +368,13 @@ class PuzzleStartSessionResponse(BaseModel):
     duration_seconds: int
     image_url: str
     signature: str
+
+    @field_validator("started_at", mode="after", check_fields=False)
+    @classmethod
+    def make_utc(cls, v):
+        if v and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
 
 
 class PuzzleMoveTelemetry(BaseModel):
@@ -381,6 +423,18 @@ class CreateWordContestRequest(BaseModel):
 
 
 class JoinWordContestRequest(BaseModel):
+    contest_id: int
+    device_fingerprint: str
+    ip_address: str
+
+
+class JoinPuzzleContestRequest(BaseModel):
+    contest_id: int
+    device_fingerprint: str
+    ip_address: str
+
+
+class JoinArrowContestRequest(BaseModel):
     contest_id: int
     device_fingerprint: str
     ip_address: str
@@ -441,6 +495,13 @@ class WordContestResponse(BaseModel):
     start_time: datetime
     end_time: datetime
 
+    @field_validator("start_time", "end_time", mode="after", check_fields=False)
+    @classmethod
+    def make_utc(cls, v):
+        if v and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
+
     @field_validator("prize_rules", mode="before")
     @classmethod
     def parse_prize_rules(cls, v):
@@ -486,6 +547,13 @@ class FruitContestResponse(BaseModel):
     duration_seconds: int
     seed: str
 
+    @field_validator("start_time", "end_time", mode="after", check_fields=False)
+    @classmethod
+    def make_utc(cls, v):
+        if v and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
+
     @field_validator("prize_rules", mode="before")
     @classmethod
     def parse_prize_rules(cls, v):
@@ -518,6 +586,13 @@ class StartFruitContestResponse(BaseModel):
     duration_seconds: int
     started_at: datetime
     signature: str
+
+    @field_validator("started_at", mode="after", check_fields=False)
+    @classmethod
+    def make_utc(cls, v):
+        if v and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
 
 
 class FruitCoordinate(BaseModel):
@@ -611,6 +686,13 @@ class ArrowContestResponse(BaseModel):
     difficulty: str
     arrow_count: int
 
+    @field_validator("start_time", "end_time", mode="after", check_fields=False)
+    @classmethod
+    def make_utc(cls, v):
+        if v and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
+
     @field_validator("prize_rules", mode="before")
     @classmethod
     def parse_prize_rules(cls, v):
@@ -632,6 +714,13 @@ class ArrowStartSessionResponse(BaseModel):
     grid_size: int
     duration_seconds: int
     signature: str
+
+    @field_validator("started_at", mode="after", check_fields=False)
+    @classmethod
+    def make_utc(cls, v):
+        if v and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
 
 
 class ArrowTapTelemetry(BaseModel):
@@ -727,6 +816,13 @@ class LotteryDrawResponse(BaseModel):
     winning_number: Optional[str] = None
     created_at: datetime
 
+    @field_validator("draw_time", "created_at", mode="after", check_fields=False)
+    @classmethod
+    def make_utc(cls, v):
+        if v and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
+
     class Config:
         from_attributes = True
 
@@ -745,6 +841,13 @@ class LotteryTicketResponse(BaseModel):
     reward_amount: float
     draw_title: Optional[str] = None
     draw_status: Optional[str] = None
+
+    @field_validator("purchase_time", mode="after", check_fields=False)
+    @classmethod
+    def make_utc(cls, v):
+        if v and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
 
     class Config:
         from_attributes = True

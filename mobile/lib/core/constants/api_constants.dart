@@ -61,6 +61,7 @@ class ApiConstants {
 
   // Puzzle APIs
   static const String puzzleContests = '/puzzle/contests';
+  static const String puzzleJoin = '/puzzle/join';
   static String puzzleStart(int contestId) => '/puzzle/start/$contestId';
   static const String puzzleSubmit = '/puzzle/submit-score';
   static String puzzleLeaderboard(int contestId) =>
@@ -126,6 +127,7 @@ class ApiConstants {
 
   // Go Arrows APIs
   static const String arrowContests = '/arrow/contests';
+  static const String arrowJoin = '/arrow/join';
   static String arrowStart(int contestId) => '/arrow/start/$contestId';
   static const String arrowSubmit = '/arrow/submit-score';
   static String arrowLeaderboard(int contestId) =>

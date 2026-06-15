@@ -23,7 +23,7 @@ def get_word_contests(db: Session = Depends(get_db)):
     Fetches all word puzzle contests. Automatically transitions upcoming contests to active
     and triggers rewards payouts for completed contests.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     
     # 1. Select upcoming contests to transition and trigger notifications
     upcoming_to_active = db.query(WordContest).filter(
@@ -73,8 +73,7 @@ def get_word_contests(db: Session = Depends(get_db)):
     filtered_contests = []
     for c in contests:
         if c.status == "COMPLETED" and c.end_time:
-            c_end_utc = c.end_time.replace(tzinfo=timezone.utc) if c.end_time.tzinfo is None else c.end_time
-            if (now - c_end_utc).total_seconds() > 24 * 3600:
+            if (now - c.end_time).total_seconds() > 24 * 3600:
                 continue
         filtered_contests.append(c)
     return filtered_contests

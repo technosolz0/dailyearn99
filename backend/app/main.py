@@ -158,7 +158,7 @@ async def startup_event():
             print("Database Seeding: Populated central questions table.")
             
         if db.query(Contest).count() == 0:
-            now = datetime.now()
+            now = datetime.utcnow()
             default_questions_json = json.dumps(DEFAULT_QUESTIONS)
             contests = [
                 Contest(
@@ -211,7 +211,7 @@ async def startup_event():
 
         # Seed Image Puzzle contests
         if db.query(ImagePuzzleContest).count() == 0:
-            now = datetime.now()
+            now = datetime.utcnow()
             puzzle_contests = [
                 ImagePuzzleContest(
                     title="🧩 Beginner Grid Sweepstakes",
@@ -273,7 +273,7 @@ async def startup_event():
 
         # Seed Fruit contests
         if db.query(FruitContest).count() == 0:
-            now = datetime.now()
+            now = datetime.utcnow()
             fruit_contests = [
                 FruitContest(
                     title="🍓 Small Fruit Slicing Tournament",
@@ -335,7 +335,7 @@ async def startup_event():
 
         # Seed Word Contests and Questions
         if db.query(WordContest).count() == 0:
-            now = datetime.now()
+            now = datetime.utcnow()
             word_contest = WordContest(
                 title="🔤 Beginner Word Unscramble",
                 entry_fee=10.0,
@@ -398,7 +398,7 @@ async def startup_event():
 
         # Seed Arrow Contests
         if db.query(ArrowContest).count() == 0:
-            now = datetime.now()
+            now = datetime.utcnow()
             arrow_contests = [
                 ArrowContest(
                     title="🏹 Small Arrows Sweepstakes (Easy)",
@@ -464,7 +464,7 @@ async def startup_event():
 
         # Seed Lottery draws
         if db.query(LotteryDraw).count() == 0:
-            now = datetime.now()
+            now = datetime.utcnow()
             lottery_draws = [
                 LotteryDraw(
                     title="🎟️ Daily Quick Cash Draw #102",

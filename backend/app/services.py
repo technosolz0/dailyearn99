@@ -336,7 +336,7 @@ class SpinGameService:
             raise ValueError("KYC has been rejected. Game access restricted.")
 
         # Check daily responsible gaming limits (Max ₹5000 bet per day)
-        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         from app.models import Spin as SpinModel, SpinAuditLog as AuditLogModel
         daily_bet_sum = (
             db.query(func.sum(SpinModel.bet_amount))
@@ -348,7 +348,7 @@ class SpinGameService:
 
         # 1. Thread-safe duplicate check using idempotency key
         with cls._idempotency_lock:
-            now = datetime.now(timezone.utc)
+            now = datetime.utcnow()
             if idempotency_key in cls._processed_idempotency_keys:
                 last_time = cls._processed_idempotency_keys[idempotency_key]
                 if (now - last_time).total_seconds() < 5:
@@ -654,7 +654,7 @@ class PuzzleAntiCheatService:
         started_at: datetime
     ) -> bool:
         # Check overall duration mismatch against actual wall clock
-        actual_elapsed = (datetime.now(timezone.utc) - started_at).total_seconds()
+        actual_elapsed = (datetime.utcnow() - started_at).total_seconds()
         if reported_time > actual_elapsed + 3.0:
             return False
             
@@ -697,14 +697,14 @@ class PuzzleGameService:
         return cls._maintenance_mode
 
     @staticmethod
-    def start_puzzle_session(db: Session, user: User, contest_id: int, device_fingerprint: str, ip_address: str) -> dict:
+    def join_puzzle_contest(db: Session, user: User, contest_id: int, device_fingerprint: str, ip_address: str) -> dict:
         if PuzzleGameService.is_maintenance_mode():
             raise ValueError("Image Puzzle is currently under maintenance. Please try again later.")
-        contest = db.query(ImagePuzzleContest).filter(ImagePuzzleContest.id == contest_id).first()
+        contest = db.query(ImagePuzzleContest).filter(ImagePuzzleContest.id == contest_id).with_for_update().first()
         if not contest:
             raise ValueError("Contest not found.")
-        if contest.status != "ACTIVE" and contest.status != "UPCOMING":
-            raise ValueError("Contest is not active.")
+        if contest.status != "UPCOMING":
+            raise ValueError("Registration closed. You can only join upcoming contests.")
         if contest.joined_slots >= contest.total_slots:
             raise ValueError("Contest is full.")
 
@@ -713,28 +713,14 @@ class PuzzleGameService:
             ImagePuzzleAttempt.user_id == user.id
         ).first()
         if existing_attempt:
-            raise ValueError("You have already started or joined this contest.")
+            raise ValueError("You have already joined this contest.")
 
         # Deduct entry fee using the central WalletService
         WalletService.deduct_entry_fee(db, user, contest.entry_fee, description=f"Entry Fee: Puzzle Contest ({contest.title})")
         contest.joined_slots += 1
 
-        puzzle_game = db.query(ImagePuzzleGame).filter(ImagePuzzleGame.contest_id == contest_id).first()
-        if not puzzle_game:
-            n = contest.grid_size * contest.grid_size
-            indices = list(range(n))
-            while indices == list(range(n)):
-                random.shuffle(indices)
-            puzzle_game = ImagePuzzleGame(
-                contest_id=contest_id,
-                shuffled_layout=json.dumps(indices),
-                solution_hash=hashlib.sha256(json.dumps(list(range(n))).encode()).hexdigest()
-            )
-            db.add(puzzle_game)
-            db.flush()
-
         session_id = str(uuid.uuid4())
-        started_at = datetime.now(timezone.utc)
+        started_at = datetime.utcnow()
 
         attempt = ImagePuzzleAttempt(
             contest_id=contest_id,
@@ -750,17 +736,64 @@ class PuzzleGameService:
             ip_address=ip_address,
             started_at=started_at,
             submitted_at=started_at,
-            status="IN_PROGRESS"
+            status="JOINED"
         )
         db.add(attempt)
         db.commit()
 
-        signature = PuzzleAntiCheatService.generate_signature(session_id, contest_id, user.id)
-
         return {
             "session_id": session_id,
+            "entry_fee_deducted": contest.entry_fee,
+            "status": "SUCCESS"
+        }
+
+    @staticmethod
+    def start_puzzle_session(db: Session, user: User, contest_id: int, device_fingerprint: str, ip_address: str) -> dict:
+        if PuzzleGameService.is_maintenance_mode():
+            raise ValueError("Image Puzzle is currently under maintenance. Please try again later.")
+        contest = db.query(ImagePuzzleContest).filter(ImagePuzzleContest.id == contest_id).first()
+        if not contest:
+            raise ValueError("Contest not found.")
+        if contest.status != "ACTIVE":
+            raise ValueError("Contest is not active.")
+
+        attempt = db.query(ImagePuzzleAttempt).filter(
+            ImagePuzzleAttempt.contest_id == contest_id,
+            ImagePuzzleAttempt.user_id == user.id
+        ).first()
+        if not attempt:
+            raise ValueError("Access denied. You must join this contest to play.")
+
+        if attempt.status != "JOINED" and attempt.status != "IN_PROGRESS":
+            raise ValueError("Session already completed or closed.")
+
+        puzzle_game = db.query(ImagePuzzleGame).filter(ImagePuzzleGame.contest_id == contest_id).first()
+        if not puzzle_game:
+            n = contest.grid_size * contest.grid_size
+            indices = list(range(n))
+            while indices == list(range(n)):
+                random.shuffle(indices)
+            puzzle_game = ImagePuzzleGame(
+                contest_id=contest_id,
+                shuffled_layout=json.dumps(indices),
+                solution_hash=hashlib.sha256(json.dumps(list(range(n))).encode()).hexdigest()
+            )
+            db.add(puzzle_game)
+            db.flush()
+
+        if attempt.status == "JOINED":
+            attempt.status = "IN_PROGRESS"
+            attempt.started_at = datetime.utcnow()
+            attempt.device_fingerprint = device_fingerprint
+            attempt.ip_address = ip_address
+            db.commit()
+
+        signature = PuzzleAntiCheatService.generate_signature(attempt.session_id, contest_id, user.id)
+
+        return {
+            "session_id": attempt.session_id,
             "shuffled_layout": json.loads(puzzle_game.shuffled_layout),
-            "started_at": started_at,
+            "started_at": attempt.started_at,
             "grid_size": contest.grid_size,
             "duration_seconds": contest.duration_seconds,
             "image_url": contest.image_url,
@@ -817,7 +850,7 @@ class PuzzleGameService:
         attempt.move_sequence = json.dumps(telemetry_dicts)
         attempt.is_verified = True
         attempt.status = "VERIFIED"
-        attempt.submitted_at = datetime.now(timezone.utc)
+        attempt.submitted_at = datetime.utcnow()
         db.commit()
 
         leaderboard_entry = db.query(ImagePuzzleLeaderboard).filter(
@@ -967,8 +1000,8 @@ class WordGameService:
         contest = db.query(WordContest).filter(WordContest.id == contest_id).with_for_update().first()
         if not contest:
             raise ValueError("Contest not found.")
-        if contest.status != "ACTIVE" and contest.status != "UPCOMING":
-            raise ValueError("Contest has already started or completed.")
+        if contest.status != "UPCOMING":
+            raise ValueError("Registration closed. You can only join upcoming contests.")
         if contest.joined_slots >= contest.total_slots:
             raise ValueError("Contest is full.")
 
@@ -984,7 +1017,7 @@ class WordGameService:
         contest.joined_slots += 1
 
         session_id = str(uuid.uuid4())
-        started_at = datetime.now(timezone.utc)
+        started_at = datetime.utcnow()
 
         attempt = WordAttempt(
             contest_id=contest_id,
@@ -1025,9 +1058,7 @@ class WordGameService:
         if not contest:
             raise ValueError("Contest not found.")
 
-        # Sanity check start/end time
-        now = datetime.now(timezone.utc)
-        if now < contest.start_time.replace(tzinfo=timezone.utc) or now > contest.end_time.replace(tzinfo=timezone.utc):
+        if contest.status != "ACTIVE":
             raise ValueError("Contest is not active.")
 
         # Fetch questions
@@ -1055,7 +1086,7 @@ class WordGameService:
             })
 
         attempt.status = "IN_PROGRESS"
-        attempt.started_at = now
+        attempt.started_at = datetime.utcnow()
         db.commit()
 
         signature = WordAntiCheatService.generate_signature(session_id, user.id)
@@ -1086,7 +1117,7 @@ class WordGameService:
             raise ValueError("Session integrity verification failed. Disqualified.")
 
         # Time drift validation
-        actual_elapsed = (datetime.now(timezone.utc) - attempt.started_at.replace(tzinfo=timezone.utc)).total_seconds()
+        actual_elapsed = (datetime.utcnow() - attempt.started_at).total_seconds()
         if abs(actual_elapsed - data.elapsed_time_seconds) > 5.0: # Allow max 5s network latency buffer
             attempt.status = "DISQUALIFIED"
             db.commit()
@@ -1142,7 +1173,7 @@ class WordGameService:
 
         if answered_questions >= total_questions:
             attempt.status = "SUBMITTED"
-            attempt.submitted_at = datetime.now(timezone.utc)
+            attempt.submitted_at = datetime.utcnow()
 
         db.commit()
 
@@ -1199,7 +1230,7 @@ class WordRewardService:
             if att.completion_time_seconds is None:
                 att.completion_time_seconds = float(contest.duration_seconds or 300)
             if att.submitted_at is None:
-                att.submitted_at = datetime.now(timezone.utc)
+                att.submitted_at = datetime.utcnow()
         if in_progress_attempts:
             db.commit()
 
@@ -1249,14 +1280,14 @@ class WordRewardService:
                     rank=rank_idx,
                     prize_amount=payout_amount,
                     is_paid=payout_amount > 0.0,
-                    paid_at=datetime.now(timezone.utc) if payout_amount > 0.0 else None
+                    paid_at=datetime.utcnow() if payout_amount > 0.0 else None
                 )
                 db.add(leaderboard_entry)
             else:
                 leaderboard_entry.rank = rank_idx
                 leaderboard_entry.prize_amount = payout_amount
                 leaderboard_entry.is_paid = payout_amount > 0.0
-                leaderboard_entry.paid_at = datetime.now(timezone.utc) if payout_amount > 0.0 else None
+                leaderboard_entry.paid_at = datetime.utcnow() if payout_amount > 0.0 else None
 
             user = db.query(User).filter(User.id == att.user_id).first()
             if not user:
@@ -1305,7 +1336,7 @@ class FruitAntiCheatService:
         Validates physics velocity sweeps, chronological swipes, score maths, and timing limitations.
         """
         # Rule 1: Overall timing check
-        actual_elapsed = (datetime.now(timezone.utc) - started_at.replace(tzinfo=timezone.utc)).total_seconds()
+        actual_elapsed = (datetime.utcnow() - started_at).total_seconds()
         if actual_elapsed > 68.0:  # 60s match duration + 8s network/grace buffer
             return False
 
@@ -1394,14 +1425,14 @@ class FruitGameService:
         return cls._maintenance_mode
 
     @staticmethod
-    def start_fruit_session(db: Session, user: User, contest_id: int, device_fingerprint: str, ip_address: str) -> dict:
+    def join_fruit_contest(db: Session, user: User, contest_id: int, device_fingerprint: str, ip_address: str) -> dict:
         if FruitGameService.is_maintenance_mode():
             raise ValueError("Fruit Puzzle is currently under maintenance. Please try again later.")
         contest = db.query(FruitContest).filter(FruitContest.id == contest_id).with_for_update().first()
         if not contest:
             raise ValueError("Contest not found.")
-        if contest.status != "ACTIVE" and contest.status != "UPCOMING":
-            raise ValueError("Contest is not active.")
+        if contest.status != "UPCOMING":
+            raise ValueError("Registration closed. You can only join upcoming contests.")
         if contest.joined_slots >= contest.total_slots:
             raise ValueError("Contest is full.")
 
@@ -1410,20 +1441,20 @@ class FruitGameService:
             FruitMatch.user_id == user.id
         ).first()
         if existing_attempt:
-            raise ValueError("You have already started or joined this contest.")
+            raise ValueError("You have already joined this contest.")
 
         # Deduct wallet entry fee via existing central WalletService
         WalletService.deduct_entry_fee(db, user, contest.entry_fee, description=f"Entry Fee: Fruit Contest ({contest.title})")
         contest.joined_slots += 1
 
         session_id = str(uuid.uuid4())
-        started_at = datetime.now(timezone.utc)
+        started_at = datetime.utcnow()
 
         match_record = FruitMatch(
             contest_id=contest_id,
             user_id=user.id,
             session_id=session_id,
-            status="IN_PROGRESS",
+            status="JOINED",
             device_fingerprint=device_fingerprint,
             ip_address=ip_address,
             started_at=started_at,
@@ -1434,9 +1465,42 @@ class FruitGameService:
 
         return {
             "session_id": session_id,
+            "entry_fee_deducted": contest.entry_fee,
+            "status": "SUCCESS"
+        }
+
+    @staticmethod
+    def start_fruit_session(db: Session, user: User, contest_id: int, device_fingerprint: str, ip_address: str) -> dict:
+        if FruitGameService.is_maintenance_mode():
+            raise ValueError("Fruit Puzzle is currently under maintenance. Please try again later.")
+        contest = db.query(FruitContest).filter(FruitContest.id == contest_id).first()
+        if not contest:
+            raise ValueError("Contest not found.")
+        if contest.status != "ACTIVE":
+            raise ValueError("Contest is not active.")
+
+        match_record = db.query(FruitMatch).filter(
+            FruitMatch.contest_id == contest_id,
+            FruitMatch.user_id == user.id
+        ).first()
+        if not match_record:
+            raise ValueError("Access denied. You must join this contest to play.")
+
+        if match_record.status != "JOINED" and match_record.status != "IN_PROGRESS":
+            raise ValueError("Session already completed or closed.")
+
+        if match_record.status == "JOINED":
+            match_record.status = "IN_PROGRESS"
+            match_record.started_at = datetime.utcnow()
+            match_record.device_fingerprint = device_fingerprint
+            match_record.ip_address = ip_address
+            db.commit()
+
+        return {
+            "session_id": match_record.session_id,
             "seed": contest.seed,
             "duration_seconds": contest.duration_seconds,
-            "started_at": started_at,
+            "started_at": match_record.started_at,
             "signature": match_record.signature
         }
 
@@ -1523,7 +1587,7 @@ class FruitGameService:
             db.add(db_event)
 
         match_record.status = "SUBMITTED"
-        match_record.submitted_at = datetime.now(timezone.utc)
+        match_record.submitted_at = datetime.utcnow()
         db.commit()
 
         # Update in-memory WebSocket leaderboard Standings
@@ -1610,7 +1674,7 @@ class FruitRewardService:
                 rank=rank_idx,
                 prize_amount=payout_amount,
                 is_paid=payout_amount > 0.0,
-                paid_at=datetime.now(timezone.utc) if payout_amount > 0.0 else None
+                paid_at=datetime.utcnow() if payout_amount > 0.0 else None
             )
             db.add(leaderboard_entry)
 
@@ -1655,7 +1719,7 @@ class ArrowAntiCheatService:
         reported_moves: int,
         started_at: datetime
     ) -> bool:
-        actual_elapsed = (datetime.now(timezone.utc) - started_at.replace(tzinfo=timezone.utc)).total_seconds()
+        actual_elapsed = (datetime.utcnow() - started_at).total_seconds()
         # Max grace buffer is 10 seconds
         if actual_elapsed > reported_time + 10.0:
             return False
@@ -1806,76 +1870,30 @@ class ArrowGameService:
         return True
 
     @staticmethod
-    def start_arrow_session(db: Session, user: User, contest_id: int, device_fingerprint: str, ip_address: str) -> dict:
+    def join_arrow_contest(db: Session, user: User, contest_id: int, device_fingerprint: str, ip_address: str) -> dict:
         if ArrowGameService.is_maintenance_mode():
             raise ValueError("Go Arrows is currently under maintenance. Please try again later.")
-
-        contest = db.query(ArrowContest).filter(ArrowContest.id == contest_id).first()
+        contest = db.query(ArrowContest).filter(ArrowContest.id == contest_id).with_for_update().first()
         if not contest:
             raise ValueError("Contest not found.")
-        if contest.status != "ACTIVE" and contest.status != "UPCOMING":
-            raise ValueError("Contest is not active.")
+        if contest.status != "UPCOMING":
+            raise ValueError("Registration closed. You can only join upcoming contests.")
+        if contest.joined_slots >= contest.total_slots:
+            raise ValueError("Contest is full.")
 
         existing_attempt = db.query(ArrowAttempt).filter(
             ArrowAttempt.contest_id == contest_id,
             ArrowAttempt.user_id == user.id
         ).first()
-        
         if existing_attempt:
-            # Re-entrant session recovery
-            db_seed = db.query(ArrowPuzzleSeed).filter(
-                ArrowPuzzleSeed.contest_id == contest_id,
-                ArrowPuzzleSeed.user_id == user.id
-            ).first()
-            if not db_seed:
-                seed_val = random.randint(100000, 999999)
-                db_seed = ArrowPuzzleSeed(
-                    contest_id=contest_id,
-                    user_id=user.id,
-                    seed=seed_val,
-                    difficulty=contest.difficulty or "MEDIUM"
-                )
-                db.add(db_seed)
-                db.commit()
-            
-            layout_data = ArrowGameService.generate_solvable_layout_reverse(
-                contest.grid_size, contest.arrow_count, db_seed.seed
-            )
-            signature = ArrowAntiCheatService.generate_signature(existing_attempt.session_id, contest_id, user.id)
-            return {
-                "session_id": existing_attempt.session_id,
-                "layout": layout_data,
-                "started_at": existing_attempt.started_at,
-                "grid_size": contest.grid_size,
-                "duration_seconds": contest.duration_seconds,
-                "signature": signature
-            }
-
-        if contest.joined_slots >= contest.total_slots:
-            raise ValueError("Contest is full.")
+            raise ValueError("You have already joined this contest.")
 
         # Wallet balances validation and deduction
         WalletService.deduct_entry_fee(db, user, contest.entry_fee, description=f"Entry Fee: Arrow Contest ({contest.title})")
         contest.joined_slots += 1
 
-        # Generate seed and store it
-        seed_val = random.randint(100000, 999999)
-        db_seed = ArrowPuzzleSeed(
-            contest_id=contest_id,
-            user_id=user.id,
-            seed=seed_val,
-            difficulty=contest.difficulty or "MEDIUM"
-        )
-        db.add(db_seed)
-        db.flush()
-
-        # Generate solvable layout
-        layout_data = ArrowGameService.generate_solvable_layout_reverse(
-            contest.grid_size, contest.arrow_count, seed_val
-        )
-
         session_id = str(uuid.uuid4())
-        started_at = datetime.now(timezone.utc)
+        started_at = datetime.utcnow()
 
         attempt = ArrowAttempt(
             contest_id=contest_id,
@@ -1890,17 +1908,70 @@ class ArrowGameService:
             session_id=session_id,
             started_at=started_at,
             submitted_at=started_at,
-            status="IN_PROGRESS"
+            status="JOINED"
         )
         db.add(attempt)
         db.commit()
 
-        signature = ArrowAntiCheatService.generate_signature(session_id, contest_id, user.id)
-
         return {
             "session_id": session_id,
+            "entry_fee_deducted": contest.entry_fee,
+            "status": "SUCCESS"
+        }
+
+    @staticmethod
+    def start_arrow_session(db: Session, user: User, contest_id: int, device_fingerprint: str, ip_address: str) -> dict:
+        if ArrowGameService.is_maintenance_mode():
+            raise ValueError("Go Arrows is currently under maintenance. Please try again later.")
+
+        contest = db.query(ArrowContest).filter(ArrowContest.id == contest_id).first()
+        if not contest:
+            raise ValueError("Contest not found.")
+        if contest.status != "ACTIVE":
+            raise ValueError("Contest is not active.")
+
+        attempt = db.query(ArrowAttempt).filter(
+            ArrowAttempt.contest_id == contest_id,
+            ArrowAttempt.user_id == user.id
+        ).first()
+        if not attempt:
+            raise ValueError("Access denied. You must join this contest to play.")
+
+        if attempt.status != "JOINED" and attempt.status != "IN_PROGRESS":
+            raise ValueError("Session already completed or closed.")
+
+        db_seed = db.query(ArrowPuzzleSeed).filter(
+            ArrowPuzzleSeed.contest_id == contest_id,
+            ArrowPuzzleSeed.user_id == user.id
+        ).first()
+        if not db_seed:
+            seed_val = random.randint(100000, 999999)
+            db_seed = ArrowPuzzleSeed(
+                contest_id=contest_id,
+                user_id=user.id,
+                seed=seed_val,
+                difficulty=contest.difficulty or "MEDIUM"
+            )
+            db.add(db_seed)
+            db.flush()
+
+        layout_data = ArrowGameService.generate_solvable_layout_reverse(
+            contest.grid_size, contest.arrow_count, db_seed.seed
+        )
+
+        if attempt.status == "JOINED":
+            attempt.status = "IN_PROGRESS"
+            attempt.started_at = datetime.utcnow()
+            attempt.device_fingerprint = device_fingerprint
+            attempt.ip_address = ip_address
+            db.commit()
+
+        signature = ArrowAntiCheatService.generate_signature(attempt.session_id, contest_id, user.id)
+
+        return {
+            "session_id": attempt.session_id,
             "layout": layout_data,
-            "started_at": started_at,
+            "started_at": attempt.started_at,
             "grid_size": contest.grid_size,
             "duration_seconds": contest.duration_seconds,
             "signature": signature
@@ -1982,7 +2053,7 @@ class ArrowGameService:
         attempt.taps_sequence = json.dumps(telemetry_dicts)
         attempt.is_verified = True
         attempt.status = "VERIFIED"
-        attempt.submitted_at = datetime.now(timezone.utc)
+        attempt.submitted_at = datetime.utcnow()
         db.commit()
 
         leaderboard_entry = db.query(ArrowLeaderboard).filter(
@@ -2086,7 +2157,7 @@ class ArrowRewardService:
                 if db_leaderboard:
                     db_leaderboard.prize_amount = payout_amount
                     db_leaderboard.is_paid = True
-                    db_leaderboard.paid_at = datetime.now(timezone.utc)
+                    db_leaderboard.paid_at = datetime.utcnow()
                 payouts_made += 1
             else:
                 from app.core.notifications import send_push_to_user
