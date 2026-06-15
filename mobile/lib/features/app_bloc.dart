@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -315,6 +316,10 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   Future<String> _getDeviceDetails() async {
     try {
       final deviceInfo = DeviceInfoPlugin();
+      if (kIsWeb) {
+        final webInfo = await deviceInfo.webBrowserInfo;
+        return '${webInfo.browserName.name.toUpperCase()} (Web: ${webInfo.userAgent ?? 'Unknown'})';
+      }
       if (Platform.isAndroid) {
         final androidInfo = await deviceInfo.androidInfo;
         return '${androidInfo.brand} ${androidInfo.model} (Android ${androidInfo.version.release})';
@@ -329,6 +334,10 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   }
 
   Future<void> _updateFcmToken({bool force = false}) async {
+    if (kIsWeb) {
+      print("FCM notifications are bypassed on Web.");
+      return;
+    }
     try {
       final secureStorage = getIt<SecureStorageService>();
       final lastUpdateStr = await secureStorage.getLastFcmUpdateDate();

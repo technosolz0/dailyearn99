@@ -47,6 +47,7 @@ class DefaultFirebaseOptions {
     projectId: 'dailyearn99-app-prod',
     authDomain: 'dailyearn99-app-prod.firebaseapp.com',
     storageBucket: 'dailyearn99-app-prod.firebasestorage.app',
+    measurementId: 'G-BNDT4BY9E5',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
@@ -82,5 +83,6 @@ class DefaultFirebaseOptions {
     projectId: 'dailyearn99-app-prod',
     authDomain: 'dailyearn99-app-prod.firebaseapp.com',
     storageBucket: 'dailyearn99-app-prod.firebasestorage.app',
+    measurementId: 'G-DQC7KQFTCG',
   );
 }

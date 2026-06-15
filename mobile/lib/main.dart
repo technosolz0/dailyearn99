@@ -5,7 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:dailyearn99/core/theme/app_theme.dart';
 import 'package:dailyearn99/core/utils/dependency_injection.dart';
 import 'package:dailyearn99/core/network/api_client.dart';
@@ -20,14 +20,16 @@ import 'package:dailyearn99/core/constants/app_constants.dart';
 import 'package:dailyearn99/features/update/update_required_screen.dart';
 import 'package:dailyearn99/features/splash/splash_screen.dart';
 import 'package:safe_device/safe_device.dart';
+import 'package:dailyearn99/firebase_options.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Initialize Firebase on background message to handle background payloads
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 }
 
 void main() {
@@ -55,40 +57,48 @@ class _DailyEarn99AppState extends State<DailyEarn99App> {
   Future<void> _performInitialization() async {
     try {
       // 1. Initialize Firebase Core (must be first)
-      await Firebase.initializeApp();
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
 
       // 2. Set up dependency injection container immediately (synchronous registration)
       setupDependencyInjection();
 
       // 3. Register notification listeners (non-blocking)
-      FirebaseMessaging.onBackgroundMessage(
-        _firebaseMessagingBackgroundHandler,
-      );
-      _setupForegroundNotificationListener();
+      if (!kIsWeb) {
+        FirebaseMessaging.onBackgroundMessage(
+          _firebaseMessagingBackgroundHandler,
+        );
+        _setupForegroundNotificationListener();
+      }
 
       // 4. Run secondary native channel check/config operations concurrently to optimize startup speed
       final results = await Future.wait([
-        SafeDevice.isJailBroken.catchError((e) {
-          print("Warning: SafeDevice check failed: $e");
-          return false;
-        }),
-        FirebaseAppCheck.instance
-            .activate(
-              providerAndroid: kDebugMode
-                  ? const AndroidDebugProvider()
-                  : const AndroidPlayIntegrityProvider(),
-              providerApple: kDebugMode
-                  ? const AppleDebugProvider()
-                  : const AppleDeviceCheckProvider(),
-            )
-            .then((_) {
-              print("Firebase App Check: Activated successfully.");
-            })
-            .catchError((appCheckError) {
-              print(
-                "Firebase App Check Warning: Failed to activate: $appCheckError",
-              );
-            }),
+        kIsWeb
+            ? Future.value(false)
+            : SafeDevice.isJailBroken.catchError((e) {
+                print("Warning: SafeDevice check failed: $e");
+                return false;
+              }),
+        kIsWeb
+            ? Future.value(null)
+            : FirebaseAppCheck.instance
+                  .activate(
+                    providerAndroid: kDebugMode
+                        ? const AndroidDebugProvider()
+                        : const AndroidPlayIntegrityProvider(),
+                    providerApple: kDebugMode
+                        ? const AppleDebugProvider()
+                        : const AppleDeviceCheckProvider(),
+                  )
+                  .then((_) {
+                    print("Firebase App Check: Activated successfully.");
+                  })
+                  .catchError((appCheckError) {
+                    print(
+                      "Firebase App Check Warning: Failed to activate: $appCheckError",
+                    );
+                  }),
         FirebaseAuth.instance
             .setSettings(appVerificationDisabledForTesting: false)
             .then((_) {
@@ -132,31 +142,33 @@ class _DailyEarn99AppState extends State<DailyEarn99App> {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final notification = message.notification;
       if (notification != null) {
-        scaffoldMessengerKey.currentState?..clearSnackBars()..showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  notification.title ?? "Notification",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+        scaffoldMessengerKey.currentState
+          ?..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    notification.title ?? "Notification",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  notification.body ?? "",
-                  style: const TextStyle(color: Colors.white70),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    notification.body ?? "",
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                ],
+              ),
+              backgroundColor: AppTheme.accentCyan.withOpacity(0.95),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
             ),
-            backgroundColor: AppTheme.accentCyan.withOpacity(0.95),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
-          ),
-        );
+          );
       }
     });
   }
@@ -182,15 +194,27 @@ class _DailyEarn99AppState extends State<DailyEarn99App> {
 
     return BlocProvider<AppBloc>(
       create: (context) => AppBloc(getIt<ApiClient>())..add(AppStartedEvent()),
-      child: MaterialApp(
-        title: 'DailyEarn99',
-        scaffoldMessengerKey: scaffoldMessengerKey,
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.darkTheme,
-        navigatorObservers: [
-          FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
-        ],
-        home: const AuthWrapper(),
+      child: BlocListener<AppBloc, AppState>(
+        listenWhen: (previous, current) {
+          return previous.token != null && current.token == null;
+        },
+        listener: (context, state) {
+          navigatorKey.currentState?.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const AuthWrapper()),
+            (route) => false,
+          );
+        },
+        child: MaterialApp(
+          title: 'DailyEarn99',
+          navigatorKey: navigatorKey,
+          scaffoldMessengerKey: scaffoldMessengerKey,
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.darkTheme,
+          navigatorObservers: [
+            FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+          ],
+          home: const AuthWrapper(),
+        ),
       ),
     );
   }
@@ -313,16 +337,18 @@ class _MainNavigationLayoutState extends State<MainNavigationLayout> {
                       print(
                         "Redirecting user to Play Store/App Store update URL: $updateUrl",
                       );
-                      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Navigating to update link:\n$updateUrl',
-                            style: const TextStyle(color: Colors.white),
+                      ScaffoldMessenger.of(context)
+                        ..clearSnackBars()
+                        ..showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Navigating to update link:\n$updateUrl',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                            backgroundColor: AppTheme.accentCyan,
+                            behavior: SnackBarBehavior.floating,
                           ),
-                          backgroundColor: AppTheme.accentCyan,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
+                        );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,

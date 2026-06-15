@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -143,12 +144,13 @@ class _ReferralScreenState extends State<ReferralScreen> {
                             onTap: details == null
                                 ? null
                                 : () {
-                                    final appLink =
-                                        getIt<RemoteConfigService>().updateUrl;
+                                    final link = kIsWeb
+                                        ? Uri.base.origin
+                                        : getIt<RemoteConfigService>().updateUrl;
                                     final shareText =
                                         "Hey! Join me on DailyEarn99, play exciting games, and earn real cash! 🎮💰\n\n"
                                         "Use my Referral Code: ${details.referralCode} to get a ₹20 sign-up bonus instantly!\n\n"
-                                        "Download the App now: $appLink";
+                                        "${kIsWeb ? 'Join on Web now' : 'Download the App now'}: $link";
                                     Share.share(shareText);
                                   },
                             borderRadius: BorderRadius.circular(12),

@@ -4,10 +4,12 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 class ApiConstants {
   static const bool useLocalBackend = false;
 
+  static bool get _isAndroid => !kIsWeb && Platform.isAndroid;
+
   static String get baseUrl {
     if (useLocalBackend) {
       if (kIsWeb) return 'http://127.0.0.1:8000/api';
-      return Platform.isAndroid
+      return _isAndroid
           ? 'http://10.0.2.2:8000/api'
           : 'http://127.0.0.1:8000/api';
     }
@@ -15,7 +17,7 @@ class ApiConstants {
       return 'https://api.dailyearn99.in/api';
     }
     // Android emulator loops back to host via 10.0.2.2
-    return Platform.isAndroid
+    return _isAndroid
         ? 'https://api.dailyearn99.in/api'
         : 'https://api.dailyearn99.in/api';
   }
@@ -23,14 +25,14 @@ class ApiConstants {
   static String get wsUrl {
     if (useLocalBackend) {
       if (kIsWeb) return 'ws://127.0.0.1:8000/ws/leaderboard';
-      return Platform.isAndroid
+      return _isAndroid
           ? 'ws://10.0.2.2:8000/ws/leaderboard'
           : 'ws://127.0.0.1:8000/ws/leaderboard';
     }
     if (kIsWeb) {
       return 'wss://api.dailyearn99.in/ws/leaderboard';
     }
-    return Platform.isAndroid
+    return _isAndroid
         ? 'wss://api.dailyearn99.in/ws/leaderboard'
         : 'wss://api.dailyearn99.in/ws/leaderboard';
   }
@@ -66,14 +68,14 @@ class ApiConstants {
   static String puzzleWs(int contestId) {
     if (useLocalBackend) {
       if (kIsWeb) return 'ws://127.0.0.1:8000/ws/puzzle/leaderboard/$contestId';
-      return Platform.isAndroid
+      return _isAndroid
           ? 'ws://10.0.2.2:8000/ws/puzzle/leaderboard/$contestId'
           : 'ws://127.0.0.1:8000/ws/puzzle/leaderboard/$contestId';
     }
     if (kIsWeb) {
       return 'wss://api.dailyearn99.in/ws/puzzle/leaderboard/$contestId';
     }
-    return Platform.isAndroid
+    return _isAndroid
         ? 'wss://api.dailyearn99.in/ws/puzzle/leaderboard/$contestId'
         : 'wss://api.dailyearn99.in/ws/puzzle/leaderboard/$contestId';
   }
@@ -88,14 +90,14 @@ class ApiConstants {
   static String wordWs(int contestId) {
     if (useLocalBackend) {
       if (kIsWeb) return 'ws://127.0.0.1:8000/ws/word/leaderboard/$contestId';
-      return Platform.isAndroid
+      return _isAndroid
           ? 'ws://10.0.2.2:8000/ws/word/leaderboard/$contestId'
           : 'ws://127.0.0.1:8000/ws/word/leaderboard/$contestId';
     }
     if (kIsWeb) {
       return 'wss://api.dailyearn99.in/ws/word/leaderboard/$contestId';
     }
-    return Platform.isAndroid
+    return _isAndroid
         ? 'wss://api.dailyearn99.in/ws/word/leaderboard/$contestId'
         : 'wss://api.dailyearn99.in/ws/word/leaderboard/$contestId';
   }
@@ -110,14 +112,14 @@ class ApiConstants {
   static String fruitWs(int contestId) {
     if (useLocalBackend) {
       if (kIsWeb) return 'ws://127.0.0.1:8000/ws/fruit/leaderboard/$contestId';
-      return Platform.isAndroid
+      return _isAndroid
           ? 'ws://10.0.2.2:8000/ws/fruit/leaderboard/$contestId'
           : 'ws://127.0.0.1:8000/ws/fruit/leaderboard/$contestId';
     }
     if (kIsWeb) {
       return 'wss://api.dailyearn99.in/ws/fruit/leaderboard/$contestId';
     }
-    return Platform.isAndroid
+    return _isAndroid
         ? 'wss://api.dailyearn99.in/ws/fruit/leaderboard/$contestId'
         : 'wss://api.dailyearn99.in/ws/fruit/leaderboard/$contestId';
   }
@@ -131,14 +133,14 @@ class ApiConstants {
   static String arrowWs(int contestId) {
     if (useLocalBackend) {
       if (kIsWeb) return 'ws://127.0.0.1:8000/ws/arrow/leaderboard/$contestId';
-      return Platform.isAndroid
+      return _isAndroid
           ? 'ws://10.0.2.2:8000/ws/arrow/leaderboard/$contestId'
           : 'ws://127.0.0.1:8000/ws/arrow/leaderboard/$contestId';
     }
     if (kIsWeb) {
       return 'wss://api.dailyearn99.in/ws/arrow/leaderboard/$contestId';
     }
-    return Platform.isAndroid
+    return _isAndroid
         ? 'wss://api.dailyearn99.in/ws/arrow/leaderboard/$contestId'
         : 'wss://api.dailyearn99.in/ws/arrow/leaderboard/$contestId';
   }
