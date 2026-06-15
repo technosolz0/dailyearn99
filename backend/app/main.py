@@ -9,7 +9,7 @@ import os
 from app.core.config import settings
 from app.core.database import engine, Base, get_db
 from app.models import Contest
-from app.api import auth, contests, wallet, referral, admin, spin, puzzle_game, admin_puzzle, word_game, admin_word, fruit_game, admin_fruit, notifications, arrow_game, admin_arrow, portfolio
+from app.api import auth, contests, wallet, referral, admin, spin, puzzle_game, admin_puzzle, word_game, admin_word, fruit_game, admin_fruit, notifications, arrow_game, admin_arrow, portfolio, lottery, admin_lottery
 from app.websocket import manager, puzzle_ws_manager, word_ws_manager, fruit_ws_manager, arrow_ws_manager
 
 # Create database tables
@@ -19,7 +19,7 @@ from app.models import (
     WordContest, WordQuestion, WordAttempt, WordAnswer, WordLeaderboard,
     FruitContest, FruitMatch, FruitEvent, FruitScore, FruitLeaderboard,
     ArrowContest, ArrowGame, ArrowAttempt, ArrowLeaderboard, ArrowPuzzleSeed,
-    PortfolioConfig, PortfolioContactMessage
+    PortfolioConfig, PortfolioContactMessage, LotteryDraw, LotteryTicket
 )  # Explicitly import to register on Base
 Base.metadata.create_all(bind=engine)
 
@@ -456,11 +456,47 @@ async def startup_event():
                     start_time=now + timedelta(hours=1),
                     end_time=now + timedelta(hours=5)
                 )
-            ]
             for c in arrow_contests:
                 db.add(c)
             db.commit()
             print("Database Seeding: Populated initial Arrow contests.")
+
+        # Seed Lottery draws
+        if db.query(LotteryDraw).count() == 0:
+            now = datetime.now()
+            lottery_draws = [
+                LotteryDraw(
+                    title="🎟️ Daily Quick Cash Draw #102",
+                    ticket_price=10.0,
+                    prize_pool=1000.0,
+                    draw_time=now + timedelta(hours=1),
+                    max_tickets=500,
+                    joined_tickets=0,
+                    status="OPEN"
+                ),
+                LotteryDraw(
+                    title="💥 Weekly Bumper Sweepstakes #21",
+                    ticket_price=50.0,
+                    prize_pool=25000.0,
+                    draw_time=now + timedelta(days=2),
+                    max_tickets=1000,
+                    joined_tickets=0,
+                    status="OPEN"
+                ),
+                LotteryDraw(
+                    title="💎 Mega Sunday Jackpot Lakhs #5",
+                    ticket_price=200.0,
+                    prize_pool=100000.0,
+                    draw_time=now + timedelta(days=6),
+                    max_tickets=2000,
+                    joined_tickets=0,
+                    status="OPEN"
+                )
+            ]
+            for l in lottery_draws:
+                db.add(l)
+            db.commit()
+            print("Database Seeding: Populated initial Lottery draws.")
     finally:
         db.close()
 
@@ -474,6 +510,8 @@ app.include_router(admin.public_router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)
 app.include_router(portfolio.public_router, prefix=settings.API_V1_STR)
 app.include_router(portfolio.admin_router, prefix=settings.API_V1_STR)
+app.include_router(lottery.router, prefix=settings.API_V1_STR)
+app.include_router(admin_lottery.router, prefix=settings.API_V1_STR)
 
 app.include_router(puzzle_game.router, prefix=settings.API_V1_STR)
 app.include_router(admin_puzzle.router, prefix=settings.API_V1_STR)

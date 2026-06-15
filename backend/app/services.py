@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 import threading
 from typing import List, Dict, Tuple
-from app.models import User, Contest, ContestParticipant, WalletTransaction, Referral, Spin, WordContest, WordQuestion, WordAttempt, WordAnswer, WordLeaderboard
+from app.models import User, Contest, ContestParticipant, WalletTransaction, Referral, Spin, WordContest, WordQuestion, WordAttempt, WordAnswer, WordLeaderboard, LotteryDraw, LotteryTicket
 
 # Thread-safe in-memory Leaderboard Manager mimicking Redis Sorted Sets
 class LeaderboardManager:
@@ -2099,6 +2099,184 @@ class ArrowRewardService:
 
         db.commit()
         return {"status": "SUCCESS", "payouts_made": payouts_made}
+
+
+class LotteryService:
+    @staticmethod
+    def buy_ticket(db: Session, user_id: int, draw_id: int) -> LotteryTicket:
+        import secrets
+        
+        # 1. Fetch draw and lock it
+        draw = db.query(LotteryDraw).filter(LotteryDraw.id == draw_id).with_for_update().first()
+        if not draw:
+            raise ValueError("Lottery draw not found.")
+        if draw.status != "OPEN":
+            raise ValueError("This draw is closed or cancelled.")
+        if draw.joined_tickets >= draw.max_tickets:
+            raise ValueError("Ticket limits reached for this draw.")
+        
+        # 2. Get user and lock
+        user = db.query(User).filter(User.id == user_id).with_for_update().first()
+        if not user:
+            raise ValueError("User not found.")
+        if user.is_banned:
+            raise ValueError("Banned user cannot purchase tickets.")
+        
+        # 3. Deduct ticket price from user wallets (Deposit first, then Winnings)
+        ticket_price = draw.ticket_price
+        deposit_deduct = min(user.deposit_balance, ticket_price)
+        remaining = ticket_price - deposit_deduct
+        winnings_deduct = min(user.winning_balance, remaining)
+        
+        if deposit_deduct + winnings_deduct < ticket_price:
+            raise ValueError("Insufficient wallet balance to buy ticket.")
+        
+        user.deposit_balance -= deposit_deduct
+        user.winning_balance -= winnings_deduct
+        
+        # 4. Generate unique ticket number
+        ticket_num = ""
+        for _ in range(10):
+            potential_num = str(secrets.randbelow(900000) + 100000)
+            existing = db.query(LotteryTicket).filter(
+                LotteryTicket.draw_id == draw_id,
+                LotteryTicket.ticket_number == potential_num
+            ).first()
+            if not existing:
+                ticket_num = potential_num
+                break
+        if not ticket_num:
+            import uuid
+            ticket_num = str(uuid.uuid4().hex[:6].upper())
+            
+        # 5. Create ticket record
+        ticket = LotteryTicket(
+            user_id=user_id,
+            draw_id=draw_id,
+            ticket_number=ticket_num,
+            is_winner=False,
+            reward_amount=0.0
+        )
+        db.add(ticket)
+        
+        # 6. Create wallet transaction record
+        tx = WalletTransaction(
+            user_id=user_id,
+            type="ENTRY_FEE",
+            amount=ticket_price,
+            status="SUCCESS",
+            description=f"Lottery Ticket: {draw.title} (Ticket: {ticket_num})"
+        )
+        db.add(tx)
+        
+        # 7. Update draw tickets count
+        draw.joined_tickets += 1
+        
+        db.commit()
+        db.refresh(ticket)
+        return ticket
+
+    @staticmethod
+    def execute_draw(db: Session, draw_id: int) -> dict:
+        import secrets
+        from app.core.notifications import send_push_to_user
+        
+        draw = db.query(LotteryDraw).filter(LotteryDraw.id == draw_id).with_for_update().first()
+        if not draw:
+            return {"error": "Draw not found"}
+        if draw.status != "OPEN":
+            return {"error": f"Draw status is {draw.status}, only OPEN draws can be drawn."}
+        
+        tickets = db.query(LotteryTicket).filter(LotteryTicket.draw_id == draw_id).all()
+        if not tickets:
+            draw.status = "COMPLETED"
+            draw.winning_number = "NO TICKETS SOLD"
+            db.commit()
+            return {"message": "Draw completed with 0 participants.", "winners": []}
+            
+        winner_ticket = secrets.choice(tickets)
+        
+        draw.status = "COMPLETED"
+        draw.winning_number = winner_ticket.ticket_number
+        
+        winner_ticket.is_winner = True
+        winner_ticket.reward_amount = draw.prize_pool
+        
+        winner_user = db.query(User).filter(User.id == winner_ticket.user_id).first()
+        if winner_user:
+            winner_user.winning_balance += draw.prize_pool
+            
+            tx = WalletTransaction(
+                user_id=winner_user.id,
+                type="PRIZE_WIN",
+                amount=draw.prize_pool,
+                status="SUCCESS",
+                description=f"Lottery Winner: {draw.title} (Ticket: {winner_ticket.ticket_number})"
+            )
+            db.add(tx)
+            
+            send_push_to_user(
+                db,
+                winner_user.id,
+                title="🎟️ YOU WON THE LUCKY DRAW!",
+                body=f"Congratulations! Your ticket #{winner_ticket.ticket_number} won the grand prize of ₹{draw.prize_pool:.2f} in '{draw.title}'!"
+            )
+            
+        for t in tickets:
+            if t.id == winner_ticket.id:
+                continue
+            send_push_to_user(
+                db,
+                t.user_id,
+                title="🏁 Draw Results Announced",
+                body=f"Draw '{draw.title}' results are out. Winning Ticket: #{winner_ticket.ticket_number}. Better luck next time!"
+            )
+            
+        db.commit()
+        return {
+            "message": "Draw executed successfully.",
+            "winning_ticket": winner_ticket.ticket_number,
+            "winner_user_id": winner_ticket.user_id,
+            "prize_awarded": draw.prize_pool
+        }
+
+    @staticmethod
+    def cancel_draw(db: Session, draw_id: int) -> dict:
+        from app.core.notifications import send_push_to_user
+        
+        draw = db.query(LotteryDraw).filter(LotteryDraw.id == draw_id).with_for_update().first()
+        if not draw:
+            return {"error": "Draw not found"}
+        if draw.status != "OPEN":
+            return {"error": f"Draw status is {draw.status}, only OPEN draws can be cancelled."}
+            
+        tickets = db.query(LotteryTicket).filter(LotteryTicket.draw_id == draw_id).all()
+        refund_count = 0
+        for ticket in tickets:
+            user = db.query(User).filter(User.id == ticket.user_id).with_for_update().first()
+            if user:
+                user.deposit_balance += draw.ticket_price
+                tx = WalletTransaction(
+                    user_id=user.id,
+                    type="DEPOSIT",
+                    amount=draw.ticket_price,
+                    status="SUCCESS",
+                    description=f"Refund: Cancelled Lottery Draw '{draw.title}'"
+                )
+                db.add(tx)
+                refund_count += 1
+                
+                send_push_to_user(
+                    db,
+                    user.id,
+                    title="🎟️ Draw Cancelled & Refunded",
+                    body=f"Lottery Draw '{draw.title}' was cancelled. Ticket price of ₹{draw.ticket_price:.2f} has been refunded to your Deposit wallet."
+                )
+                
+        draw.status = "CANCELLED"
+        db.commit()
+        return {"message": f"Draw cancelled. Refunded {refund_count} tickets successfully."}
+
 
 
 

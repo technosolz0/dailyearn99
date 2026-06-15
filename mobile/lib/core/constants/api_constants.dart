@@ -144,4 +144,9 @@ class ApiConstants {
         ? 'wss://api.dailyearn99.in/ws/arrow/leaderboard/$contestId'
         : 'wss://api.dailyearn99.in/ws/arrow/leaderboard/$contestId';
   }
+
+  // Lottery APIs
+  static const String lotteryDraws = '/lottery/draws';
+  static const String lotteryBuy = '/lottery/buy';
+  static const String lotteryMyTickets = '/lottery/my-tickets';
 }

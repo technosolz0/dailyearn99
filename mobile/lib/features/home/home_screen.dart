@@ -14,6 +14,7 @@ import 'package:dailyearn99/features/go_arrows/screens/arrow_lobby_screen.dart';
 import 'package:dailyearn99/features/notifications/screens/notifications_screen.dart';
 import 'package:dailyearn99/core/widgets/custom_button.dart';
 import 'package:dailyearn99/core/utils/date_formatter.dart';
+import 'package:dailyearn99/features/lottery/screens/lottery_lobby_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -623,6 +624,111 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const Icon(
                                   Icons.chevron_right,
                                   color: Color(0xFFFF9900),
+                                  size: 28,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Online Lottery & Sweepstakes Quick Launch Banner Card
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0,
+                      vertical: 8.0,
+                    ),
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LotteryLobbyScreen(),
+                          ),
+                        ).then((_) {
+                          context.read<AppBloc>().add(LoadProfileEvent());
+                        });
+                      },
+                      child: Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: AppTheme.accentCyan.withOpacity(0.5),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  const Color(0xFF0D1B2A),
+                                  const Color(0xFF0F3A40).withOpacity(0.8),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            padding: const EdgeInsets.all(20),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.accentCyan
+                                              .withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'NEW LOBBY MODE',
+                                          style: TextStyle(
+                                            fontSize: 8,
+                                            color: AppTheme.accentCyan,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 1.0,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        '🎟️ Lucky Draw Arena',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      const Text(
+                                        'Join daily draws with massive cash prizes. Buy tickets or earn entries!',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: AppTheme.textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Icon(
+                                  Icons.chevron_right,
+                                  color: AppTheme.accentCyan,
                                   size: 28,
                                 ),
                               ],

@@ -707,6 +707,50 @@ class PortfolioContactMessageResponse(BaseModel):
         from_attributes = True
 
 
+class LotteryDrawCreate(BaseModel):
+    title: str
+    ticket_price: float
+    prize_pool: float
+    draw_time: datetime
+    max_tickets: Optional[int] = 1000
+
+
+class LotteryDrawResponse(BaseModel):
+    id: int
+    title: str
+    ticket_price: float
+    prize_pool: float
+    draw_time: datetime
+    max_tickets: int
+    joined_tickets: int
+    status: str
+    winning_number: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class LotteryTicketBuyRequest(BaseModel):
+    draw_id: int
+
+
+class LotteryTicketResponse(BaseModel):
+    id: int
+    user_id: int
+    draw_id: int
+    ticket_number: str
+    purchase_time: datetime
+    is_winner: bool
+    reward_amount: float
+    draw_title: Optional[str] = None
+    draw_status: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+
 
 
 

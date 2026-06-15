@@ -31,6 +31,7 @@ class User(Base):
     
     participants = relationship("ContestParticipant", back_populates="user")
     transactions = relationship("WalletTransaction", back_populates="user")
+    lottery_tickets = relationship("LotteryTicket", back_populates="user")
 
     @property
     def joined_contest_ids(self):
@@ -582,4 +583,38 @@ class PortfolioContactMessage(Base):
     subject = Column(String, nullable=False)
     message = Column(String, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class LotteryDraw(Base):
+    __tablename__ = "lottery_draws"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    ticket_price = Column(Float, nullable=False)
+    prize_pool = Column(Float, nullable=False)
+    draw_time = Column(DateTime, nullable=False)
+    max_tickets = Column(Integer, default=1000)
+    joined_tickets = Column(Integer, default=0)
+    status = Column(String, default="OPEN")  # OPEN, COMPLETED, CANCELLED
+    winning_number = Column(String, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    tickets = relationship("LotteryTicket", back_populates="draw")
+
+
+class LotteryTicket(Base):
+    __tablename__ = "lottery_tickets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    draw_id = Column(Integer, ForeignKey("lottery_draws.id"), nullable=False)
+    ticket_number = Column(String, unique=True, nullable=False)
+    purchase_time = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    is_winner = Column(Boolean, default=False)
+    reward_amount = Column(Float, default=0.0)
+
+    user = relationship("User", back_populates="lottery_tickets")
+    draw = relationship("LotteryDraw", back_populates="tickets")
+
 

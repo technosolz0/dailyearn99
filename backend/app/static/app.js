@@ -184,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupTabNavigation();
     setupEventHandlers();
     setupPromoCodeHandlers();
+    setupLotteryHandlers();
 
     // Check initial authentication status
     const token = localStorage.getItem('adminToken');
@@ -324,6 +325,10 @@ function updateHeaders(tab) {
         case 'promo-codes':
             el.pageTitle.innerText = "Promo & Referral Codes Manager";
             el.pageSubtitle.innerText = "Create, edit, and delete default or custom promotional referral codes";
+            break;
+        case 'lottery-manager':
+            el.pageTitle.innerText = "Lottery Engine Control Board";
+            el.pageSubtitle.innerText = "Schedule lucky draws, monitor ticket sales, draw winners, and cancel contests";
             break;
     }
 }
@@ -1124,6 +1129,9 @@ function loadTabSpecificData(tab) {
             break;
         case 'promo-codes':
             loadPromoCodes();
+            break;
+        case 'lottery-manager':
+            loadLotteryManager();
             break;
     }
 }
@@ -3558,6 +3566,161 @@ window.editPromoCode = editPromoCode;
 window.deletePromoCode = deletePromoCode;
 window.loadPromoCodes = loadPromoCodes;
 window.setupPromoCodeHandlers = setupPromoCodeHandlers;
+
+
+function setupLotteryHandlers() {
+    const form = document.getElementById('lottery-create-form');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('l-title').value.trim();
+            const price = parseFloat(document.getElementById('l-price').value);
+            const pool = parseFloat(document.getElementById('l-pool').value);
+            const maxTickets = parseInt(document.getElementById('l-max-tickets').value);
+            const drawTimeStr = document.getElementById('l-draw-time').value;
+
+            if (!title || isNaN(price) || isNaN(pool) || isNaN(maxTickets) || !drawTimeStr) {
+                showToast("Please fill in all fields correctly.", true);
+                return;
+            }
+
+            const drawTime = new Date(drawTimeStr).toISOString();
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/lottery/draws`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: title,
+                        ticket_price: price,
+                        prize_pool: pool,
+                        draw_time: drawTime,
+                        max_tickets: maxTickets
+                    })
+                });
+
+                if (!response.ok) throw new Error(await response.text());
+
+                showToast("Lottery Draw launched successfully!");
+                form.reset();
+                loadLotteryManager();
+            } catch (err) {
+                console.error(err);
+                showToast("Failed to create lottery: " + err.message, true);
+            }
+        });
+    }
+}
+
+async function loadLotteryManager() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/lottery/draws`);
+        if (!res.ok) throw new Error("Failed to load lottery draws schedule.");
+        const draws = await res.json();
+        renderLotteryTable(draws);
+    } catch (err) {
+        showToast(err.message, true);
+    }
+}
+
+function renderLotteryTable(draws) {
+    const tableBody = document.getElementById('lottery-draws-table-body');
+    if (!tableBody) return;
+
+    if (draws.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="9" class="table-placeholder">No lottery draws scheduled yet.</td></tr>`;
+        return;
+    }
+
+    tableBody.innerHTML = draws.map(draw => {
+        const isCompleted = draw.status === 'COMPLETED';
+        const isCancelled = draw.status === 'CANCELLED';
+        const isOpen = draw.status === 'OPEN';
+
+        let statusBadge = `<span class="badge badge-success">Open</span>`;
+        if (isCompleted) {
+            statusBadge = `<span class="badge badge-neutral" style="background-color: var(--text-muted); color: #fff;">Drawn</span>`;
+        } else if (isCancelled) {
+            statusBadge = `<span class="badge badge-error">Cancelled</span>`;
+        }
+
+        let actions = '-';
+        if (isOpen) {
+            actions = `
+                <button class="btn btn-secondary btn-icon" onclick="executeLotteryDraw(${draw.id})" style="padding: 4px 8px; font-size: 11px; margin-right: 4px; background: rgba(0, 229, 255, 0.1); color: var(--accent-cyan); border-color: rgba(0, 229, 255, 0.2);">Draw Winner</button>
+                <button class="btn btn-ban" onclick="deleteLotteryDraw(${draw.id})" style="padding: 4px 8px; font-size: 11px;">Cancel</button>
+            `;
+        }
+
+        const formattedDate = new Date(draw.draw_time).toLocaleString();
+        const fillPercent = ((draw.joined_tickets / draw.max_tickets) * 100).toFixed(0);
+
+        return `
+            <tr>
+                <td><strong>#${draw.id}</strong></td>
+                <td>
+                    <div style="font-weight: 600; color: var(--text-main);">${draw.title}</div>
+                </td>
+                <td>₹${draw.ticket_price}</td>
+                <td>
+                    <div style="font-size:11px;">${draw.joined_tickets} / ${draw.max_tickets}</div>
+                    <div style="width: 80px; height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; margin-top: 4px;">
+                        <div style="width: ${fillPercent}%; height: 100%; background: var(--primary);"></div>
+                    </div>
+                </td>
+                <td><strong>₹${draw.prize_pool}</strong></td>
+                <td style="font-size: 12px; color: var(--text-muted);">${formattedDate}</td>
+                <td>${statusBadge}</td>
+                <td><code style="font-family: monospace; font-size: 12px; color: var(--accent-emerald); font-weight: bold;">${draw.winning_number || '-'}</code></td>
+                <td>
+                    <div style="display: flex; gap: 4px;">
+                        ${actions}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function executeLotteryDraw(id) {
+    if (!confirm("Are you sure you want to execute this lucky draw and select a winner? This action will credit the user's winning balance immediately and notify all participants!")) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/admin/lottery/draws/${id}/draw`, {
+            method: 'POST'
+        });
+        if (!res.ok) throw new Error(await res.text());
+
+        const data = await res.json();
+        showToast(`Draw executed! Winner ticket: ${data.winning_ticket}. Prize: ₹${data.prize_awarded}`);
+        loadLotteryManager();
+    } catch (err) {
+        showToast("Error drawing winner: " + err.message, true);
+    }
+}
+
+async function deleteLotteryDraw(id) {
+    if (!confirm("Are you sure you want to cancel this lottery draw? This will issue full refunds to all purchased tickets instantly!")) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/admin/lottery/draws/${id}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error(await res.text());
+
+        showToast("Lottery Draw cancelled & refunded successfully.");
+        loadLotteryManager();
+    } catch (err) {
+        showToast("Error cancelling lottery: " + err.message, true);
+    }
+}
+
+window.setupLotteryHandlers = setupLotteryHandlers;
+window.loadLotteryManager = loadLotteryManager;
+window.renderLotteryTable = renderLotteryTable;
+window.executeLotteryDraw = executeLotteryDraw;
+window.deleteLotteryDraw = deleteLotteryDraw;
+
 
 
 

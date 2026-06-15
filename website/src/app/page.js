@@ -203,6 +203,16 @@ export default function Home() {
               </p>
               <span style={{ color: 'var(--accent-pink)', fontSize: '12px', fontWeight: 'bold' }}>🎮 PLAY & WIN CASH →</span>
             </div>
+
+            {/* Online Lottery */}
+            <div className="glass-card">
+              <span className="game-icon">🎟️</span>
+              <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>Lucky Draw Arena</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: '1.6', marginBottom: '16px' }}>
+                Join daily and weekly lucky draws with massive prize pools. Purchase tickets using your wallet balance or complete simple tasks to win free entries!
+              </p>
+              <span style={{ color: 'var(--accent-cyan)', fontSize: '12px', fontWeight: 'bold' }}>🎟️ ENTER LUCKY DRAWS →</span>
+            </div>
           </div>
         </div>
       </section>

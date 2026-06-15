@@ -132,6 +132,15 @@
                     </svg>
                     Promo Codes
                 </button>
+                <button class="menu-item" data-tab="lottery-manager">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="5" width="20" height="14" rx="2" />
+                        <line x1="6" y1="5" x2="6" y2="19" stroke-dasharray="2 2" />
+                        <line x1="18" y1="5" x2="18" y2="19" stroke-dasharray="2 2" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    Lottery Engine
+                </button>
             </nav>
 
             <div class="sidebar-footer">
@@ -1541,6 +1550,80 @@
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 14. LOTTERY ENGINE TAB -->
+                <section class="tab-panel" id="panel-lottery-manager">
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>Create New Lottery Draw</h2>
+                            </div>
+                            <form id="lottery-create-form" class="contest-form" style="margin-top: 15px;">
+                                <div class="form-group">
+                                    <label for="l-title">Draw Title</label>
+                                    <input type="text" id="l-title" placeholder="e.g. 🎟️ Daily Quick Cash Draw" required>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="l-price">Ticket Price (₹)</label>
+                                        <input type="number" id="l-price" value="10" min="1" step="any" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="l-pool">Total Prize Pool (₹)</label>
+                                        <input type="number" id="l-pool" value="1000" min="1" step="any" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="l-max-tickets">Max Tickets Limit</label>
+                                        <input type="number" id="l-max-tickets" value="500" min="2" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="l-draw-time">Draw Time</label>
+                                    <input type="datetime-local" id="l-draw-time" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 15px;">Launch Lottery Draw</button>
+                            </form>
+                        </div>
+                        <div class="card" style="display: flex; flex-direction: column;">
+                            <div class="card-header">
+                                <h2>Lottery Engine Guidelines</h2>
+                            </div>
+                            <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6; padding-top: 15px;">
+                                <p style="margin-bottom: 12px;"><strong>Automated Drawing & Manual Ref:</strong> When a lottery draw passes its scheduled Draw Time, you can manually trigger "Draw Winner" to pick a random winning ticket and distribute the prize pool instantly to the user's winnings wallet.</p>
+                                <p style="margin-bottom: 12px;"><strong>Cryptographic Selection:</strong> The lottery engine uses a cryptographically secure random number generator (Python's <code>secrets</code> module) to pick the winning ticket from the pool of purchased tickets, ensuring absolute fairness.</p>
+                                <p><strong>Cancellation & Refund:</strong> If a draw is cancelled by an administrator, the entry ticket prices are immediately refunded back into the respective users' Deposit wallets, and push notifications are triggered to keep them updated.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card table-card" style="margin-top: 30px;">
+                        <div class="card-table-header">
+                            <h2>Lottery Draws Schedule & Results</h2>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Draw Details</th>
+                                        <th>Price</th>
+                                        <th>Tickets Sold</th>
+                                        <th>Prize Pool</th>
+                                        <th>Draw Time</th>
+                                        <th>Status</th>
+                                        <th>Winning Ticket</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lottery-draws-table-body">
+                                    <tr>
+                                        <td colspan="9" class="table-placeholder">Loading lottery draws data...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </section>
