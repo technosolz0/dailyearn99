@@ -456,6 +456,7 @@ async def startup_event():
                     start_time=now + timedelta(hours=1),
                     end_time=now + timedelta(hours=5)
                 )
+            ]
             for c in arrow_contests:
                 db.add(c)
             db.commit()
