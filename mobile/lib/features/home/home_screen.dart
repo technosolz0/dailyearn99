@@ -214,528 +214,219 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // Image Puzzle Challenge Quick Launch Banner Card
+                // Redesigned Game Arenas Section
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20.0,
-                      vertical: 8.0,
+                      vertical: 12.0,
                     ),
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const PuzzleLobbyScreen(),
-                          ),
-                        ).then((_) {
-                          context.read<AppBloc>().add(LoadProfileEvent());
-                        });
-                      },
-                      child: Card(
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(
-                            color: AppTheme.accentPurple.withOpacity(0.5),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  const Color(0xFF151030),
-                                  const Color(0xFF2E1A47).withOpacity(0.8),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                            ),
-                            padding: const EdgeInsets.all(20),
-                            child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.accentPurple
-                                              .withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
-                                        ),
-                                        child: const Text(
-                                          'NEW GAME MODE',
-                                          style: TextStyle(
-                                            fontSize: 8,
-                                            color: AppTheme.accentPurple,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 1.0,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      const Text(
-                                        '🧩 Image Puzzle Challenge',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      const Text(
-                                        'Rearrange pieces against the timer to win real cash prizes!',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: AppTheme.textMuted,
-                                        ),
-                                      ),
-                                    ],
+                                const Text(
+                                  '🎮 GAME ZONES',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.5,
+                                    color: Colors.white,
                                   ),
                                 ),
-                                const SizedBox(width: 12),
-                                const Icon(
-                                  Icons.chevron_right,
-                                  color: AppTheme.accentPurple,
-                                  size: 28,
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Compete & earn real cash rewards',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.white.withOpacity(0.5),
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.accentCyan.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: AppTheme.accentCyan.withOpacity(0.2),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: const BoxDecoration(
+                                      color: AppTheme.accentEmerald,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Text(
+                                    '5 LIVE',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.accentCyan,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ),
-                  ),
-                ),
+                        const SizedBox(height: 14),
 
-                // Word Puzzle Challenge Quick Launch Banner Card
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0,
-                      vertical: 8.0,
-                    ),
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const WordLobbyScreen(),
-                          ),
-                        ).then((_) {
-                          context.read<AppBloc>().add(LoadProfileEvent());
-                        });
-                      },
-                      child: Card(
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(
-                            color: AppTheme.accentCyan.withOpacity(0.5),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  const Color(0xFF0F1B29),
-                                  const Color(0xFF132A44).withOpacity(0.8),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                            ),
-                            padding: const EdgeInsets.all(20),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.accentCyan
-                                              .withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
-                                        ),
-                                        child: const Text(
-                                          'NEW GAME MODE',
-                                          style: TextStyle(
-                                            fontSize: 8,
-                                            color: AppTheme.accentCyan,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 1.0,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      const Text(
-                                        '🔤 Word Puzzle Challenge',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      const Text(
-                                        'Solve word puzzles, unscramble, and missing letters to win real cash prizes!',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: AppTheme.textMuted,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                const Icon(
-                                  Icons.chevron_right,
-                                  color: AppTheme.accentCyan,
-                                  size: 28,
-                                ),
+                        // Grid of 4 main mini-games (2x2 grid)
+                        GridView.count(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 1.25,
+                          children: [
+                            _buildGameGridItem(
+                              context: context,
+                              title: 'Image Puzzle',
+                              emoji: '🧩',
+                              desc: 'Rearrange & win cash',
+                              tag: 'PUZZLE',
+                              colors: [
+                                const Color(0xFF151030),
+                                const Color(0xFF2E1A47),
                               ],
+                              borderColor: AppTheme.accentPurple,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const PuzzleLobbyScreen(),
+                                  ),
+                                ).then((_) {
+                                  context.read<AppBloc>().add(
+                                    LoadProfileEvent(),
+                                  );
+                                });
+                              },
                             ),
-                          ),
+                            _buildGameGridItem(
+                              context: context,
+                              title: 'Word Puzzle',
+                              emoji: '🔤',
+                              desc: 'Unscramble words',
+                              tag: 'BRAIN',
+                              colors: [
+                                const Color(0xFF0F1B29),
+                                const Color(0xFF132A44),
+                              ],
+                              borderColor: AppTheme.accentCyan,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const WordLobbyScreen(),
+                                  ),
+                                ).then((_) {
+                                  context.read<AppBloc>().add(
+                                    LoadProfileEvent(),
+                                  );
+                                });
+                              },
+                            ),
+                            _buildGameGridItem(
+                              context: context,
+                              title: 'Fruit Slice',
+                              emoji: '🍓',
+                              desc: 'Slice & dodge bombs',
+                              tag: 'ACTION',
+                              colors: [
+                                const Color(0xFF2C0A02),
+                                const Color(0xFF4A190C),
+                              ],
+                              borderColor: const Color(0xFFFF4500),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const FruitLobbyScreen(),
+                                  ),
+                                ).then((_) {
+                                  context.read<AppBloc>().add(
+                                    LoadProfileEvent(),
+                                  );
+                                });
+                              },
+                            ),
+                            _buildGameGridItem(
+                              context: context,
+                              title: 'Go Arrows',
+                              emoji: '🏹',
+                              desc: 'Fly blocks off-screen',
+                              tag: 'REFLEX',
+                              colors: [
+                                const Color(0xFF2D1D00),
+                                const Color(0xFF140F2D),
+                              ],
+                              borderColor: const Color(0xFFFF9900),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const ArrowLobbyScreen(),
+                                  ),
+                                ).then((_) {
+                                  context.read<AppBloc>().add(
+                                    LoadProfileEvent(),
+                                  );
+                                });
+                              },
+                            ),
+                          ],
                         ),
-                      ),
-                    ),
-                  ),
-                ),
+                        const SizedBox(height: 12),
 
-                // Fruit Slicing Tournament Quick Launch Banner Card
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0,
-                      vertical: 8.0,
-                    ),
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const FruitLobbyScreen(),
-                          ),
-                        ).then((_) {
-                          context.read<AppBloc>().add(LoadProfileEvent());
-                        });
-                      },
-                      child: Card(
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(
-                            color: const Color(0xFFFF4500).withOpacity(0.5),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  const Color(0xFF2C0A02),
-                                  const Color(0xFF4A190C).withOpacity(0.8),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
+                        // Lucky Draw Arena full-width featured card
+                        _buildFeaturedGameCard(
+                          context: context,
+                          title: 'Lucky Draw Arena',
+                          emoji: '🎟️',
+                          desc:
+                              'Join daily draws with massive cash prizes. Buy tickets now!',
+                          badge: 'LIVE JACKPOT',
+                          colors: [
+                            const Color(0xFF0D1B2A),
+                            const Color(0xFF0F3A40),
+                          ],
+                          borderColor: AppTheme.accentTeal,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const LotteryLobbyScreen(),
                               ),
-                            ),
-                            padding: const EdgeInsets.all(20),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(
-                                            0xFFFF4500,
-                                          ).withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
-                                        ),
-                                        child: const Text(
-                                          'NEW GAME MODE',
-                                          style: TextStyle(
-                                            fontSize: 8,
-                                            color: Color(0xFFFF4500),
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 1.0,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      const Text(
-                                        '🍓 Fruit Slicing Tournament',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      const Text(
-                                        'Slice high-scoring fruits, dodge bombs, and compete on the live leaderboard!',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: AppTheme.textMuted,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                const Icon(
-                                  Icons.chevron_right,
-                                  color: Color(0xFFFF4500),
-                                  size: 28,
-                                ),
-                              ],
-                            ),
-                          ),
+                            ).then((_) {
+                              context.read<AppBloc>().add(LoadProfileEvent());
+                            });
+                          },
                         ),
-                      ),
-                    ),
-                  ),
-                ),
-                // Go Arrows Challenge Quick Launch Banner Card
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0,
-                      vertical: 8.0,
-                    ),
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ArrowLobbyScreen(),
-                          ),
-                        ).then((_) {
-                          context.read<AppBloc>().add(LoadProfileEvent());
-                        });
-                      },
-                      child: Card(
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(
-                            color: const Color(0xFFFF9900).withOpacity(0.5),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  const Color(0xFF2E1A05),
-                                  const Color(0xFF140F2D).withOpacity(0.8),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                            ),
-                            padding: const EdgeInsets.all(20),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(
-                                            0xFFFF9900,
-                                          ).withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
-                                        ),
-                                        child: const Text(
-                                          'NEW GAME MODE',
-                                          style: TextStyle(
-                                            fontSize: 8,
-                                            color: Color(0xFFFF9900),
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 1.0,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      const Text(
-                                        '🏹 Go Arrows Challenge',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      const Text(
-                                        'Tap arrow blocks to make them fly off-screen. Avoid obstructions to maximize score!',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: AppTheme.textMuted,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                const Icon(
-                                  Icons.chevron_right,
-                                  color: Color(0xFFFF9900),
-                                  size: 28,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Online Lottery & Sweepstakes Quick Launch Banner Card
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0,
-                      vertical: 8.0,
-                    ),
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const LotteryLobbyScreen(),
-                          ),
-                        ).then((_) {
-                          context.read<AppBloc>().add(LoadProfileEvent());
-                        });
-                      },
-                      child: Card(
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(
-                            color: AppTheme.accentCyan.withOpacity(0.5),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  const Color(0xFF0D1B2A),
-                                  const Color(0xFF0F3A40).withOpacity(0.8),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                            ),
-                            padding: const EdgeInsets.all(20),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.accentCyan
-                                              .withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
-                                        ),
-                                        child: const Text(
-                                          'NEW LOBBY MODE',
-                                          style: TextStyle(
-                                            fontSize: 8,
-                                            color: AppTheme.accentCyan,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 1.0,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      const Text(
-                                        '🎟️ Lucky Draw Arena',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      const Text(
-                                        'Join daily draws with massive cash prizes. Buy tickets or earn entries!',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: AppTheme.textMuted,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                const Icon(
-                                  Icons.chevron_right,
-                                  color: AppTheme.accentCyan,
-                                  size: 28,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+                      ],
                     ),
                   ),
                 ),
@@ -823,6 +514,202 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildGameGridItem({
+    required BuildContext context,
+    required String title,
+    required String emoji,
+    required String desc,
+    required String tag,
+    required List<Color> colors,
+    required Color borderColor,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: borderColor.withOpacity(0.3), width: 1),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: colors,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12.0,
+              vertical: 10.0,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: borderColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        tag,
+                        style: TextStyle(
+                          fontSize: 7.5,
+                          color: borderColor,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    Text(emoji, style: const TextStyle(fontSize: 18)),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      desc,
+                      style: const TextStyle(
+                        fontSize: 9,
+                        color: AppTheme.textMuted,
+                        height: 1.15,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeaturedGameCard({
+    required BuildContext context,
+    required String title,
+    required String emoji,
+    required String desc,
+    required String badge,
+    required List<Color> colors,
+    required Color borderColor,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 6,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: borderColor.withOpacity(0.5), width: 1.5),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: colors,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: borderColor.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          badge,
+                          style: TextStyle(
+                            fontSize: 8,
+                            color: borderColor,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Text(emoji, style: const TextStyle(fontSize: 18)),
+                          const SizedBox(width: 8),
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        desc,
+                        style: const TextStyle(
+                          fontSize: 9.5,
+                          color: AppTheme.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: borderColor.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.chevron_right,
+                    color: borderColor,
+                    size: 20,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1506,12 +1393,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         context.read<AppBloc>().add(
                           JoinContestEvent(contest.id),
                         );
-                        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                          SnackBar(
-                            content: Text('Registered for ${contest.title}!'),
-                            backgroundColor: AppTheme.accentEmerald,
-                          ),
-                        );
+                        ScaffoldMessenger.of(context)
+                          ..clearSnackBars()
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Text('Registered for ${contest.title}!'),
+                              backgroundColor: AppTheme.accentEmerald,
+                            ),
+                          );
                       },
                       type: CustomButtonType.primary,
                     ),

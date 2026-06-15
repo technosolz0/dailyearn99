@@ -2,12 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dailyearn99/core/theme/app_theme.dart';
 
-enum CustomButtonType {
-  primary,
-  secondary,
-  outline,
-  danger,
-}
+enum CustomButtonType { primary, secondary, outline, danger }
 
 class CustomButton extends StatefulWidget {
   final String text;
@@ -45,7 +40,8 @@ class CustomButton extends StatefulWidget {
   State<CustomButton> createState() => _CustomButtonState();
 }
 
-class _CustomButtonState extends State<CustomButton> with SingleTickerProviderStateMixin {
+class _CustomButtonState extends State<CustomButton>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
 
@@ -103,23 +99,30 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
       child: AnimatedBuilder(
         animation: _scaleAnimation,
         builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: child,
-          );
+          return Transform.scale(scale: _scaleAnimation.value, child: child);
         },
-        child: Container(
-          width: widget.width ?? double.infinity,
-          height: widget.height,
-          decoration: _buildDecoration(isEnabled),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(widget.borderRadius),
-            child: Center(
-              child: widget.isLoading
-                  ? _buildLoadingIndicator()
-                  : _buildContent(),
-            ),
-          ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final double? targetWidth =
+                widget.width ??
+                (constraints.hasBoundedWidth ? double.infinity : null);
+            return Container(
+              width: targetWidth,
+              height: widget.height,
+              decoration: _buildDecoration(isEnabled),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(widget.borderRadius),
+                child: Center(
+                  child: widget.isLoading
+                      ? _buildLoadingIndicator()
+                      : Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: _buildContent(),
+                        ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -139,7 +142,9 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
         color: widget.gradient == null ? widget.backgroundColor : null,
         gradient: widget.gradient,
         borderRadius: BorderRadius.circular(widget.borderRadius),
-        border: widget.borderSide != null ? Border.fromBorderSide(widget.borderSide!) : null,
+        border: widget.borderSide != null
+            ? Border.fromBorderSide(widget.borderSide!)
+            : null,
       );
     }
 
@@ -147,10 +152,7 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
       case CustomButtonType.primary:
         return BoxDecoration(
           gradient: const LinearGradient(
-            colors: [
-              AppTheme.accentCyan,
-              AppTheme.accentPurple,
-            ],
+            colors: [AppTheme.accentCyan, AppTheme.accentPurple],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -178,10 +180,7 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
       case CustomButtonType.danger:
         return BoxDecoration(
           gradient: const LinearGradient(
-            colors: [
-              AppTheme.accentRed,
-              Color(0xFFC62828),
-            ],
+            colors: [AppTheme.accentRed, Color(0xFFC62828)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -220,11 +219,7 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (widget.icon != null) ...[
-          Icon(
-            widget.icon,
-            size: 18,
-            color: _getTextColor(),
-          ),
+          Icon(widget.icon, size: 18, color: _getTextColor()),
           const SizedBox(width: 8),
         ],
         Flexible(
@@ -237,11 +232,7 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
         ),
         if (widget.trailingIcon != null) ...[
           const SizedBox(width: 8),
-          Icon(
-            widget.trailingIcon,
-            size: 18,
-            color: _getTextColor(),
-          ),
+          Icon(widget.trailingIcon, size: 18, color: _getTextColor()),
         ],
       ],
     );
