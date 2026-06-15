@@ -8,22 +8,6 @@ class RemoteConfigService {
 
   Future<void> initialize() async {
     try {
-      // Define safe offline baseline defaults
-      await _remoteConfig.setDefaults(const {
-        'min_version': '1.0.0',
-        'latest_version': '1.0.0',
-        'force_update': false,
-        'update_url':
-            'https://play.google.com/store/apps/details?id=com.dailyearn99.dailyearn99',
-        'admin_upi_id': 'pay.dailyearn99@icici',
-        'admin_bank_holder': 'Dailyearn99 Technologies Private Limited',
-        'admin_bank_name': 'ICICI Bank',
-        'admin_bank_account': '999901234567',
-        'admin_bank_ifsc': 'ICIC0000001',
-        'admin_contact_phone': '+919999999999',
-        'admin_contact_email': 'support@dailyearn99.com',
-      });
-
       // Configure fetch timeouts and instant updates during dev execution
       await _remoteConfig.setConfigSettings(
         RemoteConfigSettings(
