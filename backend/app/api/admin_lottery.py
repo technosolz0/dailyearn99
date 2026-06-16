@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.core.database import get_db
 from app.models import User, LotteryDraw
 from app.schemas import (
@@ -34,6 +34,8 @@ def admin_create_lottery_draw(
         prize_pool=request.prize_pool,
         draw_time=request.draw_time,
         max_tickets=request.max_tickets,
+        win_percentage=request.win_percentage if request.win_percentage is not None else 100.0,
+        forced_winning_number=request.forced_winning_number,
         joined_tickets=0,
         status="OPEN"
     )
@@ -58,9 +60,10 @@ def admin_create_lottery_draw(
 @router.post("/draws/{id}/draw")
 def admin_execute_lottery_draw(
     id: int,
+    forced_number: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    res = LotteryService.execute_draw(db, id)
+    res = LotteryService.execute_draw(db, id, override_winning_number=forced_number)
     if "error" in res:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

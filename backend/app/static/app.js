@@ -3578,8 +3578,11 @@ function setupLotteryHandlers() {
             const pool = parseFloat(document.getElementById('l-pool').value);
             const maxTickets = parseInt(document.getElementById('l-max-tickets').value);
             const drawTimeStr = document.getElementById('l-draw-time').value;
+            const winPercent = parseFloat(document.getElementById('l-win-percent').value);
+            const forcedNumberVal = document.getElementById('l-forced-number').value.trim();
+            const forcedNumber = forcedNumberVal || null;
 
-            if (!title || isNaN(price) || isNaN(pool) || isNaN(maxTickets) || !drawTimeStr) {
+            if (!title || isNaN(price) || isNaN(pool) || isNaN(maxTickets) || !drawTimeStr || isNaN(winPercent)) {
                 showToast("Please fill in all fields correctly.", true);
                 return;
             }
@@ -3595,7 +3598,9 @@ function setupLotteryHandlers() {
                         ticket_price: price,
                         prize_pool: pool,
                         draw_time: drawTime,
-                        max_tickets: maxTickets
+                        max_tickets: maxTickets,
+                        win_percentage: winPercent,
+                        forced_winning_number: forcedNumber
                     })
                 });
 
@@ -3628,7 +3633,7 @@ function renderLotteryTable(draws) {
     if (!tableBody) return;
 
     if (draws.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="9" class="table-placeholder">No lottery draws scheduled yet.</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="11" class="table-placeholder">No lottery draws scheduled yet.</td></tr>`;
         return;
     }
 
@@ -3669,6 +3674,8 @@ function renderLotteryTable(draws) {
                     </div>
                 </td>
                 <td><strong>₹${draw.prize_pool}</strong></td>
+                <td>${draw.win_percentage}%</td>
+                <td>${draw.forced_winning_number ? `<code style="font-family: monospace; font-size: 11px; color: var(--text-main); font-weight: 600;">${draw.forced_winning_number}</code>` : '<span class="text-muted">-</span>'}</td>
                 <td style="font-size: 12px; color: var(--text-muted);">${formattedDate}</td>
                 <td>${statusBadge}</td>
                 <td><code style="font-family: monospace; font-size: 12px; color: var(--accent-emerald); font-weight: bold;">${draw.winning_number || '-'}</code></td>
@@ -3683,16 +3690,28 @@ function renderLotteryTable(draws) {
 }
 
 async function executeLotteryDraw(id) {
+    const forcedNumberInput = prompt("Enter a specific ticket number to force as the winner (optional, leave blank for random/percentage-based draw):");
+    if (forcedNumberInput === null) return; // Admin cancelled the prompt
+
     if (!confirm("Are you sure you want to execute this lucky draw and select a winner? This action will credit the user's winning balance immediately and notify all participants!")) return;
 
     try {
-        const res = await fetch(`${API_BASE}/admin/lottery/draws/${id}/draw`, {
+        let url = `${API_BASE}/admin/lottery/draws/${id}/draw`;
+        if (forcedNumberInput.trim()) {
+            url += `?forced_number=${encodeURIComponent(forcedNumberInput.trim())}`;
+        }
+
+        const res = await fetch(url, {
             method: 'POST'
         });
         if (!res.ok) throw new Error(await res.text());
 
         const data = await res.json();
-        showToast(`Draw executed! Winner ticket: ${data.winning_ticket}. Prize: ₹${data.prize_awarded}`);
+        if (data.winner_user_id) {
+            showToast(`Draw executed! Winner ticket: ${data.winning_ticket}. Prize: ₹${data.prize_awarded}`);
+        } else {
+            showToast(`Draw completed with NO winner. Winning number set to: ${data.winning_ticket}.`, false);
+        }
         loadLotteryManager();
     } catch (err) {
         showToast("Error drawing winner: " + err.message, true);

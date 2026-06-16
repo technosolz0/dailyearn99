@@ -1580,9 +1580,19 @@
                                         <input type="number" id="l-max-tickets" value="500" min="2" required>
                                     </div>
                                 </div>
-                                <div class="form-group">
-                                    <label for="l-draw-time">Draw Time</label>
-                                    <input type="datetime-local" id="l-draw-time" required>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="l-draw-time">Draw Time</label>
+                                        <input type="datetime-local" id="l-draw-time" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="l-win-percent">Win Probability (%)</label>
+                                        <input type="number" id="l-win-percent" value="100" min="0" max="100" step="any" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="l-forced-number">Forced Winner Ticket (Optional)</label>
+                                        <input type="text" id="l-forced-number" placeholder="e.g. 542910">
+                                    </div>
                                 </div>
                                 <button type="submit" class="btn btn-primary btn-full" style="margin-top: 15px;">Launch Lottery Draw</button>
                             </form>
@@ -1612,6 +1622,8 @@
                                         <th>Price</th>
                                         <th>Tickets Sold</th>
                                         <th>Prize Pool</th>
+                                        <th>Win %</th>
+                                        <th>Forced Number</th>
                                         <th>Draw Time</th>
                                         <th>Status</th>
                                         <th>Winning Ticket</th>
@@ -1620,7 +1632,7 @@
                                 </thead>
                                 <tbody id="lottery-draws-table-body">
                                     <tr>
-                                        <td colspan="9" class="table-placeholder">Loading lottery draws data...</td>
+                                        <td colspan="11" class="table-placeholder">Loading lottery draws data...</td>
                                     </tr>
                                 </tbody>
                             </table>

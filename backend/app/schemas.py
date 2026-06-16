@@ -802,6 +802,8 @@ class LotteryDrawCreate(BaseModel):
     prize_pool: float
     draw_time: datetime
     max_tickets: Optional[int] = 1000
+    win_percentage: Optional[float] = 100.0
+    forced_winning_number: Optional[str] = None
 
 
 class LotteryDrawResponse(BaseModel):
@@ -814,6 +816,8 @@ class LotteryDrawResponse(BaseModel):
     joined_tickets: int
     status: str
     winning_number: Optional[str] = None
+    win_percentage: float
+    forced_winning_number: Optional[str] = None
     created_at: datetime
 
     @field_validator("draw_time", "created_at", mode="after", check_fields=False)

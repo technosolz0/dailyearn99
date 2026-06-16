@@ -16,7 +16,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 import threading
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 from app.models import User, Contest, ContestParticipant, WalletTransaction, Referral, Spin, WordContest, WordQuestion, WordAttempt, WordAnswer, WordLeaderboard, LotteryDraw, LotteryTicket
 
 # Thread-safe in-memory Leaderboard Manager mimicking Redis Sorted Sets
@@ -2248,8 +2248,9 @@ class LotteryService:
         return ticket
 
     @staticmethod
-    def execute_draw(db: Session, draw_id: int) -> dict:
+    def execute_draw(db: Session, draw_id: int, override_winning_number: Optional[str] = None) -> dict:
         import secrets
+        import random
         from app.core.notifications import send_push_to_user
         
         draw = db.query(LotteryDraw).filter(LotteryDraw.id == draw_id).with_for_update().first()
@@ -2265,51 +2266,87 @@ class LotteryService:
             db.commit()
             return {"message": "Draw completed with 0 participants.", "winners": []}
             
-        winner_ticket = secrets.choice(tickets)
+        # Determine the target winning ticket number to force, if any
+        target_winning_number = override_winning_number or draw.forced_winning_number
+        
+        winner_ticket = None
+        if target_winning_number:
+            # Check if anyone actually bought the forced number
+            for t in tickets:
+                if t.ticket_number == target_winning_number:
+                    winner_ticket = t
+                    break
+        else:
+            # No forced winner, decide based on win_percentage
+            win_pct = draw.win_percentage if draw.win_percentage is not None else 100.0
+            roll = random.uniform(0.0, 100.0)
+            if roll <= win_pct:
+                winner_ticket = secrets.choice(tickets)
         
         draw.status = "COMPLETED"
-        draw.winning_number = winner_ticket.ticket_number
         
-        winner_ticket.is_winner = True
-        winner_ticket.reward_amount = draw.prize_pool
-        
-        winner_user = db.query(User).filter(User.id == winner_ticket.user_id).first()
-        if winner_user:
-            winner_user.winning_balance += draw.prize_pool
+        if winner_ticket:
+            draw.winning_number = winner_ticket.ticket_number
+            winner_ticket.is_winner = True
+            winner_ticket.reward_amount = draw.prize_pool
             
-            tx = WalletTransaction(
-                user_id=winner_user.id,
-                type="PRIZE_WIN",
-                amount=draw.prize_pool,
-                status="SUCCESS",
-                description=f"Lottery Winner: {draw.title} (Ticket: {winner_ticket.ticket_number})"
-            )
-            db.add(tx)
+            winner_user = db.query(User).filter(User.id == winner_ticket.user_id).first()
+            if winner_user:
+                winner_user.winning_balance += draw.prize_pool
+                
+                tx = WalletTransaction(
+                    user_id=winner_user.id,
+                    type="PRIZE_WIN",
+                    amount=draw.prize_pool,
+                    status="SUCCESS",
+                    description=f"Lottery Winner: {draw.title} (Ticket: {winner_ticket.ticket_number})"
+                )
+                db.add(tx)
+                
+                send_push_to_user(
+                    db,
+                    winner_user.id,
+                    title="🎟️ YOU WON THE LUCKY DRAW!",
+                    body=f"Congratulations! Your ticket #{winner_ticket.ticket_number} won the grand prize of ₹{draw.prize_pool:.2f} in '{draw.title}'!"
+                )
+                
+            for t in tickets:
+                if t.id == winner_ticket.id:
+                    continue
+                send_push_to_user(
+                    db,
+                    t.user_id,
+                    title="🏁 Draw Results Announced",
+                    body=f"Draw '{draw.title}' results are out. Winning Ticket: #{winner_ticket.ticket_number}. Better luck next time!"
+                )
             
-            send_push_to_user(
-                db,
-                winner_user.id,
-                title="🎟️ YOU WON THE LUCKY DRAW!",
-                body=f"Congratulations! Your ticket #{winner_ticket.ticket_number} won the grand prize of ₹{draw.prize_pool:.2f} in '{draw.title}'!"
-            )
+            db.commit()
+            return {
+                "message": "Draw executed successfully.",
+                "winning_ticket": winner_ticket.ticket_number,
+                "winner_user_id": winner_ticket.user_id,
+                "prize_awarded": draw.prize_pool
+            }
+        else:
+            # No winner (either forced ticket wasn't bought, or win_percentage roll failed)
+            winning_num = target_winning_number or "NO WINNER (DRAW)"
+            draw.winning_number = winning_num
             
-        for t in tickets:
-            if t.id == winner_ticket.id:
-                continue
-            send_push_to_user(
-                db,
-                t.user_id,
-                title="🏁 Draw Results Announced",
-                body=f"Draw '{draw.title}' results are out. Winning Ticket: #{winner_ticket.ticket_number}. Better luck next time!"
-            )
+            for t in tickets:
+                send_push_to_user(
+                    db,
+                    t.user_id,
+                    title="🏁 Draw Results Announced",
+                    body=f"Draw '{draw.title}' results are out. Winning Ticket: #{winning_num}. Better luck next time!"
+                )
             
-        db.commit()
-        return {
-            "message": "Draw executed successfully.",
-            "winning_ticket": winner_ticket.ticket_number,
-            "winner_user_id": winner_ticket.user_id,
-            "prize_awarded": draw.prize_pool
-        }
+            db.commit()
+            return {
+                "message": "Draw completed with no winner.",
+                "winning_ticket": winning_num,
+                "winner_user_id": None,
+                "prize_awarded": 0.0
+            }
 
     @staticmethod
     def cancel_draw(db: Session, draw_id: int) -> dict:

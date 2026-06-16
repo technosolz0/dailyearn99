@@ -11,6 +11,11 @@ from app.services import LotteryService
 def run_tests():
     print("Initializing test database tables...")
     Base.metadata.create_all(bind=engine)
+    
+    # Run database schema migrations
+    from app.main import migrate_database
+    migrate_database()
+    
     db = SessionLocal()
     try:
         print("=== Starting Lottery System Validation Tests ===")

@@ -33,6 +33,8 @@ def migrate_database():
         ("bank_name", "VARCHAR"),
         ("first_name", "VARCHAR"),
         ("last_name", "VARCHAR"),
+        ("device_details", "VARCHAR"),
+        ("last_login", "TIMESTAMP"),
     ]
     for col_name, col_type in columns_users:
         try:
@@ -111,6 +113,19 @@ def migrate_database():
             with engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE arrow_contests ADD COLUMN {col_name} {col_type}"))
             print(f"Schema Migration: Added column '{col_name}' to arrow_contests table.")
+        except Exception:
+            # Ignore error (column already exists)
+            pass
+
+    columns_lottery_draws = [
+        ("win_percentage", "FLOAT DEFAULT 100.0"),
+        ("forced_winning_number", "VARCHAR"),
+    ]
+    for col_name, col_type in columns_lottery_draws:
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE lottery_draws ADD COLUMN {col_name} {col_type}"))
+            print(f"Schema Migration: Added column '{col_name}' to lottery_draws table.")
         except Exception:
             # Ignore error (column already exists)
             pass

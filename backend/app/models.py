@@ -597,6 +597,8 @@ class LotteryDraw(Base):
     joined_tickets = Column(Integer, default=0)
     status = Column(String, default="OPEN")  # OPEN, COMPLETED, CANCELLED
     winning_number = Column(String, nullable=True)
+    win_percentage = Column(Float, default=100.0)
+    forced_winning_number = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
