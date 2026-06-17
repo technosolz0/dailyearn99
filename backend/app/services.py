@@ -398,69 +398,79 @@ class SpinGameService:
         )
         db.add(tx_deduct)
 
-        # 3. Dynamic weighted random result selection
-        from app.models import RTPSettings
-        import json
+        # 3. First-time play check or dynamic weighted random result selection
+        first_spin = db.query(SpinModel).filter(SpinModel.user_id == user_id).first() is None
         
-        # First check for exact-match override
-        rtp = (
-            db.query(RTPSettings)
-            .filter(
-                RTPSettings.min_amount == bet_amount,
-                RTPSettings.max_amount == bet_amount,
-                RTPSettings.enabled == True
-            )
-            .first()
-        )
-        
-        # Fallback to checking ranges (ordered by narrowest range first)
-        if not rtp:
+        if first_spin:
+            if bet_amount < 100:
+                multiplier = 1.5
+                chosen_outcome = "1.5x"
+            else:
+                multiplier = 1.2
+                chosen_outcome = "1.2x"
+        else:
+            from app.models import RTPSettings
+            import json
+            
+            # First check for exact-match override
             rtp = (
                 db.query(RTPSettings)
                 .filter(
-                    RTPSettings.min_amount <= bet_amount,
-                    RTPSettings.max_amount >= bet_amount,
+                    RTPSettings.min_amount == bet_amount,
+                    RTPSettings.max_amount == bet_amount,
                     RTPSettings.enabled == True
                 )
-                .order_by((RTPSettings.max_amount - RTPSettings.min_amount).asc())
                 .first()
             )
+            
+            # Fallback to checking ranges (ordered by narrowest range first)
+            if not rtp:
+                rtp = (
+                    db.query(RTPSettings)
+                    .filter(
+                        RTPSettings.min_amount <= bet_amount,
+                        RTPSettings.max_amount >= bet_amount,
+                        RTPSettings.enabled == True
+                    )
+                    .order_by((RTPSettings.max_amount - RTPSettings.min_amount).asc())
+                    .first()
+                )
 
-        if rtp:
-            weights = json.loads(rtp.probability_json)
-        else:
-            # Fallback to standard specifications
-            if bet_amount < 50:
-                weights = {
-                    "Lose": 20.0, "1x": 20.0, "1.1x": 18.0, "1.2x": 15.0, "1.5x": 12.0,
-                    "2x": 8.0, "3x": 5.0, "5x": 1.91,
-                    "10x": 0.02, "20x": 0.02, "30x": 0.01, "40x": 0.005, "50x": 0.002,
-                    "0.1x": 0.01, "0.2x": 0.01, "0.4x": 0.01,
-                    "0.5x": 0.01, "0.6x": 0.01, "0.8x": 0.01,
-                }
-            elif bet_amount <= 100:
-                weights = {
-                    "Lose": 45.0, "1x": 20.0, "1.1x": 15.0, "1.2x": 8.0, "1.5x": 6.0,
-                    "2x": 4.0, "3x": 1.41, "5x": 0.5,
-                    "10x": 0.02, "20x": 0.02, "30x": 0.01, "40x": 0.005, "50x": 0.002,
-                    "0.1x": 0.01, "0.2x": 0.01, "0.4x": 0.01,
-                    "0.5x": 0.01, "0.6x": 0.01, "0.8x": 0.01,
-                }
+            if rtp:
+                weights = json.loads(rtp.probability_json)
             else:
-                weights = {
-                    "Lose": 65.0, "1x": 15.0, "1.1x": 10.0, "1.2x": 5.0, "1.5x": 3.0,
-                    "2x": 1.41, "3x": 0.4, "5x": 0.1,
-                    "10x": 0.02, "20x": 0.02, "30x": 0.01, "40x": 0.005, "50x": 0.002,
-                    "0.1x": 0.01, "0.2x": 0.01, "0.4x": 0.01,
-                    "0.5x": 0.01, "0.6x": 0.01, "0.8x": 0.01,
-                }
+                # Fallback to standard specifications
+                if bet_amount < 50:
+                    weights = {
+                        "Lose": 20.0, "1x": 20.0, "1.1x": 18.0, "1.2x": 15.0, "1.5x": 12.0,
+                        "2x": 8.0, "3x": 5.0, "5x": 1.91,
+                        "10x": 0.02, "20x": 0.02, "30x": 0.01, "40x": 0.005, "50x": 0.002,
+                        "0.1x": 0.01, "0.2x": 0.01, "0.4x": 0.01,
+                        "0.5x": 0.01, "0.6x": 0.01, "0.8x": 0.01,
+                    }
+                elif bet_amount <= 100:
+                    weights = {
+                        "Lose": 45.0, "1x": 20.0, "1.1x": 15.0, "1.2x": 8.0, "1.5x": 6.0,
+                        "2x": 4.0, "3x": 1.41, "5x": 0.5,
+                        "10x": 0.02, "20x": 0.02, "30x": 0.01, "40x": 0.005, "50x": 0.002,
+                        "0.1x": 0.01, "0.2x": 0.01, "0.4x": 0.01,
+                        "0.5x": 0.01, "0.6x": 0.01, "0.8x": 0.01,
+                    }
+                else:
+                    weights = {
+                        "Lose": 65.0, "1x": 15.0, "1.1x": 10.0, "1.2x": 5.0, "1.5x": 3.0,
+                        "2x": 1.41, "3x": 0.4, "5x": 0.1,
+                        "10x": 0.02, "20x": 0.02, "30x": 0.01, "40x": 0.005, "50x": 0.002,
+                        "0.1x": 0.01, "0.2x": 0.01, "0.4x": 0.01,
+                        "0.5x": 0.01, "0.6x": 0.01, "0.8x": 0.01,
+                    }
 
-        outcomes = list(weights.keys())
-        probabilities = list(weights.values())
+            outcomes = list(weights.keys())
+            probabilities = list(weights.values())
 
-        import random
-        chosen_outcome = random.choices(outcomes, weights=probabilities, k=1)[0]
-        multiplier = cls.MULTIPLIER_MAP.get(chosen_outcome, 0.0)
+            import random
+            chosen_outcome = random.choices(outcomes, weights=probabilities, k=1)[0]
+            multiplier = cls.MULTIPLIER_MAP.get(chosen_outcome, 0.0)
 
         # Find matching segment indices on physical wheel
         matching_segments = [
