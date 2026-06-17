@@ -1,8 +1,9 @@
 import os
 import firebase_admin
 from firebase_admin import credentials, messaging
+import json
 from sqlalchemy.orm import Session
-from app.models import User
+from app.models import User, Notification
 
 # Check if a custom service account key file exists
 service_account_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", "firebase-service-account.json")
@@ -66,10 +67,21 @@ def send_push_to_token(token: str, title: str, body: str, data: dict = None) -> 
         return False
 
 
-def send_push_to_user(db: Session, user_id: int, title: str, body: str, data: dict = None) -> bool:
+def send_push_to_user(db: Session, user_id: int, title: str, body: str, data: dict = None, save_to_db: bool = True) -> bool:
     """
     Sends a push notification to a specific user by querying their FCM token in the database.
+    If save_to_db is True, a Notification record is inserted into the SQL database.
     """
+    if save_to_db:
+        try:
+            data_json = json.dumps(data) if data else None
+            notification = Notification(user_id=user_id, title=title, body=body, data_json=data_json)
+            db.add(notification)
+            db.commit()
+        except Exception as e:
+            print(f"Error saving user notification to DB: {e}")
+            db.rollback()
+
     user = db.query(User).filter(User.id == user_id).first()
     if user and user.fcm_token:
         import threading
@@ -85,10 +97,21 @@ def send_push_to_user(db: Session, user_id: int, title: str, body: str, data: di
         return False
 
 
-def send_push_to_all(db: Session, title: str, body: str, data: dict = None) -> int:
+def send_push_to_all(db: Session, title: str, body: str, data: dict = None, save_to_db: bool = True) -> int:
     """
     Broadcasts a push notification to all users who have an FCM token registered.
+    If save_to_db is True, a broadcast Notification record (user_id is None) is inserted.
     """
+    if save_to_db:
+        try:
+            data_json = json.dumps(data) if data else None
+            notification = Notification(user_id=None, title=title, body=body, data_json=data_json)
+            db.add(notification)
+            db.commit()
+        except Exception as e:
+            print(f"Error saving broadcast notification to DB: {e}")
+            db.rollback()
+
     users = db.query(User).filter(User.fcm_token != None).all()
     sent_count = 0
     for user in users:
@@ -101,11 +124,22 @@ def send_push_to_all(db: Session, title: str, body: str, data: dict = None) -> i
     return sent_count
 
 
-def send_push_to_all_background(db: Session, title: str, body: str, data: dict = None):
+def send_push_to_all_background(db: Session, title: str, body: str, data: dict = None, save_to_db: bool = True):
     """
     Broadcasts a push notification to all users who have an FCM token registered in a background thread.
     This prevents blocking the FastAPI request flow during network calls to FCM.
+    If save_to_db is True, a broadcast Notification record (user_id is None) is inserted.
     """
+    if save_to_db:
+        try:
+            data_json = json.dumps(data) if data else None
+            notification = Notification(user_id=None, title=title, body=body, data_json=data_json)
+            db.add(notification)
+            db.commit()
+        except Exception as e:
+            print(f"Error saving broadcast background notification to DB: {e}")
+            db.rollback()
+
     tokens = [u.fcm_token for u in db.query(User).filter(User.fcm_token != None).all()]
     if not tokens:
         print(f"\n📢 [MOCK PUSH NOTIFICATION BROADCAST] (No users have registered FCM tokens yet)\n   Title: {title}\n   Body: {body}\n")

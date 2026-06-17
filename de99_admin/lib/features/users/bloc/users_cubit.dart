@@ -126,6 +126,7 @@ class UsersCubit extends Cubit<UsersState> {
     try {
       final response = await _apiClient.dio.get('/admin/users');
       final users = (response.data as List).map((x) => AdminUser.fromJson(x)).toList();
+      users.sort((a, b) => b.id.compareTo(a.id));
       _filterAndEmit(users, currentQuery);
     } on DioException catch (e) {
       String errMsg = 'Failed to load users';

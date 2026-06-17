@@ -52,6 +52,19 @@ def add_money(
         db.add(transaction)
         db.commit()
         
+        # Send push notification to user
+        try:
+            from app.core.notifications import send_push_to_user
+            send_push_to_user(
+                db,
+                current_user.id,
+                title="📥 Deposit Request Pending",
+                body=f"Your deposit request of ₹{request.amount:.2f} (UTR: {utr_str}) is pending validation.",
+                data={"event": "deposit_pending", "transaction_id": str(transaction.id), "amount": str(request.amount), "utr": utr_str}
+            )
+        except Exception as e:
+            print(f"Failed to send manual deposit push to user: {e}")
+        
         # Send push notification to Admin
         try:
             from app.core.notifications import send_push_to_topic

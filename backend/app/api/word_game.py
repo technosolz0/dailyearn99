@@ -57,7 +57,7 @@ def get_word_contests(db: Session = Depends(get_db)):
             db.commit()
 
             # Trigger push notification
-            send_push_to_user(db, att.user_id, title, body, data)
+            send_push_to_user(db, att.user_id, title, body, data, save_to_db=False)
 
     # 2. Selectively process rewards only for expired ACTIVE contests
     expired_contests = db.query(WordContest).filter(

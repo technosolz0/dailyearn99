@@ -74,7 +74,7 @@ def get_stats(db: Session = Depends(get_db)):
 
 @router.get("/users", response_model=List[UserResponse])
 def list_users(db: Session = Depends(get_db)):
-    return db.query(User).all()
+    return db.query(User).order_by(User.id.desc()).all()
 
 @router.post("/users/{id}/ban", response_model=UserResponse)
 def ban_user(id: int, ban: bool, db: Session = Depends(get_db)):

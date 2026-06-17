@@ -59,7 +59,7 @@ def get_fruit_contests(db: Session = Depends(get_db)):
             db.commit()
 
             # Trigger push notification
-            send_push_to_user(db, match.user_id, title, body, data)
+            send_push_to_user(db, match.user_id, title, body, data, save_to_db=False)
 
     # 2. Selectively process rewards only for expired ACTIVE contests
     expired_contests = db.query(FruitContest).filter(

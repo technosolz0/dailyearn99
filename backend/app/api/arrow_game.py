@@ -51,7 +51,7 @@ def get_arrow_contests(db: Session = Depends(get_db)):
             db.add(db_notification)
             db.commit()
 
-            send_push_to_user(db, att.user_id, title, body, data)
+            send_push_to_user(db, att.user_id, title, body, data, save_to_db=False)
 
     # 2. Process rewards for expired active contests
     expired_contests = db.query(ArrowContest).filter(
