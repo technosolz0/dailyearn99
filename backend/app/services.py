@@ -171,6 +171,19 @@ class WalletService:
         )
         db.add(transaction)
         db.commit()
+        
+        # Send push notification to Admin
+        try:
+            from app.core.notifications import send_push_to_topic
+            send_push_to_topic(
+                topic="admin_notifications",
+                title="💸 Withdrawal Request Submitted",
+                body=f"User {user.name or user.phone} requested a withdrawal of ₹{amount:.2f}.",
+                data={"event": "withdrawal_request", "transaction_id": str(transaction.id), "amount": str(amount)}
+            )
+        except Exception as e:
+            print(f"Failed to send withdrawal push to admin: {e}")
+            
         return transaction
 
 

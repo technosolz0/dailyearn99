@@ -117,3 +117,41 @@ def send_push_to_all_background(db: Session, title: str, body: str, data: dict =
             send_push_to_token(token, title, body, data)
 
     threading.Thread(target=broadcast, daemon=True).start()
+
+
+def send_push_to_topic(topic: str, title: str, body: str, data: dict = None) -> bool:
+    """
+    Sends a push notification to a specific FCM topic in a background thread.
+    If Firebase Admin SDK is not active, it prints a mock log to the terminal.
+    """
+    if not topic:
+        return False
+        
+    import threading
+    def run_send():
+        if not firebase_is_active:
+            print(f"\n📢 [MOCK PUSH NOTIFICATION TOPIC] \n   Topic: {topic}\n   Title: {title}\n   Body: {body}\n   Data: {data}\n")
+            return
+            
+        try:
+            fcm_data = {}
+            if data:
+                for k, v in data.items():
+                    fcm_data[str(k)] = str(v)
+
+            message = messaging.Message(
+                notification=messaging.Notification(
+                    title=title,
+                    body=body,
+                ),
+                data=fcm_data,
+                topic=topic,
+            )
+            response = messaging.send(message)
+            print(f"Successfully sent FCM message to topic '{topic}': {response}")
+        except Exception as e:
+            print(f"Error sending FCM message to topic '{topic}': {e}")
+            print(f"\n📢 [MOCK PUSH NOTIFICATION TOPIC FALLBACK] \n   Topic: {topic}\n   Title: {title}\n   Body: {body}\n   Data: {data}\n")
+
+    threading.Thread(target=run_send, daemon=True).start()
+    return True

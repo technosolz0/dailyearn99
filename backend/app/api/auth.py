@@ -162,6 +162,18 @@ def verify_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
         db.add(user)
         db.commit()
         db.refresh(user)
+        
+        # Send push notification to Admin
+        try:
+            from app.core.notifications import send_push_to_topic
+            send_push_to_topic(
+                topic="admin_notifications",
+                title="🆕 New User Registered",
+                body=f"User {user.name or user.phone} has successfully registered.",
+                data={"event": "new_user", "user_id": str(user.id)}
+            )
+        except Exception as e:
+            print(f"Failed to send register push to admin: {e}")
     else:
         # Standardise phone format to E.164
         if user.phone != phone:

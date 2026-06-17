@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "449225224080",
+    "project_id": "dailyearn99-app-prod",
+    "storage_bucket": "dailyearn99-app-prod.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:449225224080:android:443ccbd1d546d579bb8d15",
+        "android_client_info": {
+          "package_name": "com.dailyearn99.dailyearn99"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAO5Cly89WWTLYAYydXlqtUYLR4A987g4Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:449225224080:android:b5120e26db71794abb8d15",
+        "android_client_info": {
+          "package_name": "com.dailyearn99.de99_admin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAO5Cly89WWTLYAYydXlqtUYLR4A987g4Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

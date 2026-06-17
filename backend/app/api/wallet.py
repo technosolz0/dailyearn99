@@ -51,9 +51,33 @@ def add_money(
         )
         db.add(transaction)
         db.commit()
+        
+        # Send push notification to Admin
+        try:
+            from app.core.notifications import send_push_to_topic
+            send_push_to_topic(
+                topic="admin_notifications",
+                title="📥 Manual Deposit Request",
+                body=f"User {current_user.name or current_user.phone} requested manual deposit of ₹{request.amount:.2f} (UTR: {utr_str}).",
+                data={"event": "deposit_request", "transaction_id": str(transaction.id), "amount": str(request.amount), "utr": utr_str}
+            )
+        except Exception as e:
+            print(f"Failed to send manual deposit push to admin: {e}")
     else:
         # Default mock instant success route for gateway/testing if UTR is not supplied
         WalletService.process_deposit(db, current_user, request.amount, description="Instant Deposit")
+        
+        # Send push notification to Admin
+        try:
+            from app.core.notifications import send_push_to_topic
+            send_push_to_topic(
+                topic="admin_notifications",
+                title="💰 Instant Deposit Success",
+                body=f"User {current_user.name or current_user.phone} made an instant deposit of ₹{request.amount:.2f}.",
+                data={"event": "deposit_instant", "amount": str(request.amount)}
+            )
+        except Exception as e:
+            print(f"Failed to send instant deposit push to admin: {e}")
         
     db.refresh(current_user)
     return current_user
@@ -200,5 +224,17 @@ def verify_razorpay_payment(
         
     WalletService.process_deposit(db, current_user, request.amount, description="Deposit via Razorpay")
     db.refresh(current_user)
+    
+    # Send push notification to Admin
+    try:
+        from app.core.notifications import send_push_to_topic
+        send_push_to_topic(
+            topic="admin_notifications",
+            title="💰 Razorpay Deposit Success",
+            body=f"User {current_user.name or current_user.phone} made a Razorpay deposit of ₹{request.amount:.2f}.",
+            data={"event": "deposit_razorpay", "amount": str(request.amount)}
+        )
+    except Exception as e:
+        print(f"Failed to send Razorpay deposit push to admin: {e}")
     return current_user
 
