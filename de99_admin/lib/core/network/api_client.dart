@@ -52,6 +52,11 @@ class ApiClient {
     await _storage.write(key: _baseUrlKey, value: url);
   }
 
+  static const String _usernameKey = 'admin_username';
+  static const String _passwordKey = 'admin_password';
+  static const String _fcmLastUpdateKey = 'admin_fcm_token_last_update';
+  static const String _savedFcmTokenKey = 'admin_saved_fcm_token';
+
   Future<String?> getToken() async {
     return await _storage.read(key: _tokenKey);
   }
@@ -60,7 +65,43 @@ class ApiClient {
     await _storage.write(key: _tokenKey, value: token);
   }
 
+  Future<String?> getUsername() async {
+    return await _storage.read(key: _usernameKey);
+  }
+
+  Future<void> setUsername(String username) async {
+    await _storage.write(key: _usernameKey, value: username);
+  }
+
+  Future<String?> getPassword() async {
+    return await _storage.read(key: _passwordKey);
+  }
+
+  Future<void> setPassword(String password) async {
+    await _storage.write(key: _passwordKey, value: password);
+  }
+
+  Future<String?> getFcmLastUpdate() async {
+    return await _storage.read(key: _fcmLastUpdateKey);
+  }
+
+  Future<void> setFcmLastUpdate(String timestamp) async {
+    await _storage.write(key: _fcmLastUpdateKey, value: timestamp);
+  }
+
+  Future<String?> getSavedFcmToken() async {
+    return await _storage.read(key: _savedFcmTokenKey);
+  }
+
+  Future<void> setSavedFcmToken(String token) async {
+    await _storage.write(key: _savedFcmTokenKey, value: token);
+  }
+
   Future<void> clearSession() async {
     await _storage.delete(key: _tokenKey);
+    await _storage.delete(key: _usernameKey);
+    await _storage.delete(key: _passwordKey);
+    await _storage.delete(key: _fcmLastUpdateKey);
+    await _storage.delete(key: _savedFcmTokenKey);
   }
 }

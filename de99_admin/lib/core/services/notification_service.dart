@@ -28,6 +28,7 @@ class NotificationService {
   NotificationService._internal();
 
   bool _initialized = false;
+  String? fcmToken;
 
   Future<void> initialize() async {
     if (_initialized) return;
@@ -47,7 +48,15 @@ class NotificationService {
         sound: true,
       );
 
-      // 3. Set background handler
+      // 3. Retrieve FCM token
+      try {
+        fcmToken = await messaging.getToken();
+        developer.log('FCM Token successfully retrieved: $fcmToken');
+      } catch (tokenError) {
+        developer.log('Warning: Failed to retrieve FCM Token: $tokenError');
+      }
+
+      // 4. Set background handler
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
       // 4. Handle foreground notifications

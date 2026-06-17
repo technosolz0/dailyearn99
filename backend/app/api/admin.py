@@ -8,7 +8,7 @@ from app.core.database import get_db
 from app.models import User, Contest, WalletTransaction
 from app.schemas import (
     AdminStatsResponse, UserResponse, ContestCreate, ContestResponse, TransactionResponse,
-    AdminAdjustBalanceRequest, QuestionSchema, AdminLoginRequest
+    AdminAdjustBalanceRequest, QuestionSchema, AdminLoginRequest, FCMTokenRequest
 )
 from app.core.config import settings
 from app.core.security import get_current_admin, create_access_token
@@ -32,6 +32,25 @@ router = APIRouter(
     dependencies=[Depends(get_current_admin)]
 )
 
+@router.post("/fcm-token")
+def register_admin_fcm_token(
+    request: FCMTokenRequest,
+    db: Session = Depends(get_db)
+):
+    from app.models import AdminFCMToken
+    token_str = request.fcm_token.strip()
+    
+    # Try to find existing token to avoid duplicates
+    existing = db.query(AdminFCMToken).filter(AdminFCMToken.token == token_str).first()
+    if not existing:
+        new_token = AdminFCMToken(token=token_str)
+        db.add(new_token)
+        db.commit()
+    else:
+        existing.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        
+    return {"message": "Admin FCM token registered successfully."}
 
 @router.get("/stats", response_model=AdminStatsResponse)
 def get_stats(db: Session = Depends(get_db)):

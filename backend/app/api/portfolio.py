@@ -75,6 +75,19 @@ def submit_contact_message(request: PortfolioContactMessageCreate, db: Session =
     db.add(msg)
     db.commit()
     db.refresh(msg)
+    
+    # Send push notification to Admin
+    try:
+        from app.core.notifications import send_push_to_admin
+        send_push_to_admin(
+            db=db,
+            title="✉️ Portfolio Contact Form",
+            body=f"New contact form submission from {request.name} ({request.email}).",
+            data={"event": "contact_submission", "contact_id": str(msg.id)}
+        )
+    except Exception as e:
+        print(f"Failed to send portfolio contact message push to admin: {e}")
+        
     return {"message": "Message submitted successfully", "id": msg.id}
 
 @admin_router.put("/config", response_model=PortfolioConfigResponse)

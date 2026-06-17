@@ -67,9 +67,9 @@ def add_money(
         
         # Send push notification to Admin
         try:
-            from app.core.notifications import send_push_to_topic
-            send_push_to_topic(
-                topic="admin_notifications",
+            from app.core.notifications import send_push_to_admin
+            send_push_to_admin(
+                db=db,
                 title="📥 Manual Deposit Request",
                 body=f"User {current_user.name or current_user.phone} requested manual deposit of ₹{request.amount:.2f} (UTR: {utr_str}).",
                 data={"event": "deposit_request", "transaction_id": str(transaction.id), "amount": str(request.amount), "utr": utr_str}
@@ -82,9 +82,9 @@ def add_money(
         
         # Send push notification to Admin
         try:
-            from app.core.notifications import send_push_to_topic
-            send_push_to_topic(
-                topic="admin_notifications",
+            from app.core.notifications import send_push_to_admin
+            send_push_to_admin(
+                db=db,
                 title="💰 Instant Deposit Success",
                 body=f"User {current_user.name or current_user.phone} made an instant deposit of ₹{request.amount:.2f}.",
                 data={"event": "deposit_instant", "amount": str(request.amount)}
@@ -240,9 +240,9 @@ def verify_razorpay_payment(
     
     # Send push notification to Admin
     try:
-        from app.core.notifications import send_push_to_topic
-        send_push_to_topic(
-            topic="admin_notifications",
+        from app.core.notifications import send_push_to_admin
+        send_push_to_admin(
+            db=db,
             title="💰 Razorpay Deposit Success",
             body=f"User {current_user.name or current_user.phone} made a Razorpay deposit of ₹{request.amount:.2f}.",
             data={"event": "deposit_razorpay", "amount": str(request.amount)}

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:de99_admin/core/theme/admin_theme.dart';
+import 'package:de99_admin/core/services/notification_service.dart';
 import 'package:de99_admin/core/utils/notification_log.dart';
 import 'package:de99_admin/features/notifications/bloc/notifications_cubit.dart';
 
@@ -172,114 +175,183 @@ class _NotificationsViewState extends State<NotificationsView> with SingleTicker
   }
 
   Widget _buildLogsView() {
-    return StreamBuilder<List<AdminNotificationItem>>(
-      stream: NotificationLog.stream,
-      initialData: NotificationLog.logs,
-      builder: (context, snapshot) {
-        final logs = snapshot.data ?? [];
+    final notificationService = GetIt.instance<NotificationService>();
+    final fcmToken = notificationService.fcmToken;
 
-        if (logs.isEmpty) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.notifications_none_outlined, size: 50, color: AdminTheme.textMuted),
-                  SizedBox(height: 12),
-                  Text(
-                    'No real-time notification alerts received yet.',
-                    style: TextStyle(color: AdminTheme.textMuted),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
+    return Column(
+      children: [
+        // FCM Token Display Card
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AdminTheme.surfaceDark,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AdminTheme.borderColor),
             ),
-          );
-        }
-
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Live Alerts Log (${logs.length})',
-                    style: const TextStyle(fontSize: 13, color: AdminTheme.textMuted, fontWeight: FontWeight.bold),
-                  ),
-                  TextButton.icon(
-                    style: TextButton.styleFrom(foregroundColor: AdminTheme.error, padding: EdgeInsets.zero),
-                    icon: const Icon(Icons.delete_sweep_outlined, size: 18),
-                    label: const Text('Clear All', style: TextStyle(fontSize: 12)),
-                    onPressed: () {
-                      NotificationLog.clearLogs();
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: logs.length,
-                itemBuilder: (context, index) {
-                  final log = logs[index];
-                  final timeStr = DateFormat.Hm().format(log.receivedAt);
-
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    color: AdminTheme.surfaceDark,
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      title: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              log.title,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AdminTheme.primary),
-                            ),
-                          ),
-                          Text(
-                            timeStr,
-                            style: const TextStyle(fontSize: 11, color: AdminTheme.textMuted),
-                          ),
-                        ],
-                      ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(log.body, style: const TextStyle(color: AdminTheme.textMain, fontSize: 13)),
-                            if (log.data.isNotEmpty) ...[
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: AdminTheme.surface,
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: AdminTheme.borderColor),
-                                ),
-                                child: Text(
-                                  log.data.toString(),
-                                  style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: AdminTheme.textMuted),
-                                ),
-                              ),
-                            ]
-                          ],
+            child: Row(
+              children: [
+                const Icon(Icons.key, size: 20, color: AdminTheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Admin Device FCM Token',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AdminTheme.textMuted,
                         ),
                       ),
-                    ),
-                  );
-                },
-              ),
+                      const SizedBox(height: 2),
+                      Text(
+                        fcmToken ?? 'Not retrieved yet (Check emulator / network / configuration)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                          color: fcmToken != null ? AdminTheme.textMain : AdminTheme.error,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                if (fcmToken != null)
+                  IconButton(
+                    icon: const Icon(Icons.copy, size: 18, color: AdminTheme.primary),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: fcmToken));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('FCM Token copied to clipboard'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    tooltip: 'Copy FCM Token',
+                  ),
+              ],
             ),
-          ],
-        );
-      },
+          ),
+        ),
+        
+        // Logs stream list
+        Expanded(
+          child: StreamBuilder<List<AdminNotificationItem>>(
+            stream: NotificationLog.stream,
+            initialData: NotificationLog.logs,
+            builder: (context, snapshot) {
+              final logs = snapshot.data ?? [];
+
+              if (logs.isEmpty) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.notifications_none_outlined, size: 50, color: AdminTheme.textMuted),
+                        SizedBox(height: 12),
+                        Text(
+                          'No real-time notification alerts received yet.',
+                          style: TextStyle(color: AdminTheme.textMuted),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Live Alerts Log (${logs.length})',
+                          style: const TextStyle(fontSize: 13, color: AdminTheme.textMuted, fontWeight: FontWeight.bold),
+                        ),
+                        TextButton.icon(
+                          style: TextButton.styleFrom(foregroundColor: AdminTheme.error, padding: EdgeInsets.zero),
+                          icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+                          label: const Text('Clear All', style: TextStyle(fontSize: 12)),
+                          onPressed: () {
+                            NotificationLog.clearLogs();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: logs.length,
+                      itemBuilder: (context, index) {
+                        final log = logs[index];
+                        final timeStr = DateFormat.Hm().format(log.receivedAt);
+
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          color: AdminTheme.surfaceDark,
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            title: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    log.title,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AdminTheme.primary),
+                                  ),
+                                ),
+                                Text(
+                                  timeStr,
+                                  style: const TextStyle(fontSize: 11, color: AdminTheme.textMuted),
+                                ),
+                              ],
+                            ),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(log.body, style: const TextStyle(color: AdminTheme.textMain, fontSize: 13)),
+                                  if (log.data.isNotEmpty) ...[
+                                    const SizedBox(height: 6),
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: AdminTheme.surface,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: AdminTheme.borderColor),
+                                      ),
+                                      child: Text(
+                                        log.data.toString(),
+                                        style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: AdminTheme.textMuted),
+                                      ),
+                                    ),
+                                  ]
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 

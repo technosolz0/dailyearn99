@@ -187,9 +187,9 @@ class WalletService:
 
         # Send push notification to Admin
         try:
-            from app.core.notifications import send_push_to_topic
-            send_push_to_topic(
-                topic="admin_notifications",
+            from app.core.notifications import send_push_to_admin
+            send_push_to_admin(
+                db=db,
                 title="💸 Withdrawal Request Submitted",
                 body=f"User {user.name or user.phone} requested a withdrawal of ₹{amount:.2f}.",
                 data={"event": "withdrawal_request", "transaction_id": str(transaction.id), "amount": str(amount)}

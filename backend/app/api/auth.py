@@ -165,9 +165,9 @@ def verify_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
         
         # Send push notification to Admin
         try:
-            from app.core.notifications import send_push_to_topic
-            send_push_to_topic(
-                topic="admin_notifications",
+            from app.core.notifications import send_push_to_admin
+            send_push_to_admin(
+                db=db,
                 title="🆕 New User Registered",
                 body=f"User {user.name or user.phone} has successfully registered.",
                 data={"event": "new_user", "user_id": str(user.id)}
