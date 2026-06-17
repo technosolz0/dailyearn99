@@ -1,13 +1,9 @@
-import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiClient {
   final Dio _dio = Dio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  
-  static const String _defaultLocalAndroidUrl = 'http://10.0.2.2:9900/api';
-  static const String _defaultLocalIosUrl = 'http://localhost:9900/api';
   
   static const String _baseUrlKey = 'admin_api_base_url';
   static const String _tokenKey = 'admin_auth_token';
@@ -41,11 +37,7 @@ class ApiClient {
     if (customUrl != null && customUrl.isNotEmpty) {
       return customUrl;
     }
-    // Fallbacks
-    if (Platform.isAndroid) {
-      return _defaultLocalAndroidUrl;
-    }
-    return _defaultLocalIosUrl;
+    return 'https://api.dailyearn99.in/api';
   }
 
   Future<void> setBaseUrl(String url) async {

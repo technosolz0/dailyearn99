@@ -193,14 +193,10 @@ def send_push_to_topic(topic: str, title: str, body: str, data: dict = None) -> 
 
 def send_push_to_admin(db: Session, title: str, body: str, data: dict = None) -> bool:
     """
-    Sends a push notification to the admin app via both:
-    1. The 'admin_notifications' topic subscription.
-    2. Direct FCM tokens stored in the database's admin_fcm_tokens table.
+    Sends a push notification to the admin app.
+    Targets direct FCM tokens stored in the database.
+    Falls back to topic subscription if no direct tokens are registered.
     """
-    # 1. Send to topic
-    send_push_to_topic(topic="admin_notifications", title=title, body=body, data=data)
-
-    # 2. Send to individual admin tokens in DB
     try:
         from app.models import AdminFCMToken
         admin_tokens = db.query(AdminFCMToken).all()
@@ -210,7 +206,12 @@ def send_push_to_admin(db: Session, title: str, body: str, data: dict = None) ->
                 for t in admin_tokens:
                     send_push_to_token(token=t.token, title=title, body=body, data=data)
             threading.Thread(target=run_token_sends, daemon=True).start()
+        else:
+            # Fallback to topic if no direct tokens are registered
+            send_push_to_topic(topic="admin_notifications", title=title, body=body, data=data)
     except Exception as e:
         print(f"Error preparing direct push to admin tokens: {e}")
+        # Fallback to topic on database lookup failure
+        send_push_to_topic(topic="admin_notifications", title=title, body=body, data=data)
         
     return True
