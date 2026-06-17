@@ -19,6 +19,7 @@ import 'package:dailyearn99/core/utils/dependency_injection.dart';
 import 'package:dailyearn99/core/utils/version_comparer.dart';
 import 'package:dailyearn99/core/utils/error_handler.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dailyearn99/core/models/backend_config_model.dart';
 
 // --- STATES ---
 class AppState {
@@ -63,6 +64,9 @@ class AppState {
   final List<SpinResultModel> spinHistory;
   final String? spinError;
 
+  // Dynamic Backend Config
+  final BackendConfigModel? backendConfig;
+
   AppState({
     this.isAuthLoading = false,
     this.isSplashLoading = true,
@@ -91,6 +95,7 @@ class AppState {
     this.updateUrl,
     this.serverMinVersion,
     this.serverLatestVersion,
+    this.backendConfig,
   });
 
   AppState copyWith({
@@ -121,6 +126,7 @@ class AppState {
     String? updateUrl,
     String? serverMinVersion,
     String? serverLatestVersion,
+    BackendConfigModel? backendConfig,
     bool clearAuthError = false,
     bool clearOtpSentMessage = false,
     bool clearContestsError = false,
@@ -166,6 +172,7 @@ class AppState {
       updateUrl: updateUrl ?? this.updateUrl,
       serverMinVersion: serverMinVersion ?? this.serverMinVersion,
       serverLatestVersion: serverLatestVersion ?? this.serverLatestVersion,
+      backendConfig: backendConfig ?? this.backendConfig,
     );
   }
 }
@@ -1008,6 +1015,17 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         _apiClient.initializeTokens(),
       ]);
 
+      // Fetch dynamic backend configuration
+      BackendConfigModel? backendConfig;
+      try {
+        final configResponse = await _apiClient.get('/portfolio/config');
+        backendConfig = BackendConfigModel.fromJson(configResponse.data);
+      } catch (e) {
+        print("Failed to fetch backend configuration from API: $e");
+      }
+
+      var currentState = state.copyWith(backendConfig: backendConfig);
+
       final currentVersion = AppConstants.currentAppVersion;
       final minVersion = remoteConfig.minVersion;
       final latestVersion = remoteConfig.latestVersion;
@@ -1024,7 +1042,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
 
       if (needsMandatoryUpdate) {
         emit(
-          state.copyWith(
+          currentState.copyWith(
             isSplashLoading: false,
             updateRequired: true,
             updateOptional: false,
@@ -1037,7 +1055,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       }
 
       emit(
-        state.copyWith(
+        currentState.copyWith(
           updateRequired: false,
           updateOptional: needsOptionalUpdate,
           updateUrl: updateUrl,
@@ -1045,6 +1063,15 @@ class AppBloc extends Bloc<AppEvent, AppState> {
           serverLatestVersion: latestVersion,
         ),
       );
+      // Update currentState to include update settings
+      currentState = currentState.copyWith(
+        updateRequired: false,
+        updateOptional: needsOptionalUpdate,
+        updateUrl: updateUrl,
+        serverMinVersion: minVersion,
+        serverLatestVersion: latestVersion,
+      );
+
       if (_apiClient.hasToken) {
         unawaited(_updateFcmToken(force: false));
         final secureStorage = getIt<SecureStorageService>();
@@ -1052,7 +1079,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         final cachedUser = await secureStorage.getUser();
         if (cachedUser != null) {
           emit(
-            state.copyWith(
+            currentState.copyWith(
               isSplashLoading: false,
               token: _apiClient.token,
               currentUser: cachedUser,
@@ -1065,7 +1092,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
           final user = UserModel.fromJson(response.data);
           await secureStorage.saveUser(user);
           emit(
-            state.copyWith(
+            currentState.copyWith(
               isSplashLoading: false,
               token: _apiClient.token,
               currentUser: user,
@@ -1076,7 +1103,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
           // Otherwise, allow user to keep using the app with cached details.
           if (cachedUser == null) {
             emit(
-              state.copyWith(
+              currentState.copyWith(
                 isSplashLoading: false,
                 token: null,
                 currentUser: null,
@@ -1086,7 +1113,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
           }
         }
       } else {
-        emit(state.copyWith(isSplashLoading: false));
+        emit(currentState.copyWith(isSplashLoading: false));
       }
     } catch (e, stackTrace) {
       if (!_apiClient.hasToken) {
@@ -1192,6 +1219,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         updateUrl: state.updateUrl,
         serverMinVersion: state.serverMinVersion,
         serverLatestVersion: state.serverLatestVersion,
+        backendConfig: state.backendConfig,
       ),
     );
   }

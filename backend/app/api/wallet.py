@@ -128,15 +128,47 @@ def create_razorpay_order(
     current_user: User = Depends(get_current_user)
 ):
     import uuid
-    order_id = f"order_{uuid.uuid4().hex[:12]}"
+    import json
+    import razorpay
+    from app.core.cryptography import encrypt_payload
     
-    return {
+    amount_in_paise = int(request.amount * 100)
+    
+    try:
+        # Instantiate Razorpay Client
+        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+        order_data = {
+            "amount": amount_in_paise,
+            "currency": "INR",
+            "receipt": f"rcpt_{uuid.uuid4().hex[:12]}"
+        }
+        order = client.order.create(data=order_data)
+        order_id = order["id"]
+    except Exception as e:
+        # Fallback for mock environment if configured with default credentials
+        if settings.RAZORPAY_KEY_ID.startswith("rzp_test_mockkey"):
+            order_id = f"order_mock_{uuid.uuid4().hex[:12]}"
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Razorpay order creation failed: {str(e)}"
+            )
+
+    payload_data = {
         "order_id": order_id,
-        "amount": request.amount,
         "key_id": settings.RAZORPAY_KEY_ID,
+        "amount": request.amount,
         "currency": "INR",
         "user_phone": current_user.phone,
         "user_email": current_user.email or f"{current_user.phone}@dailyearn99.com"
+    }
+    
+    payload_str = json.dumps(payload_data)
+    encrypted_data, iv = encrypt_payload(payload_str, settings.SECRET_KEY)
+    
+    return {
+        "encrypted_data": encrypted_data,
+        "iv": iv
     }
 
 @router.post("/razorpay/verify-payment", response_model=UserResponse)

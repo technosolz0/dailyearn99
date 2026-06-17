@@ -571,6 +571,12 @@ class PortfolioConfig(Base):
     telegram_link = Column(String, nullable=True)
     instagram_link = Column(String, nullable=True)
     referral_code = Column(String, nullable=True)
+    add_amount_method = Column(String, default="UPI", nullable=False)
+    admin_upi_id = Column(String, nullable=True)
+    admin_bank_holder = Column(String, nullable=True)
+    admin_bank_name = Column(String, nullable=True)
+    admin_bank_account = Column(String, nullable=True)
+    admin_bank_ifsc = Column(String, nullable=True)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 

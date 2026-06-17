@@ -760,6 +760,12 @@ class PortfolioConfigResponse(BaseModel):
     telegram_link: Optional[str] = None
     instagram_link: Optional[str] = None
     referral_code: Optional[str] = None
+    add_amount_method: Optional[str] = "UPI"
+    admin_upi_id: Optional[str] = None
+    admin_bank_holder: Optional[str] = None
+    admin_bank_name: Optional[str] = None
+    admin_bank_account: Optional[str] = None
+    admin_bank_ifsc: Optional[str] = None
     updated_at: datetime
 
     class Config:
@@ -775,6 +781,12 @@ class PortfolioConfigUpdate(BaseModel):
     telegram_link: Optional[str] = None
     instagram_link: Optional[str] = None
     referral_code: str
+    add_amount_method: str = "UPI"
+    admin_upi_id: Optional[str] = None
+    admin_bank_holder: Optional[str] = None
+    admin_bank_name: Optional[str] = None
+    admin_bank_account: Optional[str] = None
+    admin_bank_ifsc: Optional[str] = None
 
 
 class PortfolioContactMessageCreate(BaseModel):
@@ -801,8 +813,8 @@ class LotteryDrawCreate(BaseModel):
     ticket_price: float
     prize_pool: float
     draw_time: datetime
-    max_tickets: Optional[int] = 1000
-    win_percentage: Optional[float] = 100.0
+    max_tickets: Optional[int] = 10000000
+    win_percentage: Optional[float] = 0.01
     forced_winning_number: Optional[str] = None
 
 

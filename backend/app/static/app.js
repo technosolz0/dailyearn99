@@ -1013,6 +1013,12 @@ function setupEventHandlers() {
         });
     }
 
+    // Register listener for deposit method selector change
+    const portDepositMethod = document.getElementById('port-deposit-method');
+    if (portDepositMethod) {
+        portDepositMethod.addEventListener('change', updateDepositFieldsVisibility);
+    }
+
     // Portfolio Config Form Submit
     const portForm = document.getElementById('portfolio-config-form');
     if (portForm) {
@@ -1026,6 +1032,13 @@ function setupEventHandlers() {
             const telegram_link = document.getElementById('port-telegram').value.trim();
             const instagram_link = document.getElementById('port-instagram').value.trim();
             const referral_code = document.getElementById('port-ref-code').value.trim().toUpperCase();
+            
+            const add_amount_method = document.getElementById('port-deposit-method').value;
+            const admin_upi_id = document.getElementById('port-admin-upi').value.trim();
+            const admin_bank_holder = document.getElementById('port-bank-holder').value.trim();
+            const admin_bank_name = document.getElementById('port-bank-name').value.trim();
+            const admin_bank_account = document.getElementById('port-bank-account').value.trim();
+            const admin_bank_ifsc = document.getElementById('port-bank-ifsc').value.trim().toUpperCase();
 
             const payload = {
                 contact_email,
@@ -1035,7 +1048,13 @@ function setupEventHandlers() {
                 apk_link,
                 telegram_link,
                 instagram_link,
-                referral_code
+                referral_code,
+                add_amount_method,
+                admin_upi_id,
+                admin_bank_holder,
+                admin_bank_name,
+                admin_bank_account,
+                admin_bank_ifsc
             };
 
             const btn = portForm.querySelector('button[type="submit"]');
@@ -3356,6 +3375,25 @@ function escapeHtml(str) {
         .replace(/'/g, "&#039;");
 }
 
+function updateDepositFieldsVisibility() {
+    const portDepositMethod = document.getElementById('port-deposit-method');
+    const portUpiGroup = document.getElementById('port-upi-group');
+    const portBankGroup = document.getElementById('port-bank-group');
+    if (!portDepositMethod) return;
+    const val = portDepositMethod.value;
+    if (val === 'UPI') {
+        if (portUpiGroup) portUpiGroup.style.display = 'block';
+        if (portBankGroup) portBankGroup.style.display = 'none';
+    } else if (val === 'BANK') {
+        if (portUpiGroup) portUpiGroup.style.display = 'none';
+        if (portBankGroup) portBankGroup.style.display = 'block';
+    } else {
+        // RAZORPAY
+        if (portUpiGroup) portUpiGroup.style.display = 'none';
+        if (portBankGroup) portBankGroup.style.display = 'none';
+    }
+}
+
 async function loadPortfolioManager() {
     try {
         const configRes = await fetch(`${API_BASE}/portfolio/config`);
@@ -3369,6 +3407,15 @@ async function loadPortfolioManager() {
             document.getElementById('port-telegram').value = config.telegram_link || '';
             document.getElementById('port-instagram').value = config.instagram_link || '';
             document.getElementById('port-ref-code').value = config.referral_code || '';
+            
+            document.getElementById('port-deposit-method').value = config.add_amount_method || 'UPI';
+            document.getElementById('port-admin-upi').value = config.admin_upi_id || '';
+            document.getElementById('port-bank-holder').value = config.admin_bank_holder || '';
+            document.getElementById('port-bank-name').value = config.admin_bank_name || '';
+            document.getElementById('port-bank-account').value = config.admin_bank_account || '';
+            document.getElementById('port-bank-ifsc').value = config.admin_bank_ifsc || '';
+            
+            updateDepositFieldsVisibility();
         }
         await loadPortfolioInquiries();
     } catch (err) {

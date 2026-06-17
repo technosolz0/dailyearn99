@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:dailyearn99/core/theme/app_theme.dart';
 import 'package:dailyearn99/core/network/remote_config_service.dart';
 import 'package:dailyearn99/core/utils/dependency_injection.dart';
+import 'package:dailyearn99/core/utils/razorpay_service.dart';
 import 'package:dailyearn99/features/app_bloc.dart';
 
 class DepositBottomSheet extends StatefulWidget {
@@ -50,6 +51,23 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
         : '500';
     _manualAmountController = TextEditingController(text: initialAmtStr);
     _utrController = TextEditingController();
+
+    // Determine initial active manual subtab based on backend config method
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final backendConfig = context.read<AppBloc>().state.backendConfig;
+        final method = backendConfig?.addAmountMethod ?? "UPI";
+        if (method == "BANK") {
+          setState(() {
+            _activeManualSubTab = 1;
+          });
+        } else {
+          setState(() {
+            _activeManualSubTab = 0;
+          });
+        }
+      }
+    });
   }
 
   @override
@@ -67,14 +85,144 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final blocState = context.read<AppBloc>().state;
+    final backendConfig = blocState.backendConfig;
     final remoteConfig = getIt<RemoteConfigService>();
-    final String upiId = remoteConfig.adminUpiId;
-    final String bankHolder = remoteConfig.adminBankHolder;
-    final String bankName = remoteConfig.adminBankName;
-    final String bankAccount = remoteConfig.adminBankAccount;
-    final String bankIfsc = remoteConfig.adminBankIfsc;
-    final String supportPhone = remoteConfig.adminContactPhone;
-    final String supportEmail = remoteConfig.adminContactEmail;
+
+    final String method = backendConfig?.addAmountMethod ?? "UPI";
+
+    final String upiId = backendConfig?.adminUpiId.isNotEmpty == true
+        ? backendConfig!.adminUpiId
+        : remoteConfig.adminUpiId;
+    final String bankHolder = backendConfig?.adminBankHolder.isNotEmpty == true
+        ? backendConfig!.adminBankHolder
+        : remoteConfig.adminBankHolder;
+    final String bankName = backendConfig?.adminBankName.isNotEmpty == true
+        ? backendConfig!.adminBankName
+        : remoteConfig.adminBankName;
+    final String bankAccount = backendConfig?.adminBankAccount.isNotEmpty == true
+        ? backendConfig!.adminBankAccount
+        : remoteConfig.adminBankAccount;
+    final String bankIfsc = backendConfig?.adminBankIfsc.isNotEmpty == true
+        ? backendConfig!.adminBankIfsc
+        : remoteConfig.adminBankIfsc;
+    final String supportPhone = backendConfig?.contactPhone.isNotEmpty == true
+        ? backendConfig!.contactPhone
+        : remoteConfig.adminContactPhone;
+    final String supportEmail = backendConfig?.contactEmail.isNotEmpty == true
+        ? backendConfig!.contactEmail
+        : remoteConfig.adminContactEmail;
+
+    if (method == "RAZORPAY") {
+      return Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 48,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Add Money to Wallet',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.accentCyan,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Instant auto-credit via secured payment gateway.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  TextField(
+                    controller: _manualAmountController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Amount to Add (₹)',
+                      hintText: 'Enter deposit amount',
+                      prefixText: '₹ ',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildPresetsRow(),
+                  const SizedBox(height: 32),
+
+                  ElevatedButton(
+                    onPressed: () {
+                      final double? amt = double.tryParse(
+                        _manualAmountController.text.trim(),
+                      );
+
+                      if (amt == null || amt <= 0.0) {
+                        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+                          const SnackBar(
+                            content: Text('Please enter a valid amount.'),
+                            backgroundColor: AppTheme.accentRed,
+                          ),
+                        );
+                        return;
+                      }
+
+                      // Close bottom sheet
+                      Navigator.pop(context);
+
+                      // Open Razorpay
+                      RazorpayService.openRazorpayPaymentSheet(
+                        context: context,
+                        amount: amt,
+                        onSuccess: () {
+                          if (widget.onSuccess != null) {
+                            widget.onSuccess!();
+                          }
+                          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                '₹${amt.toStringAsFixed(2)} added to your wallet successfully!',
+                              ),
+                              backgroundColor: AppTheme.accentEmerald,
+                              duration: const Duration(seconds: 4),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accentCyan,
+                      foregroundColor: Colors.black,
+                      minimumSize: const Size(double.infinity, 52),
+                    ),
+                    child: const Text('PROCEED TO SECURE PAYMENT'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Padding(
       padding: EdgeInsets.only(
@@ -123,84 +271,86 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                 const SizedBox(height: 20),
 
                 // Manual Sub-Switcher
-                Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    color: AppTheme.cardBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.borderCol),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _activeManualSubTab = 0),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: _activeManualSubTab == 0
-                                  ? AppTheme.accentCyan.withOpacity(0.1)
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(8),
-                              border: _activeManualSubTab == 0
-                                  ? Border.all(
-                                      color: AppTheme.accentCyan.withOpacity(0.5),
-                                    )
-                                  : null,
-                            ),
-                            child: Center(
-                              child: Text(
-                                'UPI Transfer',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: _activeManualSubTab == 0
-                                      ? AppTheme.accentCyan
-                                      : AppTheme.textMuted,
+                if (backendConfig == null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.borderCol),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _activeManualSubTab = 0),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: _activeManualSubTab == 0
+                                    ? AppTheme.accentCyan.withOpacity(0.1)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                border: _activeManualSubTab == 0
+                                    ? Border.all(
+                                        color: AppTheme.accentCyan.withOpacity(0.5),
+                                      )
+                                    : null,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'UPI Transfer',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: _activeManualSubTab == 0
+                                        ? AppTheme.accentCyan
+                                        : AppTheme.textMuted,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _activeManualSubTab = 1),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: _activeManualSubTab == 1
-                                  ? AppTheme.accentPurple.withOpacity(0.1)
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(8),
-                              border: _activeManualSubTab == 1
-                                  ? Border.all(
-                                      color: AppTheme.accentPurple.withOpacity(0.5),
-                                    )
-                                  : null,
-                            ),
-                            child: Center(
-                              child: Text(
-                                'Bank Account',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: _activeManualSubTab == 1
-                                      ? AppTheme.accentPurple
-                                      : AppTheme.textMuted,
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _activeManualSubTab = 1),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: _activeManualSubTab == 1
+                                    ? AppTheme.accentPurple.withOpacity(0.1)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                border: _activeManualSubTab == 1
+                                    ? Border.all(
+                                        color: AppTheme.accentPurple.withOpacity(0.5),
+                                      )
+                                    : null,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Bank Account',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: _activeManualSubTab == 1
+                                        ? AppTheme.accentPurple
+                                        : AppTheme.textMuted,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
+                ],
 
                 // UPI Card
-                if (_activeManualSubTab == 0)
+                if ((backendConfig != null && method == "UPI") || (backendConfig == null && _activeManualSubTab == 0))
                   Card(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -261,7 +411,7 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                   ),
 
                 // Bank Card
-                if (_activeManualSubTab == 1)
+                if ((backendConfig != null && method == "BANK") || (backendConfig == null && _activeManualSubTab == 1))
                   Card(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),

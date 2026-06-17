@@ -23,11 +23,41 @@ def get_or_create_config(db: Session) -> PortfolioConfig:
             apk_link="https://api.dailyearn99.in/static/dailyearn99.apk",
             telegram_link="https://t.me/dailyearn99",
             instagram_link="https://instagram.com/dailyearn99",
-            referral_code="DAILYEARN99"
+            referral_code="DAILYEARN99",
+            add_amount_method="UPI",
+            admin_upi_id="merchant@upi",
+            admin_bank_holder="DailyEarn Admin",
+            admin_bank_name="HDFC Bank",
+            admin_bank_account="50100123456789",
+            admin_bank_ifsc="HDFC0000123"
         )
         db.add(config)
         db.commit()
         db.refresh(config)
+    else:
+        # Defensive check: if new fields are null on existing record, populate them with defaults
+        updated = False
+        if not config.add_amount_method:
+            config.add_amount_method = "UPI"
+            updated = True
+        if not config.admin_upi_id:
+            config.admin_upi_id = "merchant@upi"
+            updated = True
+        if not config.admin_bank_holder:
+            config.admin_bank_holder = "DailyEarn Admin"
+            updated = True
+        if not config.admin_bank_name:
+            config.admin_bank_name = "HDFC Bank"
+            updated = True
+        if not config.admin_bank_account:
+            config.admin_bank_account = "50100123456789"
+            updated = True
+        if not config.admin_bank_ifsc:
+            config.admin_bank_ifsc = "HDFC0000123"
+            updated = True
+        if updated:
+            db.commit()
+            db.refresh(config)
     return config
 
 @public_router.get("/config", response_model=PortfolioConfigResponse)
@@ -58,6 +88,12 @@ def update_portfolio_config(request: PortfolioConfigUpdate, db: Session = Depend
     config.telegram_link = request.telegram_link
     config.instagram_link = request.instagram_link
     config.referral_code = request.referral_code
+    config.add_amount_method = request.add_amount_method
+    config.admin_upi_id = request.admin_upi_id
+    config.admin_bank_holder = request.admin_bank_holder
+    config.admin_bank_name = request.admin_bank_name
+    config.admin_bank_account = request.admin_bank_account
+    config.admin_bank_ifsc = request.admin_bank_ifsc
     db.commit()
     db.refresh(config)
     return config

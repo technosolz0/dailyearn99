@@ -130,6 +130,23 @@ def migrate_database():
             # Ignore error (column already exists)
             pass
 
+    columns_portfolio = [
+        ("add_amount_method", "VARCHAR DEFAULT 'UPI'"),
+        ("admin_upi_id", "VARCHAR"),
+        ("admin_bank_holder", "VARCHAR"),
+        ("admin_bank_name", "VARCHAR"),
+        ("admin_bank_account", "VARCHAR"),
+        ("admin_bank_ifsc", "VARCHAR"),
+    ]
+    for col_name, col_type in columns_portfolio:
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE portfolio_configs ADD COLUMN {col_name} {col_type}"))
+            print(f"Schema Migration: Added column '{col_name}' to portfolio_configs table.")
+        except Exception:
+            # Ignore error (column already exists)
+            pass
+
 migrate_database()
 
 app = FastAPI(

@@ -1,10 +1,11 @@
-// ignore_for_file: unused_field
-
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:dailyearn99/core/theme/app_theme.dart';
 import 'package:dailyearn99/core/network/api_client.dart';
 import 'package:dailyearn99/core/utils/dependency_injection.dart';
+import 'package:dailyearn99/core/utils/razorpay_platform_runner.dart';
 import 'package:dailyearn99/features/app_bloc.dart';
 
 class RazorpayService {
@@ -51,94 +52,111 @@ class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
   @override
   void initState() {
     super.initState();
-    _createOrder();
+    _createOrderAndLaunch();
   }
 
-  Future<void> _createOrder() async {
+  Future<void> _createOrderAndLaunch() async {
     try {
+      if (mounted) {
+        setState(() {
+          _isLoadingOrder = true;
+          _errorMessage = null;
+          _isProcessingPayment = false;
+        });
+      }
+
+      // 1. Request encrypted Razorpay order configuration from backend
       final response = await _apiClient.post(
         '/wallet/razorpay/create-order',
         data: {'amount': widget.amount},
       );
 
+      final String encryptedData = response.data['encrypted_data'] as String;
+      final String ivB64 = response.data['iv'] as String;
+
+      // 2. Decrypt response payload using AES-CBC-PKCS7
+      final keyStr = "dailyearn99_super_secret_signing";
+      final key = encrypt.Key.fromUtf8(keyStr);
+      final iv = encrypt.IV.fromBase64(ivB64);
+      final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+      
+      final decrypted = encrypter.decrypt(
+        encrypt.Encrypted.fromBase64(encryptedData),
+        iv: iv,
+      );
+      
+      final decryptedJson = json.decode(decrypted) as Map<String, dynamic>;
+
       if (mounted) {
         setState(() {
-          _orderId = response.data['order_id'] as String;
-          _keyId = response.data['key_id'] as String;
-          _userPhone = response.data['user_phone'] as String;
-          _userEmail = response.data['user_email'] as String;
+          _orderId = decryptedJson['order_id'] as String;
+          _keyId = decryptedJson['key_id'] as String;
+          _userPhone = decryptedJson['user_phone'] as String;
+          _userEmail = decryptedJson['user_email'] as String;
           _isLoadingOrder = false;
+          _isProcessingPayment = true;
+          _paymentStepMessage = 'Launching payment portal...';
         });
       }
-    } catch (e) {
+
+      // 3. Initiate platform-specific Razorpay Checkout SDK/JS iframe
+      final result = await RazorpayPlatformRunner.launchCheckout(
+        keyId: _keyId!,
+        orderId: _orderId!,
+        amount: widget.amount,
+        userPhone: _userPhone!,
+        userEmail: _userEmail!,
+      );
+
+      if (result == null) {
+        // User closed/cancelled the transaction
+        if (mounted) {
+          Navigator.pop(context);
+        }
+        return;
+      }
+
+      // 4. Submit captured signature back to server for verification
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString().replaceAll('Exception: ', '');
-          _isLoadingOrder = false;
+          _paymentStepMessage = 'Verifying payment signature securely...';
         });
       }
-    }
-  }
 
-  Future<void> _processPayment(String method) async {
-    setState(() {
-      _isProcessingPayment = true;
-      _paymentStepMessage = 'Initializing payment channel...';
-    });
-
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (!mounted) return;
-
-    setState(() {
-      _paymentStepMessage = 'Connecting with $method gateway...';
-    });
-
-    await Future.delayed(const Duration(milliseconds: 900));
-    if (!mounted) return;
-
-    setState(() {
-      _paymentStepMessage = 'Verifying secure transaction logs...';
-    });
-
-    try {
-      // Simulate Razorpay parameters
-      final mockPaymentId =
-          'pay_${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
-
-      // Request validation from the server using mock signature bypass
       await _apiClient.post(
         '/wallet/razorpay/verify-payment',
         data: {
-          'razorpay_order_id': _orderId,
-          'razorpay_payment_id': mockPaymentId,
-          'razorpay_signature': 'mock_signature_for_testing',
+          'razorpay_order_id': result['razorpay_order_id'],
+          'razorpay_payment_id': result['razorpay_payment_id'],
+          'razorpay_signature': result['razorpay_signature'],
           'amount': widget.amount,
         },
       );
 
       if (!mounted) return;
       setState(() {
-        _paymentStepMessage = 'Payment success!';
+        _paymentStepMessage = 'Deposit processed successfully!';
         _isPaymentSuccess = true;
       });
 
-      await Future.delayed(const Duration(milliseconds: 1000));
+      await Future.delayed(const Duration(milliseconds: 1200));
       if (!mounted) return;
 
-      // Close sheet and execute success callback
+      // Close the bottom sheet and refresh the wallet
       Navigator.pop(context);
 
-      // Refresh balance in BLoC
       context.read<AppBloc>().add(LoadProfileEvent());
       context.read<AppBloc>().add(FetchTransactionsEvent());
 
       widget.onSuccess();
     } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
-        _isProcessingPayment = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
+          _isLoadingOrder = false;
+          _isProcessingPayment = false;
+        });
+      }
     }
   }
 
@@ -146,7 +164,7 @@ class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFF0F121F), // Dark blue premium background
+        color: Color(0xFF0F121F), // Premium dark theme matching Dailyearn99
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.only(
@@ -186,7 +204,7 @@ class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Dailyearn99 checkout',
+                            'DailyEarn99 Secure Deposit',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 14,
@@ -195,9 +213,9 @@ class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
                           ),
                           if (_orderId != null)
                             Text(
-                              'Order: ${_orderId!.substring(0, 14)}...',
+                              'Order: ${_orderId!.substring(0, _orderId!.length > 18 ? 18 : _orderId!.length)}...',
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.5),
+                                color: Colors.white.withAlpha(128),
                                 fontSize: 9,
                               ),
                             ),
@@ -211,7 +229,7 @@ class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.08),
+                      color: Colors.white.withAlpha(20),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -230,11 +248,18 @@ class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
             if (_isLoadingOrder)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 48.0),
-                child: Center(
-                  child: CircularProgressIndicator(color: AppTheme.accentCyan),
+                child: Column(
+                  children: [
+                    CircularProgressIndicator(color: AppTheme.accentCyan),
+                    SizedBox(height: 16),
+                    Text(
+                      'Securing payment tunnel...',
+                      style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                    ),
+                  ],
                 ),
               )
-            else if (_errorMessage != null && !_isProcessingPayment)
+            else if (_errorMessage != null)
               Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
@@ -245,11 +270,12 @@ class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
                       size: 48,
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      'Payment Initialization Failed',
-                      style: const TextStyle(
+                    const Text(
+                      'Payment Channel Failed',
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -262,15 +288,31 @@ class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _isLoadingOrder = true;
-                          _errorMessage = null;
-                        });
-                        _createOrder();
-                      },
-                      child: const Text('RETRY ORDER CREATION'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: AppTheme.borderCol),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: const Text('CANCEL'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _createOrderAndLaunch,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.accentCyan,
+                              foregroundColor: const Color(0xFF0F121F),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: const Text('RETRY'),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -296,139 +338,43 @@ class _RazorpayCheckoutSheetState extends State<_RazorpayCheckoutSheet> {
                     const SizedBox(height: 24),
                     Text(
                       _paymentStepMessage,
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Do not press back or close the checkout window.',
+                      'Do not press back or close this sheet.',
                       style: TextStyle(color: AppTheme.textMuted, fontSize: 11),
                     ),
                   ],
                 ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'PAYMENT OPTIONS',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: AppTheme.textMuted,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // UPI Options
-                    _buildPaymentMethodTile(
-                      icon: Icons.qr_code_scanner_rounded,
-                      title: 'Google Pay / PhonePe (UPI)',
-                      subtitle: 'Pay instantly via UPI apps',
-                      onTap: () => _processPayment('UPI Apps'),
-                    ),
-                    const Divider(color: AppTheme.borderCol, height: 24),
-
-                    // Card Options
-                    _buildPaymentMethodTile(
-                      icon: Icons.credit_card_rounded,
-                      title: 'Card Payment',
-                      subtitle: 'Visa, MasterCard, RuPay, Maestro',
-                      onTap: () => _processPayment('Card Gateway'),
-                    ),
-                    const Divider(color: AppTheme.borderCol, height: 24),
-
-                    // Netbanking Options
-                    _buildPaymentMethodTile(
-                      icon: Icons.account_balance_rounded,
-                      title: 'Net Banking',
-                      subtitle: 'All major Indian banks available',
-                      onTap: () => _processPayment('Net Banking'),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Security Footer
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.lock_outline_rounded,
-                          color: AppTheme.accentEmerald.withOpacity(0.6),
-                          size: 12,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Secured by Razorpay. PCI-DSS Compliant.',
-                          style: TextStyle(
-                            fontSize: 9,
-                            color: AppTheme.accentEmerald.withOpacity(0.7),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
               ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPaymentMethodTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.03),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppTheme.borderCol),
-              ),
-              child: Icon(icon, color: AppTheme.accentCyan, size: 20),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            
+            // Security Footer
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Icon(
+                    Icons.lock_outline_rounded,
+                    color: AppTheme.accentEmerald.withAlpha(150),
+                    size: 12,
                   ),
+                  const SizedBox(width: 4),
                   Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: AppTheme.textMuted,
+                    'Secured by Razorpay. PCI-DSS Compliant.',
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: AppTheme.accentEmerald.withAlpha(180),
                     ),
                   ),
                 ],
               ),
-            ),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: AppTheme.textMuted,
-              size: 20,
             ),
           ],
         ),
