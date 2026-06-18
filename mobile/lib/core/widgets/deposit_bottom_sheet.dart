@@ -159,92 +159,88 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                 const SizedBox(height: 20),
 
                 // Manual Sub-Switcher
-                if (backendConfig == null) ...[
-                  Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      color: AppTheme.cardBg,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.borderCol),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () =>
-                                setState(() => _activeManualSubTab = 0),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: _activeManualSubTab == 0
-                                    ? AppTheme.accentCyan.withOpacity(0.1)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(8),
-                                border: _activeManualSubTab == 0
-                                    ? Border.all(
-                                        color: AppTheme.accentCyan.withOpacity(
-                                          0.5,
-                                        ),
-                                      )
-                                    : null,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  'UPI Transfer',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: _activeManualSubTab == 0
-                                        ? AppTheme.accentCyan
-                                        : AppTheme.textMuted,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () =>
-                                setState(() => _activeManualSubTab = 1),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: _activeManualSubTab == 1
-                                    ? AppTheme.accentPurple.withOpacity(0.1)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(8),
-                                border: _activeManualSubTab == 1
-                                    ? Border.all(
-                                        color: AppTheme.accentPurple
-                                            .withOpacity(0.5),
-                                      )
-                                    : null,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  'Bank Account',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: _activeManualSubTab == 1
-                                        ? AppTheme.accentPurple
-                                        : AppTheme.textMuted,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.borderCol),
                   ),
-                  const SizedBox(height: 16),
-                ],
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _activeManualSubTab = 0),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: _activeManualSubTab == 0
+                                  ? AppTheme.accentCyan.withOpacity(0.1)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                              border: _activeManualSubTab == 0
+                                  ? Border.all(
+                                      color: AppTheme.accentCyan.withOpacity(
+                                        0.5,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            child: Center(
+                              child: Text(
+                                'UPI Transfer',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: _activeManualSubTab == 0
+                                      ? AppTheme.accentCyan
+                                      : AppTheme.textMuted,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _activeManualSubTab = 1),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: _activeManualSubTab == 1
+                                  ? AppTheme.accentPurple.withOpacity(0.1)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                              border: _activeManualSubTab == 1
+                                  ? Border.all(
+                                      color: AppTheme.accentPurple.withOpacity(
+                                        0.5,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Bank Account',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: _activeManualSubTab == 1
+                                      ? AppTheme.accentPurple
+                                      : AppTheme.textMuted,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
 
                 // UPI Card
-                if ((backendConfig != null && method == "UPI") ||
-                    (backendConfig == null && _activeManualSubTab == 0))
+                if (_activeManualSubTab == 0)
                   Card(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -305,8 +301,7 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                   ),
 
                 // Bank Card
-                if ((backendConfig != null && method == "BANK") ||
-                    (backendConfig == null && _activeManualSubTab == 1))
+                if (_activeManualSubTab == 1)
                   Card(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
