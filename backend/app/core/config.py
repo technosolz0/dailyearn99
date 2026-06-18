@@ -43,10 +43,6 @@ class Settings:
     ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME", "admin")
     ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "admin99")
     
-    # Razorpay Keys
-    RAZORPAY_KEY_ID: str = os.getenv("RAZORPAY_KEY_ID", "rzp_test_mockkey12345")
-    RAZORPAY_KEY_SECRET: str = os.getenv("RAZORPAY_KEY_SECRET", "mocksecret12345")
-    
     # Redis Configuration
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 settings = Settings()

@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:dailyearn99/core/theme/app_theme.dart';
 import 'package:dailyearn99/core/network/remote_config_service.dart';
 import 'package:dailyearn99/core/utils/dependency_injection.dart';
-import 'package:dailyearn99/core/utils/razorpay_service.dart';
 import 'package:dailyearn99/features/app_bloc.dart';
 
 class DepositBottomSheet extends StatefulWidget {
@@ -100,7 +99,8 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
     final String bankName = backendConfig?.adminBankName.isNotEmpty == true
         ? backendConfig!.adminBankName
         : remoteConfig.adminBankName;
-    final String bankAccount = backendConfig?.adminBankAccount.isNotEmpty == true
+    final String bankAccount =
+        backendConfig?.adminBankAccount.isNotEmpty == true
         ? backendConfig!.adminBankAccount
         : remoteConfig.adminBankAccount;
     final String bankIfsc = backendConfig?.adminBankIfsc.isNotEmpty == true
@@ -112,118 +112,6 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
     final String supportEmail = backendConfig?.contactEmail.isNotEmpty == true
         ? backendConfig!.contactEmail
         : remoteConfig.adminContactEmail;
-
-    if (method == "RAZORPAY") {
-      return Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 48,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Add Money to Wallet',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.outfit(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.accentCyan,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Instant auto-credit via secured payment gateway.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppTheme.textMuted,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  TextField(
-                    controller: _manualAmountController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Amount to Add (₹)',
-                      hintText: 'Enter deposit amount',
-                      prefixText: '₹ ',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildPresetsRow(),
-                  const SizedBox(height: 32),
-
-                  ElevatedButton(
-                    onPressed: () {
-                      final double? amt = double.tryParse(
-                        _manualAmountController.text.trim(),
-                      );
-
-                      if (amt == null || amt <= 0.0) {
-                        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                          const SnackBar(
-                            content: Text('Please enter a valid amount.'),
-                            backgroundColor: AppTheme.accentRed,
-                          ),
-                        );
-                        return;
-                      }
-
-                      // Close bottom sheet
-                      Navigator.pop(context);
-
-                      // Open Razorpay
-                      RazorpayService.openRazorpayPaymentSheet(
-                        context: context,
-                        amount: amt,
-                        onSuccess: () {
-                          if (widget.onSuccess != null) {
-                            widget.onSuccess!();
-                          }
-                          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                '₹${amt.toStringAsFixed(2)} added to your wallet successfully!',
-                              ),
-                              backgroundColor: AppTheme.accentEmerald,
-                              duration: const Duration(seconds: 4),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.accentCyan,
-                      foregroundColor: Colors.black,
-                      minimumSize: const Size(double.infinity, 52),
-                    ),
-                    child: const Text('PROCEED TO SECURE PAYMENT'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -283,7 +171,8 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                       children: [
                         Expanded(
                           child: GestureDetector(
-                            onTap: () => setState(() => _activeManualSubTab = 0),
+                            onTap: () =>
+                                setState(() => _activeManualSubTab = 0),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               decoration: BoxDecoration(
@@ -293,7 +182,9 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                                 borderRadius: BorderRadius.circular(8),
                                 border: _activeManualSubTab == 0
                                     ? Border.all(
-                                        color: AppTheme.accentCyan.withOpacity(0.5),
+                                        color: AppTheme.accentCyan.withOpacity(
+                                          0.5,
+                                        ),
                                       )
                                     : null,
                               ),
@@ -314,7 +205,8 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                         ),
                         Expanded(
                           child: GestureDetector(
-                            onTap: () => setState(() => _activeManualSubTab = 1),
+                            onTap: () =>
+                                setState(() => _activeManualSubTab = 1),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               decoration: BoxDecoration(
@@ -324,7 +216,8 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                                 borderRadius: BorderRadius.circular(8),
                                 border: _activeManualSubTab == 1
                                     ? Border.all(
-                                        color: AppTheme.accentPurple.withOpacity(0.5),
+                                        color: AppTheme.accentPurple
+                                            .withOpacity(0.5),
                                       )
                                     : null,
                               ),
@@ -350,7 +243,8 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                 ],
 
                 // UPI Card
-                if ((backendConfig != null && method == "UPI") || (backendConfig == null && _activeManualSubTab == 0))
+                if ((backendConfig != null && method == "UPI") ||
+                    (backendConfig == null && _activeManualSubTab == 0))
                   Card(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -390,17 +284,17 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                                   size: 18,
                                 ),
                                 onPressed: () {
-                                  Clipboard.setData(
-                                    ClipboardData(text: upiId),
-                                  );
-                                  ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'UPI ID copied to clipboard.',
+                                  Clipboard.setData(ClipboardData(text: upiId));
+                                  ScaffoldMessenger.of(context)
+                                    ..clearSnackBars()
+                                    ..showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'UPI ID copied to clipboard.',
+                                        ),
+                                        backgroundColor: AppTheme.accentCyan,
                                       ),
-                                      backgroundColor: AppTheme.accentCyan,
-                                    ),
-                                  );
+                                    );
                                 },
                               ),
                             ],
@@ -411,7 +305,8 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                   ),
 
                 // Bank Card
-                if ((backendConfig != null && method == "BANK") || (backendConfig == null && _activeManualSubTab == 1))
+                if ((backendConfig != null && method == "BANK") ||
+                    (backendConfig == null && _activeManualSubTab == 1))
                   Card(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -422,24 +317,15 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                       child: Column(
                         children: [
                           _buildDetailRow(context, 'BANK NAME', bankName),
-                          const Divider(
-                            color: AppTheme.borderCol,
-                            height: 16,
-                          ),
+                          const Divider(color: AppTheme.borderCol, height: 16),
                           _buildDetailRow(context, 'HOLDER NAME', bankHolder),
-                          const Divider(
-                            color: AppTheme.borderCol,
-                            height: 16,
-                          ),
+                          const Divider(color: AppTheme.borderCol, height: 16),
                           _buildDetailRow(
                             context,
                             'ACCOUNT NUMBER',
                             bankAccount,
                           ),
-                          const Divider(
-                            color: AppTheme.borderCol,
-                            height: 16,
-                          ),
+                          const Divider(color: AppTheme.borderCol, height: 16),
                           _buildDetailRow(context, 'IFSC CODE', bankIfsc),
                         ],
                       ),
@@ -498,12 +384,14 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                               Clipboard.setData(
                                 ClipboardData(text: supportPhone),
                               );
-                              ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                                const SnackBar(
-                                  content: Text('Support phone copied.'),
-                                  backgroundColor: AppTheme.accentAmber,
-                                ),
-                              );
+                              ScaffoldMessenger.of(context)
+                                ..clearSnackBars()
+                                ..showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Support phone copied.'),
+                                    backgroundColor: AppTheme.accentAmber,
+                                  ),
+                                );
                             },
                             child: const Text(
                               'COPY',
@@ -537,12 +425,14 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                               Clipboard.setData(
                                 ClipboardData(text: supportEmail),
                               );
-                              ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                                const SnackBar(
-                                  content: Text('Support email copied.'),
-                                  backgroundColor: AppTheme.accentAmber,
-                                ),
-                              );
+                              ScaffoldMessenger.of(context)
+                                ..clearSnackBars()
+                                ..showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Support email copied.'),
+                                    backgroundColor: AppTheme.accentAmber,
+                                  ),
+                                );
                             },
                             child: const Text(
                               'COPY',
@@ -604,23 +494,27 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                     final String utr = _utrController.text.trim();
 
                     if (amt == null || amt <= 0.0) {
-                      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                        const SnackBar(
-                          content: Text('Please enter a valid amount.'),
-                          backgroundColor: AppTheme.accentRed,
-                        ),
-                      );
+                      ScaffoldMessenger.of(context)
+                        ..clearSnackBars()
+                        ..showSnackBar(
+                          const SnackBar(
+                            content: Text('Please enter a valid amount.'),
+                            backgroundColor: AppTheme.accentRed,
+                          ),
+                        );
                       return;
                     }
                     if (utr.length != 12) {
-                      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Please enter a valid 12-digit UTR/Reference ID.',
+                      ScaffoldMessenger.of(context)
+                        ..clearSnackBars()
+                        ..showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Please enter a valid 12-digit UTR/Reference ID.',
+                            ),
+                            backgroundColor: AppTheme.accentRed,
                           ),
-                          backgroundColor: AppTheme.accentRed,
-                        ),
-                      );
+                        );
                       return;
                     }
 
@@ -632,15 +526,17 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                       DepositMoneyEvent(amt, utr: utr),
                     );
 
-                    ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Deposit request of ₹${amt.toStringAsFixed(2)} submitted successfully for verification! (UTR: $utr)',
+                    ScaffoldMessenger.of(context)
+                      ..clearSnackBars()
+                      ..showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Deposit request of ₹${amt.toStringAsFixed(2)} submitted successfully for verification! (UTR: $utr)',
+                          ),
+                          backgroundColor: AppTheme.accentEmerald,
+                          duration: const Duration(seconds: 4),
                         ),
-                        backgroundColor: AppTheme.accentEmerald,
-                        duration: const Duration(seconds: 4),
-                      ),
-                    );
+                      );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.accentEmerald,
@@ -739,12 +635,14 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
           icon: const Icon(Icons.copy, size: 14, color: AppTheme.accentCyan),
           onPressed: () {
             Clipboard.setData(ClipboardData(text: value));
-            ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-              SnackBar(
-                content: Text('$label copied to clipboard.'),
-                backgroundColor: AppTheme.accentCyan,
-              ),
-            );
+            ScaffoldMessenger.of(context)
+              ..clearSnackBars()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text('$label copied to clipboard.'),
+                  backgroundColor: AppTheme.accentCyan,
+                ),
+              );
           },
         ),
       ],

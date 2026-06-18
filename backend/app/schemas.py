@@ -216,16 +216,6 @@ class AdminLoginRequest(BaseModel):
     username: str
     password: str
 
-
-class RazorpayCreateOrderRequest(BaseModel):
-    amount: float = Field(..., gt=0)
-
-class RazorpayVerifyPaymentRequest(BaseModel):
-    razorpay_order_id: str
-    razorpay_payment_id: str
-    razorpay_signature: str
-    amount: float
-
 class SpinCreateRequest(BaseModel):
     bet_amount: float = Field(..., gt=0, description="Bet amount in INR")
     idempotency_key: str = Field(..., description="Unique UUID to prevent duplicate spins")

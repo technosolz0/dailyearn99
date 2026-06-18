@@ -393,7 +393,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     required String userId,
   }) async {
     try {
-      await FirebaseFirestore.instance.collection('otps').add({
+      await FirebaseFirestore.instance.collection('otps').doc(phone).set({
         'phone': phone,
         'otp': otp,
         'verification_id': verificationId,
@@ -524,7 +524,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         codeAutoRetrievalTimeout: (String verificationId) {
           _verificationId = verificationId;
         },
-        timeout: const Duration(minutes: 10),
+        timeout: const Duration(seconds: 120),
       );
 
       await completer.future.timeout(

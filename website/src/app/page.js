@@ -8,6 +8,9 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
   const [activeFaq, setActiveFaq] = useState(null);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [activeDraw, setActiveDraw] = useState(null);
+  const [showLotteryModal, setShowLotteryModal] = useState(false);
+  const [timeLeft, setTimeLeft] = useState("");
 
   const [config, setConfig] = useState({
     apk_link: "https://play.google.com/store/apps/details?id=com.dailyearn99.dailyearn99",
@@ -15,6 +18,7 @@ export default function Home() {
   });
 
   useEffect(() => {
+    // Load config
     fetch(`${API_BASE}/portfolio/config`)
       .then(res => {
         if (res.ok) return res.json();
@@ -26,7 +30,60 @@ export default function Home() {
         }
       })
       .catch(err => console.error("Error loading portfolio config:", err));
+
+    // Load active lottery draws
+    fetch(`${API_BASE}/lottery/draws`)
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error("Failed to fetch draws");
+      })
+      .then(draws => {
+        if (draws && draws.length > 0) {
+          const now = new Date();
+          const openDraw = draws.find(
+            d => d.status === "OPEN" && new Date(d.draw_time) > now
+          );
+          if (openDraw) {
+            setActiveDraw(openDraw);
+            const dismissed = sessionStorage.getItem("lottery_modal_dismissed");
+            if (!dismissed) {
+              setShowLotteryModal(true);
+            }
+          }
+        }
+      })
+      .catch(err => console.error("Error loading lottery draws:", err));
   }, []);
+
+  // Update countdown clock
+  useEffect(() => {
+    if (!activeDraw || !showLotteryModal) return;
+
+    const pad = (num) => num.toString().padStart(2, '0');
+
+    const updateTimer = () => {
+      const difference = new Date(activeDraw.draw_time) - new Date();
+      if (difference <= 0) {
+        setTimeLeft("00:00:00");
+        return false;
+      }
+      const hours = Math.floor(difference / (1000 * 60 * 60));
+      const minutes = Math.floor((difference / 1000 / 60) % 60);
+      const seconds = Math.floor((difference / 1000) % 60);
+      setTimeLeft(`${pad(hours)}:${pad(minutes)}:${pad(seconds)}`);
+      return true;
+    };
+
+    updateTimer();
+    const interval = setInterval(() => {
+      const active = updateTimer();
+      if (!active) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [activeDraw, showLotteryModal]);
 
   const referralCode = config.referral_code || "DAILYEARN99";
 
@@ -67,7 +124,7 @@ export default function Home() {
     },
     {
       q: "Is my money safe on DailyEarn 99?",
-      a: "Yes. All deposits and transactions are encrypted with SSL protocols. We partner with secure payment gateways (like Razorpay/Cashfree) to facilitate safe transactions, and we adhere to strict fair play policies to prevent fraud."
+      a: "Yes. All deposits and transactions are encrypted with SSL protocols. We partner with secure payment gateways to facilitate safe transactions, and we adhere to strict fair play policies to prevent fraud."
     }
   ];
 
@@ -270,6 +327,69 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Lottery Countdown Modal */}
+      {showLotteryModal && activeDraw && (
+        <div className="lottery-modal-overlay">
+          <div className="lottery-modal-card">
+            <button
+              className="lottery-modal-close"
+              onClick={() => {
+                setShowLotteryModal(false);
+                sessionStorage.setItem("lottery_modal_dismissed", "true");
+              }}
+            >
+              ×
+            </button>
+            <div className="lottery-modal-header">
+              <span className="lottery-modal-tag">🔥 LIVE JACKPOT DRAW</span>
+              <h2>{activeDraw.title}</h2>
+            </div>
+            
+            <div className="lottery-modal-timer-box">
+              <span className="timer-label">DRAW STARTS IN</span>
+              <div className="timer-clock">{timeLeft}</div>
+            </div>
+
+            <div className="lottery-modal-info">
+              <div className="info-item">
+                <span className="info-label">PRIZE POOL</span>
+                <span className="info-value text-emerald">₹{activeDraw.prize_pool.toLocaleString()}</span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">TICKET PRICE</span>
+                <span className="info-value text-cyan">₹{activeDraw.ticket_price}</span>
+              </div>
+            </div>
+
+            <div className="lottery-modal-progress">
+              <div className="progress-labels">
+                <span>Tickets Sold</span>
+                <span>{activeDraw.joined_tickets} / {activeDraw.max_tickets}</span>
+              </div>
+              <div className="progress-bar-bg">
+                <div
+                  className="progress-bar-fill"
+                  style={{
+                    width: `${Math.min(100, (activeDraw.joined_tickets / activeDraw.max_tickets) * 100)}%`
+                  }}
+                ></div>
+              </div>
+            </div>
+
+            <a
+              href={config.apk_link}
+              className="btn-primary lottery-modal-cta"
+              onClick={() => {
+                setShowLotteryModal(false);
+                sessionStorage.setItem("lottery_modal_dismissed", "true");
+              }}
+            >
+              📥 Buy Ticket in the App
+            </a>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

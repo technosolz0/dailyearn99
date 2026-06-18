@@ -5,7 +5,7 @@ from app.core.database import get_db
 from app.models import User, WalletTransaction
 from app.schemas import (
     UserResponse, DepositRequest, WithdrawalRequest, TransactionResponse,
-    SaveBankDetailsRequest, RazorpayCreateOrderRequest, RazorpayVerifyPaymentRequest
+    SaveBankDetailsRequest
 )
 from app.core.security import get_current_user
 from app.services import WalletService
@@ -158,96 +158,4 @@ def get_transactions(
         .all()
     )
     return transactions
-
-@router.post("/razorpay/create-order")
-def create_razorpay_order(
-    request: RazorpayCreateOrderRequest,
-    current_user: User = Depends(get_current_user)
-):
-    import uuid
-    import json
-    import razorpay
-    from app.core.cryptography import encrypt_payload
-    
-    amount_in_paise = int(request.amount * 100)
-    
-    try:
-        # Instantiate Razorpay Client
-        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-        order_data = {
-            "amount": amount_in_paise,
-            "currency": "INR",
-            "receipt": f"rcpt_{uuid.uuid4().hex[:12]}"
-        }
-        order = client.order.create(data=order_data)
-        order_id = order["id"]
-    except Exception as e:
-        # Fallback for mock environment if configured with default credentials
-        if settings.RAZORPAY_KEY_ID.startswith("rzp_test_mockkey"):
-            order_id = f"order_mock_{uuid.uuid4().hex[:12]}"
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Razorpay order creation failed: {str(e)}"
-            )
-
-    payload_data = {
-        "order_id": order_id,
-        "key_id": settings.RAZORPAY_KEY_ID,
-        "amount": request.amount,
-        "currency": "INR",
-        "user_phone": current_user.phone,
-        "user_email": current_user.email or f"{current_user.phone}@dailyearn99.com"
-    }
-    
-    payload_str = json.dumps(payload_data)
-    encrypted_data, iv = encrypt_payload(payload_str, settings.SECRET_KEY)
-    
-    return {
-        "encrypted_data": encrypted_data,
-        "iv": iv
-    }
-
-@router.post("/razorpay/verify-payment", response_model=UserResponse)
-def verify_razorpay_payment(
-    request: RazorpayVerifyPaymentRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    import hmac
-    import hashlib
-    
-    is_valid = False
-    
-    # 1. Cryptographic HMAC validation
-    msg = f"{request.razorpay_order_id}|{request.razorpay_payment_id}".encode()
-    generated_sig = hmac.new(settings.RAZORPAY_KEY_SECRET.encode(), msg, hashlib.sha256).hexdigest()
-    if hmac.compare_digest(generated_sig, request.razorpay_signature):
-        is_valid = True
-        
-    # 2. Mock bypass fallback
-    if request.razorpay_signature == "mock_signature_for_testing":
-        is_valid = True
-        
-    if not is_valid:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Payment verification failed. Invalid signature."
-        )
-        
-    WalletService.process_deposit(db, current_user, request.amount, description="Deposit via Razorpay")
-    db.refresh(current_user)
-    
-    # Send push notification to Admin
-    try:
-        from app.core.notifications import send_push_to_admin
-        send_push_to_admin(
-            db=db,
-            title="💰 Razorpay Deposit Success",
-            body=f"User {current_user.name or current_user.phone} made a Razorpay deposit of ₹{request.amount:.2f}.",
-            data={"event": "deposit_razorpay", "amount": str(request.amount)}
-        )
-    except Exception as e:
-        print(f"Failed to send Razorpay deposit push to admin: {e}")
-    return current_user
 

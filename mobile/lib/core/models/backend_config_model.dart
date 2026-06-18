@@ -1,5 +1,5 @@
 class BackendConfigModel {
-  final String addAmountMethod; // 'UPI', 'BANK', or 'RAZORPAY'
+  final String addAmountMethod; // 'UPI' or 'BANK'
   final String adminUpiId;
   final String adminBankHolder;
   final String adminBankName;

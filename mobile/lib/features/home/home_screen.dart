@@ -15,6 +15,10 @@ import 'package:dailyearn99/features/notifications/screens/notifications_screen.
 import 'package:dailyearn99/core/widgets/custom_button.dart';
 import 'package:dailyearn99/core/utils/date_formatter.dart';
 import 'package:dailyearn99/features/lottery/screens/lottery_lobby_screen.dart';
+import 'package:dailyearn99/features/lottery/repository/lottery_repository.dart';
+import 'package:dailyearn99/core/widgets/lottery_countdown_dialog.dart';
+import 'package:dailyearn99/core/utils/dependency_injection.dart';
+import 'package:dailyearn99/core/network/api_client.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,11 +28,53 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static bool _hasShownLotteryPopup = false;
+
   @override
   void initState() {
     super.initState();
     // Fetch contests when home opens
     context.read<AppBloc>().add(FetchContestsEvent());
+
+    // Check and show lottery popup on launch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndShowLotteryPopup();
+    });
+  }
+
+  Future<void> _checkAndShowLotteryPopup() async {
+    if (_hasShownLotteryPopup) return;
+
+    try {
+      final repository = LotteryRepository(getIt<ApiClient>());
+      final draws = await repository.fetchLotteryDraws();
+
+      final activeDraws = draws.where(
+        (draw) =>
+            draw.status == 'OPEN' && draw.drawTime.isAfter(DateTime.now()),
+      );
+
+      if (activeDraws.isEmpty) return;
+      final activeDraw = activeDraws.first;
+
+      _hasShownLotteryPopup = true;
+
+      if (!mounted) return;
+
+      final shouldBuy = await LotteryCountdownDialog.show(context, activeDraw);
+      if (shouldBuy == true && mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const LotteryLobbyScreen()),
+        ).then((_) {
+          if (mounted) {
+            context.read<AppBloc>().add(LoadProfileEvent());
+          }
+        });
+      }
+    } catch (e) {
+      print("Error showing lottery popup on home screen: $e");
+    }
   }
 
   @override

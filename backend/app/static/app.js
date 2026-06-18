@@ -3388,7 +3388,6 @@ function updateDepositFieldsVisibility() {
         if (portUpiGroup) portUpiGroup.style.display = 'none';
         if (portBankGroup) portBankGroup.style.display = 'block';
     } else {
-        // RAZORPAY
         if (portUpiGroup) portUpiGroup.style.display = 'none';
         if (portBankGroup) portBankGroup.style.display = 'none';
     }
