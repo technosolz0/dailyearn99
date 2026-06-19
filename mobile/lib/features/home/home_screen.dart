@@ -334,6 +334,33 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 14),
 
+                        // Lucky Draw Arena full-width featured card (moved in front)
+                        _buildFeaturedGameCard(
+                          context: context,
+                          title: 'Lucky Draw Arena',
+                          emoji: '🎟️',
+                          desc:
+                              'Join daily draws with massive cash prizes. Buy tickets now!',
+                          badge: 'LIVE JACKPOT',
+                          colors: [
+                            const Color(0xFF0D1B2A),
+                            const Color(0xFF0F3A40),
+                          ],
+                          borderColor: AppTheme.accentTeal,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const LotteryLobbyScreen(),
+                              ),
+                            ).then((_) {
+                              context.read<AppBloc>().add(LoadProfileEvent());
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 12),
+
                         // Grid of 4 main mini-games (2x2 grid)
                         GridView.count(
                           shrinkWrap: true,
@@ -444,33 +471,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               },
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Lucky Draw Arena full-width featured card
-                        _buildFeaturedGameCard(
-                          context: context,
-                          title: 'Lucky Draw Arena',
-                          emoji: '🎟️',
-                          desc:
-                              'Join daily draws with massive cash prizes. Buy tickets now!',
-                          badge: 'LIVE JACKPOT',
-                          colors: [
-                            const Color(0xFF0D1B2A),
-                            const Color(0xFF0F3A40),
-                          ],
-                          borderColor: AppTheme.accentTeal,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const LotteryLobbyScreen(),
-                              ),
-                            ).then((_) {
-                              context.read<AppBloc>().add(LoadProfileEvent());
-                            });
-                          },
                         ),
                       ],
                     ),

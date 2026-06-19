@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dailyearn99/core/constants/api_constants.dart';
 import 'package:dailyearn99/core/network/secure_storage_service.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ApiClient {
   final Dio _dio;
@@ -199,16 +200,21 @@ class ConnectivityInterceptor extends Interceptor {
       String message =
           'Failed to connect to the server. Please check your network and try again.';
       try {
-        final connectivityResult = await Connectivity().checkConnectivity();
-        final hasConnection = connectivityResult.any(
-          (result) => result != ConnectivityResult.none,
-        );
-        if (!hasConnection) {
-          message =
-              'No internet connection. Please connect to Wi-Fi or mobile data and try again.';
-        } else {
+        if (kIsWeb) {
           message =
               'Server is unreachable. Please verify the backend server is running and try again.';
+        } else {
+          final connectivityResult = await Connectivity().checkConnectivity();
+          final hasConnection = connectivityResult.any(
+            (result) => result != ConnectivityResult.none,
+          );
+          if (!hasConnection) {
+            message =
+                'No internet connection. Please connect to Wi-Fi or mobile data and try again.';
+          } else {
+            message =
+                'Server is unreachable. Please verify the backend server is running and try again.';
+          }
         }
       } catch (e) {
         print('Connectivity check error in onError: $e');

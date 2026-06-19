@@ -1,23 +1,44 @@
-from app.models import ArrowLeaderboard
-from app.models import ArrowGame
-from app.models import ArrowAttempt
-from app.models import ArrowContest
-from app.models import ArrowPuzzleSeed
-from app.models import FruitLeaderboard
-from app.models import FruitScore
-from app.models import FruitContest
-from app.models import FruitMatch
-from app.models import FruitEvent
-from app.models import ImagePuzzleLeaderboard
-from app.models import ImagePuzzleContest
-from app.models import ImagePuzzleAttempt
-from app.models import ImagePuzzleGame
+from datetime import datetime, timezone
+from typing import List, Dict, Tuple, Optional
+import asyncio
+import hashlib
+import hmac
+import json
+import random
+import secrets
+import threading
+import time
+import uuid
+
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone
-import threading
-from typing import List, Dict, Tuple, Optional
+
+from app.core.notifications import send_push_to_admin
+from app.core.notifications import send_push_to_user
+from app.models import ArrowAttempt
+from app.models import ArrowContest
+from app.models import ArrowGame
+from app.models import ArrowLeaderboard
+from app.models import ArrowPuzzleSeed
+from app.models import Contest, ContestParticipant, User
+from app.models import FruitContest
+from app.models import FruitEvent
+from app.models import FruitLeaderboard
+from app.models import FruitMatch
+from app.models import FruitScore
+from app.models import ImagePuzzleAttempt
+from app.models import ImagePuzzleContest
+from app.models import ImagePuzzleGame
+from app.models import ImagePuzzleLeaderboard
+from app.models import RTPSettings
+from app.models import Spin as SpinModel, SpinAuditLog as AuditLogModel
 from app.models import User, Contest, ContestParticipant, WalletTransaction, Referral, Spin, WordContest, WordQuestion, WordAttempt, WordAnswer, WordLeaderboard, LotteryDraw, LotteryTicket
+from app.websocket import arrow_leaderboard_manager, arrow_ws_manager
+from app.websocket import fruit_leaderboard_manager, fruit_ws_manager
+from app.websocket import puzzle_leaderboard_manager
+from app.websocket import puzzle_ws_manager
+from app.websocket import word_leaderboard_manager
+from app.websocket import word_ws_manager
 
 # Thread-safe in-memory Leaderboard Manager mimicking Redis Sorted Sets
 class LeaderboardManager:
@@ -122,7 +143,6 @@ class WalletService:
         db.add(transaction)
         
         # Send push notification
-        from app.core.notifications import send_push_to_user
         send_push_to_user(
             db,
             user.id,
@@ -146,7 +166,6 @@ class WalletService:
         db.commit()
         
         # Send push notification
-        from app.core.notifications import send_push_to_user
         send_push_to_user(
             db,
             user.id,
@@ -174,7 +193,6 @@ class WalletService:
         
         # Send push notification to user
         try:
-            from app.core.notifications import send_push_to_user
             send_push_to_user(
                 db,
                 user.id,
@@ -187,7 +205,6 @@ class WalletService:
 
         # Send push notification to Admin
         try:
-            from app.core.notifications import send_push_to_admin
             send_push_to_admin(
                 db=db,
                 title="💸 Withdrawal Request Submitted",
@@ -262,7 +279,6 @@ class ReferralService:
         db.commit()
 
         # Send push notifications
-        from app.core.notifications import send_push_to_user
         send_push_to_user(
             db,
             referrer.id,
@@ -363,7 +379,6 @@ class SpinGameService:
 
         # Check daily responsible gaming limits (Max ₹5000 bet per day)
         today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        from app.models import Spin as SpinModel, SpinAuditLog as AuditLogModel
         daily_bet_sum = (
             db.query(func.sum(SpinModel.bet_amount))
             .filter(SpinModel.user_id == user_id, SpinModel.created_at >= today_start)
@@ -435,8 +450,6 @@ class SpinGameService:
                 multiplier = 1.2
                 chosen_outcome = "1.2x"
         else:
-            from app.models import RTPSettings
-            import json
             
             # First check for exact-match override
             rtp = (
@@ -494,7 +507,6 @@ class SpinGameService:
             outcomes = list(weights.keys())
             probabilities = list(weights.values())
 
-            import random
             chosen_outcome = random.choices(outcomes, weights=probabilities, k=1)[0]
             multiplier = cls.MULTIPLIER_MAP.get(chosen_outcome, 0.0)
 
@@ -563,7 +575,6 @@ class SpinGameService:
 
         # Send push notification for significant wins (>3x)
         if multiplier >= 3.0:
-            from app.core.notifications import send_push_to_user
             send_push_to_user(
                 db,
                 user_id,
@@ -586,10 +597,6 @@ class ContestService:
         return cls._maintenance_mode
     @staticmethod
     def complete_contest(db: Session, contest_id: int) -> dict:
-        import json
-        from app.models import Contest, ContestParticipant, User
-        from app.services import WalletService
-        from app.core.notifications import send_push_to_user
 
         contest = db.query(Contest).filter(Contest.id == contest_id).first()
         if not contest:
@@ -660,11 +667,6 @@ class ContestService:
         return {"message": f"Contest completed. {payouts_made} winners paid out.", "payouts": payouts_made}
 
 
-import hmac
-import hashlib
-import json
-import random
-import uuid
 
 class PuzzleAntiCheatService:
     SECRET_KEY = b"PUZZLE_ANTI_CHEAT_SECRET_KEY_12345"
@@ -910,11 +912,8 @@ class PuzzleGameService:
         db.commit()
 
         try:
-            from app.websocket import puzzle_leaderboard_manager
             puzzle_leaderboard_manager.update_score(data.contest_id, user.id, user.name or user.phone, score, data.completion_seconds)
             leaderboard = puzzle_leaderboard_manager.get_leaderboard(data.contest_id)
-            import asyncio
-            from app.websocket import puzzle_ws_manager
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 asyncio.run_coroutine_threadsafe(
@@ -984,7 +983,6 @@ class PuzzleRewardService:
                 WalletService.credit_prize(db, user, payout_amount, description=f"Prize Win: Puzzle Contest ({contest.title})")
                 payouts_made += 1
             else:
-                from app.core.notifications import send_push_to_user
                 send_push_to_user(
                     db,
                     user.id,
@@ -996,10 +994,6 @@ class PuzzleRewardService:
         return {"status": "SUCCESS", "payouts_made": payouts_made}
 
 
-import hmac
-import hashlib
-import uuid
-import json
 
 class WordAntiCheatService:
     SECRET_KEY = b"WORD_PUZZLE_ANTI_CHEAT_SECRET_KEY_12345"
@@ -1015,7 +1009,6 @@ class WordAntiCheatService:
         return hmac.compare_digest(expected, signature)
 
 
-from app.websocket import word_leaderboard_manager
 
 
 class WordGameService:
@@ -1225,8 +1218,6 @@ class WordGameService:
             
             # Broadcast updated scores to contest WebSockets
             leaderboard = word_leaderboard_manager.get_leaderboard(attempt.contest_id)
-            import asyncio
-            from app.websocket import word_ws_manager
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 asyncio.run_coroutine_threadsafe(
@@ -1333,7 +1324,6 @@ class WordRewardService:
                 WalletService.credit_prize(db, user, payout_amount, description=f"Prize Win: Word Contest ({contest.title})")
                 payouts_made += 1
             else:
-                from app.core.notifications import send_push_to_user
                 send_push_to_user(
                     db,
                     user.id,
@@ -1598,7 +1588,6 @@ class FruitGameService:
         db.add(score_record)
 
         # Save telemetry events in the database
-        import json
         for swipe in data.telemetry:
             if swipe.is_bomb_hit:
                 points_delta = -100
@@ -1628,7 +1617,6 @@ class FruitGameService:
 
         # Update in-memory WebSocket leaderboard Standings
         try:
-            from app.websocket import fruit_leaderboard_manager, fruit_ws_manager
             name = user.name or user.phone
             fruit_leaderboard_manager.update_score(
                 contest_id=data.contest_id,
@@ -1642,7 +1630,6 @@ class FruitGameService:
             leaderboard = fruit_leaderboard_manager.get_leaderboard(data.contest_id)
             
             # Broadcast updates asynchronously
-            import asyncio
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 asyncio.run_coroutine_threadsafe(
@@ -1722,7 +1709,6 @@ class FruitRewardService:
                 WalletService.credit_prize(db, user, payout_amount, description=f"Prize Win: Fruit Contest ({contest.title})")
                 payouts_made += 1
             else:
-                from app.core.notifications import send_push_to_user
                 send_push_to_user(
                     db,
                     user.id,
@@ -1849,7 +1835,6 @@ class ArrowGameService:
     @staticmethod
     def generate_solvable_layout(grid_size: int) -> list:
         # Fallback/compatibility method for older code
-        import time
         seed = int(time.time() * 1000) % 1000000
         return ArrowGameService.generate_solvable_layout_reverse(grid_size, int(grid_size * grid_size * 0.7), seed)
 
@@ -2113,7 +2098,6 @@ class ArrowGameService:
         db.commit()
 
         try:
-            from app.websocket import arrow_leaderboard_manager, arrow_ws_manager
             arrow_leaderboard_manager.update_score(
                 contest_id=data.contest_id,
                 user_id=user.id,
@@ -2122,7 +2106,6 @@ class ArrowGameService:
                 duration=data.completion_seconds
             )
             leaderboard = arrow_leaderboard_manager.get_leaderboard(data.contest_id)
-            import asyncio
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 asyncio.run_coroutine_threadsafe(
@@ -2196,7 +2179,6 @@ class ArrowRewardService:
                     db_leaderboard.paid_at = datetime.utcnow()
                 payouts_made += 1
             else:
-                from app.core.notifications import send_push_to_user
                 send_push_to_user(
                     db,
                     user.id,
@@ -2211,7 +2193,6 @@ class ArrowRewardService:
 class LotteryService:
     @staticmethod
     def buy_ticket(db: Session, user_id: int, draw_id: int) -> LotteryTicket:
-        import secrets
         
         # 1. Fetch draw and lock it
         draw = db.query(LotteryDraw).filter(LotteryDraw.id == draw_id).with_for_update().first()
@@ -2253,7 +2234,6 @@ class LotteryService:
                 ticket_num = potential_num
                 break
         if not ticket_num:
-            import uuid
             ticket_num = str(uuid.uuid4().hex[:6].upper())
             
         # 5. Create ticket record
@@ -2285,9 +2265,6 @@ class LotteryService:
 
     @staticmethod
     def execute_draw(db: Session, draw_id: int, override_winning_number: Optional[str] = None) -> dict:
-        import secrets
-        import random
-        from app.core.notifications import send_push_to_user
         
         draw = db.query(LotteryDraw).filter(LotteryDraw.id == draw_id).with_for_update().first()
         if not draw:
@@ -2386,7 +2363,6 @@ class LotteryService:
 
     @staticmethod
     def cancel_draw(db: Session, draw_id: int) -> dict:
-        from app.core.notifications import send_push_to_user
         
         draw = db.query(LotteryDraw).filter(LotteryDraw.id == draw_id).with_for_update().first()
         if not draw:

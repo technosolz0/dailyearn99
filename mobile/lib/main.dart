@@ -263,7 +263,7 @@ class _MainNavigationLayoutState extends State<MainNavigationLayout> {
   void initState() {
     super.initState();
     // Log initial screen view
-    FirebaseAnalytics.instance.logScreenView(screenName: 'HomeScreen');
+    FirebaseAnalytics.instance.logScreenView(screenName: 'SpinWheelScreen');
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final state = context.read<AppBloc>().state;
@@ -385,8 +385,8 @@ class _MainNavigationLayoutState extends State<MainNavigationLayout> {
   }
 
   final List<Widget> _screens = const [
-    HomeScreen(),
     SpinWheelScreen(),
+    HomeScreen(),
     WalletScreen(),
     ReferralScreen(),
     ProfileScreen(),
@@ -409,8 +409,8 @@ class _MainNavigationLayoutState extends State<MainNavigationLayout> {
 
             // Log tab switch in Firebase Analytics
             final screenNames = [
-              'HomeScreen',
               'SpinWheelScreen',
+              'HomeScreen',
               'WalletScreen',
               'ReferralScreen',
               'ProfileScreen',
@@ -420,8 +420,11 @@ class _MainNavigationLayoutState extends State<MainNavigationLayout> {
             );
 
             // Fetch updates contextually on tab switch
-            if (index == 1) {
+            if (index == 0) {
               context.read<AppBloc>().add(FetchSpinHistoryEvent());
+            } else if (index == 1) {
+              context.read<AppBloc>().add(FetchContestsEvent());
+              context.read<AppBloc>().add(LoadProfileEvent());
             } else if (index == 2) {
               context.read<AppBloc>().add(FetchTransactionsEvent());
             } else if (index == 3) {
@@ -438,14 +441,14 @@ class _MainNavigationLayoutState extends State<MainNavigationLayout> {
           unselectedFontSize: 11,
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.sports_esports_outlined),
-              activeIcon: Icon(Icons.sports_esports),
-              label: 'Lobbies',
-            ),
-            BottomNavigationBarItem(
               icon: Icon(Icons.casino_outlined),
               activeIcon: Icon(Icons.casino),
               label: 'Spin Wheel',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.sports_esports_outlined),
+              activeIcon: Icon(Icons.sports_esports),
+              label: 'Lobbies',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.account_balance_wallet_outlined),

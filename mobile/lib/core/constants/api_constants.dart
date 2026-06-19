@@ -6,12 +6,15 @@ class ApiConstants {
 
   static bool get _isAndroid => !kIsWeb && Platform.isAndroid;
 
+  static bool get isLocalWeb =>
+      kIsWeb && (Uri.base.host == 'localhost' || Uri.base.host == '127.0.0.1');
+
   static String get baseUrl {
-    if (useLocalBackend) {
-      if (kIsWeb) return 'http://127.0.0.1:8000/api';
+    if (useLocalBackend || isLocalWeb) {
+      if (kIsWeb) return 'https://api.dailyearn99.in/api';
       return _isAndroid
-          ? 'http://10.0.2.2:8000/api'
-          : 'http://127.0.0.1:8000/api';
+          ? 'https://api.dailyearn99.in/api'
+          : 'https://api.dailyearn99.in/api';
     }
     if (kIsWeb) {
       return 'https://api.dailyearn99.in/api';
@@ -23,7 +26,7 @@ class ApiConstants {
   }
 
   static String get wsUrl {
-    if (useLocalBackend) {
+    if (useLocalBackend || isLocalWeb) {
       if (kIsWeb) return 'ws://127.0.0.1:8000/ws/leaderboard';
       return _isAndroid
           ? 'ws://10.0.2.2:8000/ws/leaderboard'
@@ -67,7 +70,7 @@ class ApiConstants {
   static String puzzleLeaderboard(int contestId) =>
       '/puzzle/leaderboard/$contestId';
   static String puzzleWs(int contestId) {
-    if (useLocalBackend) {
+    if (useLocalBackend || isLocalWeb) {
       if (kIsWeb) return 'ws://127.0.0.1:8000/ws/puzzle/leaderboard/$contestId';
       return _isAndroid
           ? 'ws://10.0.2.2:8000/ws/puzzle/leaderboard/$contestId'
@@ -89,7 +92,7 @@ class ApiConstants {
   static String wordLeaderboard(int contestId) =>
       '/word-game/leaderboard/$contestId';
   static String wordWs(int contestId) {
-    if (useLocalBackend) {
+    if (useLocalBackend || isLocalWeb) {
       if (kIsWeb) return 'ws://127.0.0.1:8000/ws/word/leaderboard/$contestId';
       return _isAndroid
           ? 'ws://10.0.2.2:8000/ws/word/leaderboard/$contestId'
@@ -111,7 +114,7 @@ class ApiConstants {
   static String fruitLeaderboard(int contestId) =>
       '/fruit-game/leaderboard/$contestId';
   static String fruitWs(int contestId) {
-    if (useLocalBackend) {
+    if (useLocalBackend || isLocalWeb) {
       if (kIsWeb) return 'ws://127.0.0.1:8000/ws/fruit/leaderboard/$contestId';
       return _isAndroid
           ? 'ws://10.0.2.2:8000/ws/fruit/leaderboard/$contestId'
@@ -133,7 +136,7 @@ class ApiConstants {
   static String arrowLeaderboard(int contestId) =>
       '/arrow/leaderboard/$contestId';
   static String arrowWs(int contestId) {
-    if (useLocalBackend) {
+    if (useLocalBackend || isLocalWeb) {
       if (kIsWeb) return 'ws://127.0.0.1:8000/ws/arrow/leaderboard/$contestId';
       return _isAndroid
           ? 'ws://10.0.2.2:8000/ws/arrow/leaderboard/$contestId'
