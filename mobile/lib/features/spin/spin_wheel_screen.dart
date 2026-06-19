@@ -320,10 +320,10 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
       );
       return;
     }
-    if (betAmount > 5000.0) {
+    if (betAmount > 100000.0) {
       ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
         const SnackBar(
-          content: Text('Daily responsible gaming limit is ₹5000.00.'),
+          content: Text('Daily responsible gaming limit is ₹100000.00.'),
           backgroundColor: AppTheme.accentRed,
         ),
       );

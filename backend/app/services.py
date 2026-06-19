@@ -384,8 +384,8 @@ class SpinGameService:
             .filter(SpinModel.user_id == user_id, SpinModel.created_at >= today_start)
             .scalar()
         ) or 0.0
-        if daily_bet_sum + bet_amount > 5000.0:
-            raise ValueError("Daily gaming limit reached (₹5000). Keep gaming responsible!")
+        if daily_bet_sum + bet_amount > 100000.0:
+            raise ValueError("Daily gaming limit reached (₹100000). Keep gaming responsible!")
 
         # 1. Thread-safe duplicate check using idempotency key
         with cls._idempotency_lock:

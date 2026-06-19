@@ -65,7 +65,8 @@ class ErrorHandler {
     }
 
     // Check for insufficient balance errors
-    if (errorString.contains('insufficient') || errorString.contains('balance')) {
+    if (errorString.contains('insufficient') ||
+        errorString.contains('balance')) {
       return 'Insufficient wallet balance. Please add money to continue.';
     }
 
@@ -99,11 +100,13 @@ class ErrorHandler {
     }
 
     // Game/contest specific errors
-    if (errorString.contains('joined') || errorString.contains('already joined')) {
+    if (errorString.contains('joined') ||
+        errorString.contains('already joined')) {
       return 'You have already joined this contest.';
     }
 
-    if (errorString.contains('contest ended') || errorString.contains('contest has ended')) {
+    if (errorString.contains('contest ended') ||
+        errorString.contains('contest has ended')) {
       return 'This contest has already ended.';
     }
 
@@ -111,14 +114,41 @@ class ErrorHandler {
       return 'Please enter a valid 10-digit PAN card number.';
     }
 
-    if (errorString.contains('invalid account') || errorString.contains('ifsc')) {
+    if (errorString.contains('invalid account') ||
+        errorString.contains('ifsc')) {
       return 'Please enter a valid Bank Account Number and IFSC code.';
     }
 
     // Clean any generic exception prefix if present
-    String cleaned = error.toString().replaceAll('Exception: ', '').trim();
-    if (cleaned.isEmpty || cleaned.contains('Exception') || cleaned.contains('DioException')) {
-      return 'Something went wrong. Please try again.';
+    String cleaned = error
+        .toString()
+        .replaceAll('Exception: ', '')
+        .replaceAll('Exception', '')
+        .replaceAll('DioException', '')
+        .trim();
+
+    // Strip bracketed headers (e.g. "[bad response]", "[connection error]") and leading colons
+    cleaned = cleaned.replaceAll(RegExp(r'^\[.*?\]\s*'), '');
+    cleaned = cleaned.replaceAll(RegExp(r'^:\s*'), '').trim();
+
+    final lowercaseCleaned = cleaned.toLowerCase();
+
+    // Check if the cleaned message looks like a raw system traceback or internal error
+    if (cleaned.isEmpty ||
+        lowercaseCleaned.contains('traceback') ||
+        lowercaseCleaned.contains('unboundlocal') ||
+        lowercaseCleaned.contains('file "') ||
+        lowercaseCleaned.contains('line ') ||
+        lowercaseCleaned.contains('syntaxerror') ||
+        lowercaseCleaned.contains('operationalerror') ||
+        lowercaseCleaned.contains('programmingerror') ||
+        lowercaseCleaned.contains('database') ||
+        lowercaseCleaned.contains('internalservererror') ||
+        lowercaseCleaned.contains('500') ||
+        lowercaseCleaned.contains('bad response') ||
+        lowercaseCleaned == 'null' ||
+        lowercaseCleaned.contains('unknown connection error')) {
+      return 'An unexpected server error occurred. Please try again later.';
     }
 
     return cleaned;
