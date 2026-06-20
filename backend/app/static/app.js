@@ -185,6 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventHandlers();
     setupPromoCodeHandlers();
     setupLotteryHandlers();
+    setupMinesHandlers();
+    setupPlinkoHandlers();
 
     // Check initial authentication status
     const token = localStorage.getItem('adminToken');
@@ -301,6 +303,14 @@ function updateHeaders(tab) {
         case 'spin-engine':
             el.pageTitle.innerText = "Casino Spin Engine Controller";
             el.pageSubtitle.innerText = "Configure RTP settings, monitor platform revenue, and review gaming logs";
+            break;
+        case 'mines-engine':
+            el.pageTitle.innerText = "Mines Engine Controller";
+            el.pageSubtitle.innerText = "Configure safety options, bet tiers, and monitor Mines games";
+            break;
+        case 'plinko-engine':
+            el.pageTitle.innerText = "Plinko Engine Controller";
+            el.pageSubtitle.innerText = "Manage Plinko drop mechanics, multipliers, and statistics";
             break;
         case 'fruit-manager':
             el.pageTitle.innerText = "Fruit Slicing Manager";
@@ -1130,6 +1140,12 @@ function loadTabSpecificData(tab) {
             break;
         case 'spin-engine':
             loadSpinEngineData();
+            break;
+        case 'mines-engine':
+            loadMinesEngineData();
+            break;
+        case 'plinko-engine':
+            loadPlinkoEngineData();
             break;
         case 'fruit-manager':
             loadFruitManager();
@@ -3785,6 +3801,484 @@ window.loadLotteryManager = loadLotteryManager;
 window.renderLotteryTable = renderLotteryTable;
 window.executeLotteryDraw = executeLotteryDraw;
 window.deleteLotteryDraw = deleteLotteryDraw;
+
+// Mines Engine Functions
+async function loadMinesEngineData() {
+    try {
+        // 1. Load Stats
+        const statsRes = await fetch(`${API_BASE}/admin/mines/stats`);
+        if (statsRes.ok) {
+            const stats = await statsRes.json();
+            document.getElementById('mines-stat-bets').innerText = `₹${stats.total_bet_amount.toFixed(2)}`;
+            document.getElementById('mines-stat-winnings').innerText = `₹${stats.total_winnings_paid.toFixed(2)}`;
+            document.getElementById('mines-stat-profit').innerText = `₹${stats.platform_net_profit.toFixed(2)}`;
+            document.getElementById('mines-stat-rtp').innerText = `${stats.payout_ratio.toFixed(2)}%`;
+
+            const profitEl = document.getElementById('mines-stat-profit');
+            if (stats.platform_net_profit < 0) {
+                profitEl.style.color = 'var(--error)';
+            } else {
+                profitEl.style.color = 'var(--success)';
+            }
+        }
+
+        // 2. Load Settings & Maintenance
+        const settingsRes = await fetch(`${API_BASE}/admin/mines/settings`);
+        if (settingsRes.ok) {
+            const settings = await settingsRes.json();
+            state.mines_maintenance = settings.maintenance_mode;
+            
+            document.getElementById('mines-house-edge').value = settings.house_edge;
+            document.getElementById('mines-min-bet').value = settings.min_bet;
+            document.getElementById('mines-max-bet').value = settings.max_bet;
+
+            const btn = document.getElementById('btn-mines-maintenance');
+            if (btn) {
+                btn.innerText = state.mines_maintenance ? "Unlock Game Access" : "Lock Game Access";
+                btn.style.backgroundColor = state.mines_maintenance ? 'var(--success)' : 'var(--error)';
+                btn.style.color = '#fff';
+            }
+        }
+
+        // 3. Load RTP Rules
+        await loadMinesRtpSettings();
+
+        // 4. Load Logs
+        await loadMinesLogs();
+
+    } catch (err) {
+        console.error(err);
+        showToast("Error updating Mines Engine: " + err.message, true);
+    }
+}
+
+async function loadMinesRtpSettings() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/mines/rtp`);
+        if (!res.ok) throw new Error("Failed to load Mines RTP rules.");
+        const rules = await res.json();
+
+        const tbody = document.getElementById('mines-rtp-rules-table-body');
+        if (!tbody) return;
+
+        if (rules.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="table-placeholder">No custom override rules configured.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = rules.map(r => `
+            <tr>
+                <td>₹${r.min_amount} – ₹${r.max_amount}</td>
+                <td>${(r.win_rate * 100).toFixed(0)}% Safe Click</td>
+                <td>
+                    <span class="badge ${r.enabled ? 'badge-success' : 'badge-neutral'}">
+                        ${r.enabled ? 'Active' : 'Disabled'}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-secondary" onclick="deleteMinesRtpRule(${r.id})" style="padding: 4px 8px; font-size: 11px; background: var(--error); color: #fff; border: none;">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+async function deleteMinesRtpRule(id) {
+    if (!confirm("Are you sure you want to delete this safety override rule?")) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/mines/rtp/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error(await res.text());
+        showToast("Mines override rule deleted.");
+        await loadMinesRtpSettings();
+    } catch (err) {
+        showToast("Error: " + err.message, true);
+    }
+}
+
+async function loadMinesLogs() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/mines/logs`);
+        if (!res.ok) throw new Error("Failed to load Mines logs.");
+        const logs = await res.json();
+
+        const tbody = document.getElementById('mines-logs-table-body');
+        if (!tbody) return;
+
+        if (logs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" class="table-placeholder">No game logs found.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = logs.map(l => `
+            <tr>
+                <td>${l.id}</td>
+                <td>
+                    <strong>${l.user_name || 'Anonymous'}</strong>
+                    <span class="text-muted" style="display:block; font-size:10px;">${l.user_phone}</span>
+                </td>
+                <td>₹${l.bet_amount.toFixed(2)}</td>
+                <td>${l.mines_count}</td>
+                <td>${l.multiplier.toFixed(2)}x</td>
+                <td>₹${l.win_amount.toFixed(2)}</td>
+                <td>
+                    <span class="badge ${l.result_type === 'WON' ? 'badge-success' : l.result_type === 'LOST' ? 'badge-error' : 'badge-info'}">
+                        ${l.result_type}
+                    </span>
+                </td>
+                <td>${new Date(l.created_at).toLocaleString()}</td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+function setupMinesHandlers() {
+    // Maintenance Lock Button
+    const btnMaintenance = document.getElementById('btn-mines-maintenance');
+    if (btnMaintenance) {
+        btnMaintenance.addEventListener('click', async () => {
+            const nextState = !state.mines_maintenance;
+            btnMaintenance.disabled = true;
+            try {
+                const res = await fetch(`${API_BASE}/admin/mines/maintenance?enabled=${nextState}`, { method: 'POST' });
+                if (!res.ok) throw new Error("Failed to update maintenance mode.");
+                const data = await res.json();
+                state.mines_maintenance = data.maintenance_mode;
+                btnMaintenance.innerText = state.mines_maintenance ? "Unlock Game Access" : "Lock Game Access";
+                btnMaintenance.style.backgroundColor = state.mines_maintenance ? 'var(--success)' : 'var(--error)';
+                showToast(state.mines_maintenance ? "Mines game LOCKED for maintenance!" : "Mines game unlocked!");
+            } catch (err) {
+                showToast("Error: " + err.message, true);
+            } finally {
+                btnMaintenance.disabled = false;
+            }
+        });
+    }
+
+    // General Settings Form
+    const settingsForm = document.getElementById('mines-settings-form');
+    if (settingsForm) {
+        settingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const houseEdge = parseFloat(document.getElementById('mines-house-edge').value);
+            const minBet = parseFloat(document.getElementById('mines-min-bet').value);
+            const maxBet = parseFloat(document.getElementById('mines-max-bet').value);
+
+            const btn = settingsForm.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            try {
+                const res = await fetch(`${API_BASE}/admin/mines/settings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        house_edge: houseEdge,
+                        min_bet: minBet,
+                        max_bet: maxBet,
+                        maintenance_mode: !!state.mines_maintenance
+                    })
+                });
+                if (!res.ok) throw new Error(await res.text());
+                showToast("Mines settings updated successfully!");
+                await loadMinesEngineData();
+            } catch (err) {
+                showToast("Error: " + err.message, true);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    }
+
+    // RTP Override Form
+    const rtpForm = document.getElementById('mines-rtp-create-form');
+    if (rtpForm) {
+        rtpForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const minBet = parseFloat(document.getElementById('mines-rtp-create-min').value);
+            const maxBet = parseFloat(document.getElementById('mines-rtp-create-max').value);
+            const winRate = parseFloat(document.getElementById('mines-rtp-create-winrate').value);
+
+            const btn = rtpForm.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerText = "Creating...";
+            try {
+                const res = await fetch(`${API_BASE}/admin/mines/rtp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        min_amount: minBet,
+                        max_amount: maxBet,
+                        win_rate: winRate,
+                        enabled: true
+                    })
+                });
+                if (!res.ok) throw new Error(await res.text());
+                showToast("Mines safety override rule added!");
+                rtpForm.reset();
+                await loadMinesRtpSettings();
+            } catch (err) {
+                showToast("Error: " + err.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Create Mines Override Rule";
+            }
+        });
+    }
+}
+
+// Plinko Engine Functions
+async function loadPlinkoEngineData() {
+    try {
+        // 1. Load Stats
+        const statsRes = await fetch(`${API_BASE}/admin/plinko/stats`);
+        if (statsRes.ok) {
+            const stats = await statsRes.json();
+            document.getElementById('plinko-stat-bets').innerText = `₹${stats.total_bet_amount.toFixed(2)}`;
+            document.getElementById('plinko-stat-winnings').innerText = `₹${stats.total_winnings_paid.toFixed(2)}`;
+            document.getElementById('plinko-stat-profit').innerText = `₹${stats.platform_net_profit.toFixed(2)}`;
+            document.getElementById('plinko-stat-rtp').innerText = `${stats.payout_ratio.toFixed(2)}%`;
+
+            const profitEl = document.getElementById('plinko-stat-profit');
+            if (stats.platform_net_profit < 0) {
+                profitEl.style.color = 'var(--error)';
+            } else {
+                profitEl.style.color = 'var(--success)';
+            }
+        }
+
+        // 2. Load Settings & Maintenance
+        const settingsRes = await fetch(`${API_BASE}/admin/plinko/settings`);
+        if (settingsRes.ok) {
+            const settings = await settingsRes.json();
+            state.plinko_maintenance = settings.maintenance_mode;
+
+            document.getElementById('plinko-min-bet').value = settings.min_bet;
+            document.getElementById('plinko-max-bet').value = settings.max_bet;
+
+            const btn = document.getElementById('btn-plinko-maintenance');
+            if (btn) {
+                btn.innerText = state.plinko_maintenance ? "Unlock Game Access" : "Lock Game Access";
+                btn.style.backgroundColor = state.plinko_maintenance ? 'var(--success)' : 'var(--error)';
+                btn.style.color = '#fff';
+            }
+        }
+
+        // 3. Load RTP Rules
+        await loadPlinkoRtpSettings();
+
+        // 4. Load Logs
+        await loadPlinkoLogs();
+
+    } catch (err) {
+        console.error(err);
+        showToast("Error updating Plinko Engine: " + err.message, true);
+    }
+}
+
+async function loadPlinkoRtpSettings() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/plinko/rtp`);
+        if (!res.ok) throw new Error("Failed to load Plinko RTP rules.");
+        const rules = await res.json();
+
+        const tbody = document.getElementById('plinko-rtp-rules-table-body');
+        if (!tbody) return;
+
+        if (rules.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="table-placeholder">No custom override rules configured.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = rules.map(r => `
+            <tr>
+                <td>₹${r.min_amount} – ₹${r.max_amount}</td>
+                <td>Rows: ${r.rows} (${r.mode})</td>
+                <td style="font-family:monospace; font-size:10px;">${r.probability_json}</td>
+                <td>
+                    <button class="btn btn-secondary" onclick="deletePlinkoRtpRule(${r.id})" style="padding: 4px 8px; font-size: 11px; background: var(--error); color: #fff; border: none;">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+async function deletePlinkoRtpRule(id) {
+    if (!confirm("Are you sure you want to delete this Plinko RTP override?")) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/plinko/rtp/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error(await res.text());
+        showToast("Plinko override rule deleted.");
+        await loadPlinkoRtpSettings();
+    } catch (err) {
+        showToast("Error: " + err.message, true);
+    }
+}
+
+async function loadPlinkoLogs() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/plinko/logs`);
+        if (!res.ok) throw new Error("Failed to load Plinko logs.");
+        const logs = await res.json();
+
+        const tbody = document.getElementById('plinko-logs-table-body');
+        if (!tbody) return;
+
+        if (logs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" class="table-placeholder">No game logs found.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = logs.map(l => `
+            <tr>
+                <td>${l.id}</td>
+                <td>
+                    <strong>${l.user_name || 'Anonymous'}</strong>
+                    <span class="text-muted" style="display:block; font-size:10px;">${l.user_phone}</span>
+                </td>
+                <td>₹${l.bet_amount.toFixed(2)}</td>
+                <td>${l.rows}</td>
+                <td>${l.mode}</td>
+                <td>${l.multiplier.toFixed(2)}x</td>
+                <td>₹${l.win_amount.toFixed(2)}</td>
+                <td>${new Date(l.created_at).toLocaleString()}</td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+function setupPlinkoHandlers() {
+    // Maintenance Lock Button
+    const btnMaintenance = document.getElementById('btn-plinko-maintenance');
+    if (btnMaintenance) {
+        btnMaintenance.addEventListener('click', async () => {
+            const nextState = !state.plinko_maintenance;
+            btnMaintenance.disabled = true;
+            try {
+                const res = await fetch(`${API_BASE}/admin/plinko/maintenance?enabled=${nextState}`, { method: 'POST' });
+                if (!res.ok) throw new Error("Failed to update maintenance mode.");
+                const data = await res.json();
+                state.plinko_maintenance = data.maintenance_mode;
+                btnMaintenance.innerText = state.plinko_maintenance ? "Unlock Game Access" : "Lock Game Access";
+                btnMaintenance.style.backgroundColor = state.plinko_maintenance ? 'var(--success)' : 'var(--error)';
+                showToast(state.plinko_maintenance ? "Plinko game LOCKED for maintenance!" : "Plinko game unlocked!");
+            } catch (err) {
+                showToast("Error: " + err.message, true);
+            } finally {
+                btnMaintenance.disabled = false;
+            }
+        });
+    }
+
+    // General Settings Form
+    const settingsForm = document.getElementById('plinko-settings-form');
+    if (settingsForm) {
+        settingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const minBet = parseFloat(document.getElementById('plinko-min-bet').value);
+            const maxBet = parseFloat(document.getElementById('plinko-max-bet').value);
+
+            const btn = settingsForm.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            try {
+                const res = await fetch(`${API_BASE}/admin/plinko/settings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        min_bet: minBet,
+                        max_bet: maxBet,
+                        maintenance_mode: !!state.plinko_maintenance
+                    })
+                });
+                if (!res.ok) throw new Error(await res.text());
+                showToast("Plinko settings updated successfully!");
+                await loadPlinkoEngineData();
+            } catch (err) {
+                showToast("Error: " + err.message, true);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    }
+
+    // RTP Override Form
+    const rtpForm = document.getElementById('plinko-rtp-create-form');
+    if (rtpForm) {
+        rtpForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const minBet = parseFloat(document.getElementById('plinko-rtp-create-min').value);
+            const maxBet = parseFloat(document.getElementById('plinko-rtp-create-max').value);
+            const rows = parseInt(document.getElementById('plinko-rtp-create-rows').value);
+            const mode = document.getElementById('plinko-rtp-create-mode').value;
+            const rawJson = document.getElementById('plinko-rtp-create-json').value.trim();
+
+            if (isNaN(minBet) || isNaN(maxBet) || isNaN(rows) || !rawJson) {
+                showToast("Please fill all fields.", true);
+                return;
+            }
+
+            const btn = rtpForm.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerText = "Creating...";
+
+            try {
+                // validate json
+                const parsed = JSON.parse(rawJson);
+                if (Array.isArray(parsed)) {
+                    if (parsed.length !== rows + 1) {
+                        throw new Error(`List must contain exactly ${rows + 1} weights/probabilities.`);
+                    }
+                } else if (typeof parsed === 'object') {
+                    if (Object.keys(parsed).length !== rows + 1) {
+                        throw new Error(`Object must map exactly ${rows + 1} bucket indices.`);
+                    }
+                } else {
+                    throw new Error("Must be a list or object mapping indices to weights.");
+                }
+
+                const res = await fetch(`${API_BASE}/admin/plinko/rtp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        min_amount: minBet,
+                        max_amount: maxBet,
+                        rows: rows,
+                        mode: mode,
+                        probability_json: JSON.stringify(parsed),
+                        enabled: true
+                    })
+                });
+                if (!res.ok) throw new Error(await res.text());
+                showToast("Plinko RTP override rule added!");
+                rtpForm.reset();
+                await loadPlinkoRtpSettings();
+            } catch (err) {
+                showToast("Error: " + err.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Create Plinko Override Rule";
+            }
+        });
+    }
+}
+
+window.setupMinesHandlers = setupMinesHandlers;
+window.loadMinesEngineData = loadMinesEngineData;
+window.loadMinesRtpSettings = loadMinesRtpSettings;
+window.deleteMinesRtpRule = deleteMinesRtpRule;
+window.loadMinesLogs = loadMinesLogs;
+
+window.setupPlinkoHandlers = setupPlinkoHandlers;
+window.loadPlinkoEngineData = loadPlinkoEngineData;
+window.loadPlinkoRtpSettings = loadPlinkoRtpSettings;
+window.deletePlinkoRtpRule = deletePlinkoRtpRule;
+window.loadPlinkoLogs = loadPlinkoLogs;
+
 
 
 

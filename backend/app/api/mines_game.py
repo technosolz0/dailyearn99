@@ -5,7 +5,10 @@ import json
 
 from app.core.database import get_db
 from app.models import User, MinesGame, MinesSetting
-from app.schemas import MinesStartRequest, MinesRevealRequest, MinesCashoutRequest, MinesGameResponse
+from app.schemas import (
+    MinesStartRequest, MinesRevealRequest, MinesCashoutRequest,
+    MinesGameResponse, MinesSettingsResponse
+)
 from app.core.security import get_current_user
 from app.services import MinesGameService
 
@@ -124,3 +127,15 @@ def get_mines_history(
             resp.mines_positions = json.loads(g.mines_positions)
         responses.append(resp)
     return responses
+
+
+@router.get("/settings", response_model=MinesSettingsResponse)
+def get_mines_settings(db: Session = Depends(get_db)):
+    settings = db.query(MinesSetting).first()
+    if not settings:
+        settings = MinesSetting(house_edge=0.03, min_bet=10.0, max_bet=5000.0, maintenance_mode=False)
+        db.add(settings)
+        db.commit()
+        db.refresh(settings)
+    return settings
+

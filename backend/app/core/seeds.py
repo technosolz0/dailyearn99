@@ -310,8 +310,18 @@ def seed_plinko_settings(db: Session):
 
     # 2. Seed default Plinko multipliers if none exist
     if db.query(PlinkoMultiplier).count() == 0:
-        # Default multipliers matching Low, Medium, High risk for Rows 10 to 16
+        # Default multipliers matching Low, Medium, High risk for Rows 8 to 16
         multipliers_by_row_mode = {
+            8: {
+                "low": [5.6, 1.6, 1.1, 1.0, 0.5, 1.0, 1.1, 1.6, 5.6],
+                "medium": [13.0, 3.0, 1.3, 0.7, 0.4, 0.7, 1.3, 3.0, 13.0],
+                "high": [29.0, 4.0, 1.5, 0.3, 0.2, 0.3, 1.5, 4.0, 29.0]
+            },
+            9: {
+                "low": [5.6, 2.0, 1.6, 1.0, 0.7, 0.7, 1.0, 1.6, 2.0, 5.6],
+                "medium": [18.0, 4.0, 1.6, 0.9, 0.5, 0.5, 0.9, 1.6, 4.0, 18.0],
+                "high": [43.0, 7.0, 2.0, 0.6, 0.2, 0.2, 0.6, 2.0, 7.0, 43.0]
+            },
             10: {
                 "low": [16, 9, 2, 1.4, 1.1, 1, 1.1, 1.4, 2, 9, 16],
                 "medium": [22, 5, 2, 1.4, 0.6, 0.4, 0.6, 1.4, 2, 5, 22],

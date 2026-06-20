@@ -5,8 +5,12 @@ from typing import List
 import json
 
 from app.core.database import get_db
-from app.models import User, MinesGame, MinesSetting
-from app.schemas import MinesStatsResponse, MinesLogAdminResponse, MinesSettingsResponse, MinesSettingsUpdateRequest
+from app.models import User, MinesGame, MinesSetting, MinesRTP
+from app.schemas import (
+    MinesStatsResponse, MinesLogAdminResponse, MinesSettingsResponse,
+    MinesSettingsUpdateRequest, MinesRTPResponse, MinesRTPCreateRequest,
+    MinesRTPUpdateRequest
+)
 from app.core.security import get_current_admin
 
 router = APIRouter(prefix="/admin/mines", tags=["Admin Mines"], dependencies=[Depends(get_current_admin)])
@@ -97,3 +101,56 @@ def toggle_mines_maintenance(enabled: bool, db: Session = Depends(get_db)):
     settings.maintenance_mode = enabled
     db.commit()
     return {"maintenance_mode": settings.maintenance_mode}
+
+
+@router.get("/rtp", response_model=List[MinesRTPResponse])
+def get_mines_rtp(db: Session = Depends(get_db)):
+    return db.query(MinesRTP).all()
+
+
+@router.post("/rtp", response_model=MinesRTPResponse)
+def create_or_update_mines_rtp(payload: MinesRTPCreateRequest, db: Session = Depends(get_db)):
+    item = db.query(MinesRTP).filter(
+        MinesRTP.min_amount == payload.min_amount,
+        MinesRTP.max_amount == payload.max_amount
+    ).first()
+
+    if not item:
+        item = MinesRTP(
+            min_amount=payload.min_amount,
+            max_amount=payload.max_amount
+        )
+        db.add(item)
+
+    item.win_rate = payload.win_rate
+    item.enabled = payload.enabled
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.put("/rtp/{id}", response_model=MinesRTPResponse)
+def update_mines_rtp_by_id(id: int, payload: MinesRTPUpdateRequest, db: Session = Depends(get_db)):
+    item = db.query(MinesRTP).filter(MinesRTP.id == id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Mines RTP setting not found")
+
+    item.min_amount = payload.min_amount
+    item.max_amount = payload.max_amount
+    item.win_rate = payload.win_rate
+    item.enabled = payload.enabled
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.delete("/rtp/{id}")
+def delete_mines_rtp(id: int, db: Session = Depends(get_db)):
+    item = db.query(MinesRTP).filter(MinesRTP.id == id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Mines RTP override not found")
+
+    db.delete(item)
+    db.commit()
+    return {"message": "Mines RTP override deleted successfully"}
+

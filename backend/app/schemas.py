@@ -1078,6 +1078,31 @@ class PlinkoRTPUpdateRequest(BaseModel):
     enabled: bool
 
 
+class MinesRTPResponse(BaseModel):
+    id: int
+    min_amount: float
+    max_amount: float
+    win_rate: float
+    enabled: bool
+
+    class Config:
+        from_attributes = True
+
+
+class MinesRTPCreateRequest(BaseModel):
+    min_amount: float = Field(..., ge=0)
+    max_amount: float = Field(..., ge=0)
+    win_rate: float = Field(..., ge=0.0, le=1.0)
+    enabled: bool = True
+
+
+class MinesRTPUpdateRequest(BaseModel):
+    min_amount: float = Field(..., ge=0)
+    max_amount: float = Field(..., ge=0)
+    win_rate: float = Field(..., ge=0.0, le=1.0)
+    enabled: bool
+
+
 
 
 

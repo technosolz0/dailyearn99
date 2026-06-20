@@ -71,6 +71,7 @@ class AppState {
   final MinesGameModel? activeMinesGame;
   final List<MinesGameModel> minesHistory;
   final String? minesError;
+  final MinesSettingsModel? minesSettings;
 
   // Plinko Game
   final bool isPlinkoLoading;
@@ -109,6 +110,7 @@ class AppState {
     this.activeMinesGame,
     this.minesHistory = const [],
     this.minesError,
+    this.minesSettings,
     this.isPlinkoLoading = false,
     this.latestPlinkoResult,
     this.plinkoHistory = const [],
@@ -149,6 +151,7 @@ class AppState {
     MinesGameModel? activeMinesGame,
     List<MinesGameModel>? minesHistory,
     String? minesError,
+    MinesSettingsModel? minesSettings,
     bool? isPlinkoLoading,
     PlinkoPlayResultModel? latestPlinkoResult,
     List<PlinkoPlayResultModel>? plinkoHistory,
@@ -210,6 +213,7 @@ class AppState {
           : (activeMinesGame ?? this.activeMinesGame),
       minesHistory: minesHistory ?? this.minesHistory,
       minesError: clearMinesError ? null : (minesError ?? this.minesError),
+      minesSettings: minesSettings ?? this.minesSettings,
       isPlinkoLoading: isPlinkoLoading ?? this.isPlinkoLoading,
       latestPlinkoResult: clearLatestPlinkoResult
           ? null
@@ -350,6 +354,8 @@ class FetchActiveMinesGameEvent extends AppEvent {}
 
 class FetchMinesHistoryEvent extends AppEvent {}
 
+class FetchMinesSettingsEvent extends AppEvent {}
+
 class ResetMinesEvent extends AppEvent {}
 
 class PlayPlinkoEvent extends AppEvent {
@@ -409,6 +415,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     on<CashoutMinesGameEvent>(_onCashoutMinesGame);
     on<FetchActiveMinesGameEvent>(_onFetchActiveMinesGame);
     on<FetchMinesHistoryEvent>(_onFetchMinesHistory);
+    on<FetchMinesSettingsEvent>(_onFetchMinesSettings);
     on<ResetMinesEvent>(_onResetMines);
     on<PlayPlinkoEvent>(_onPlayPlinko);
     on<FetchPlinkoHistoryEvent>(_onFetchPlinkoHistory);
@@ -1456,6 +1463,25 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         clearActiveMinesGame: true,
       ),
     );
+  }
+
+  Future<void> _onFetchMinesSettings(
+    FetchMinesSettingsEvent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(state.copyWith(isMinesLoading: true, clearMinesError: true));
+    try {
+      final response = await _apiClient.get(ApiConstants.minesSettings);
+      final settings = MinesSettingsModel.fromJson(response.data);
+      emit(state.copyWith(isMinesLoading: false, minesSettings: settings));
+    } catch (e, stackTrace) {
+      emit(
+        state.copyWith(
+          isMinesLoading: false,
+          minesError: ErrorHandler.handle(e, stackTrace),
+        ),
+      );
+    }
   }
 
   Future<void> _onPlayPlinko(

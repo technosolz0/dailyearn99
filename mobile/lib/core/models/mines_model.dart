@@ -61,3 +61,35 @@ class MinesGameModel {
     };
   }
 }
+
+class MinesSettingsModel {
+  final double houseEdge;
+  final double minBet;
+  final double maxBet;
+  final bool maintenanceMode;
+
+  MinesSettingsModel({
+    required this.houseEdge,
+    required this.minBet,
+    required this.maxBet,
+    required this.maintenanceMode,
+  });
+
+  factory MinesSettingsModel.fromJson(Map<String, dynamic> json) {
+    return MinesSettingsModel(
+      houseEdge: (json['house_edge'] as num).toDouble(),
+      minBet: (json['min_bet'] as num).toDouble(),
+      maxBet: (json['max_bet'] as num).toDouble(),
+      maintenanceMode: json['maintenance_mode'] as bool,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'house_edge': houseEdge,
+      'min_bet': minBet,
+      'max_bet': maxBet,
+      'maintenance_mode': maintenanceMode,
+    };
+  }
+}

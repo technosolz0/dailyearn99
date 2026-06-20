@@ -29,6 +29,7 @@ class _MinesGameScreenState extends State<MinesGameScreen> {
     // Check if there is an active game session already on start
     context.read<AppBloc>().add(FetchActiveMinesGameEvent());
     context.read<AppBloc>().add(FetchMinesHistoryEvent());
+    context.read<AppBloc>().add(FetchMinesSettingsEvent());
   }
 
   @override
@@ -132,6 +133,39 @@ class _MinesGameScreenState extends State<MinesGameScreen> {
           }
         },
         builder: (context, state) {
+          if (state.minesSettings?.maintenanceMode == true) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.construction,
+                      size: 80,
+                      color: Colors.amber,
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Under Maintenance',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Mines game is currently down for maintenance. Please check back later.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
           final game = state.activeMinesGame;
           final balance = state.currentUser != null
               ? (state.currentUser!.depositBalance +
@@ -419,12 +453,9 @@ class _MinesGameScreenState extends State<MinesGameScreen> {
                 : [],
           ),
           child: Center(
-            child: Icon(
-              Icons.bolt,
-              color: didPlayerHitThis
-                  ? Colors.white
-                  : Colors.redAccent.withOpacity(0.6),
-              size: 28,
+            child: Opacity(
+              opacity: didPlayerHitThis ? 1.0 : 0.6,
+              child: const Text('💣', style: TextStyle(fontSize: 28)),
             ),
           ),
         );

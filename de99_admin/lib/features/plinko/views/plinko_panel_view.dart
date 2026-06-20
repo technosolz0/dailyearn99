@@ -251,6 +251,16 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
   // Load standard fallbacks matching backend keys
   List<double> _getFallbackMultipliers(int rows, String risk) {
     final Map<int, Map<String, List<double>>> fallbacks = {
+      8: {
+        "low": [5.6, 1.6, 1.1, 1.0, 0.5, 1.0, 1.1, 1.6, 5.6],
+        "medium": [13.0, 3.0, 1.3, 0.7, 0.4, 0.7, 1.3, 3.0, 13.0],
+        "high": [29.0, 4.0, 1.5, 0.3, 0.2, 0.3, 1.5, 4.0, 29.0],
+      },
+      9: {
+        "low": [5.6, 2.0, 1.6, 1.0, 0.7, 0.7, 1.0, 1.6, 2.0, 5.6],
+        "medium": [18.0, 4.0, 1.6, 0.9, 0.5, 0.5, 0.9, 1.6, 4.0, 18.0],
+        "high": [43.0, 7.0, 2.0, 0.6, 0.2, 0.2, 0.6, 2.0, 7.0, 43.0],
+      },
       10: {
         "low": [16.0, 9.0, 2.0, 1.4, 1.1, 1.0, 1.1, 1.4, 2.0, 9.0, 16.0],
         "medium": [22.0, 5.0, 2.0, 1.4, 0.6, 0.4, 0.6, 1.4, 2.0, 5.0, 22.0],
@@ -1118,7 +1128,7 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                     value: _multSelectedRows,
                     decoration: const InputDecoration(labelText: 'Rows'),
                     dropdownColor: AdminTheme.surface,
-                    items: List.generate(7, (i) => 10 + i)
+                    items: List.generate(9, (i) => 8 + i)
                         .map(
                           (rows) => DropdownMenuItem<int>(
                             value: rows,
@@ -1343,7 +1353,7 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                     value: _rtpRows,
                     decoration: const InputDecoration(labelText: 'Rows'),
                     dropdownColor: AdminTheme.surface,
-                    items: List.generate(7, (i) => 10 + i)
+                    items: List.generate(9, (i) => 8 + i)
                         .map(
                           (rows) => DropdownMenuItem<int>(
                             value: rows,

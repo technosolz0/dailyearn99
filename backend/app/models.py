@@ -712,5 +712,16 @@ class PlinkoRTP(Base):
     enabled = Column(Boolean, default=True)
 
 
+class MinesRTP(Base):
+    __tablename__ = "mines_rtp_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    min_amount = Column(Float, nullable=False)
+    max_amount = Column(Float, nullable=False)
+    win_rate = Column(Float, nullable=False, default=0.90)  # Safe click probability (0.0 to 1.0)
+    enabled = Column(Boolean, default=True)
+
+
+
 
 

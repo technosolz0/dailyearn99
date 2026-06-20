@@ -587,6 +587,16 @@ class SpinGameService:
 
 class PlinkoGameService:
     DEFAULT_MULTIPLIERS = {
+        8: {
+            "low": [5.6, 1.6, 1.1, 1.0, 0.5, 1.0, 1.1, 1.6, 5.6],
+            "medium": [13.0, 3.0, 1.3, 0.7, 0.4, 0.7, 1.3, 3.0, 13.0],
+            "high": [29.0, 4.0, 1.5, 0.3, 0.2, 0.3, 1.5, 4.0, 29.0]
+        },
+        9: {
+            "low": [5.6, 2.0, 1.6, 1.0, 0.7, 0.7, 1.0, 1.6, 2.0, 5.6],
+            "medium": [18.0, 4.0, 1.6, 0.9, 0.5, 0.5, 0.9, 1.6, 4.0, 18.0],
+            "high": [43.0, 7.0, 2.0, 0.6, 0.2, 0.2, 0.6, 2.0, 7.0, 43.0]
+        },
         10: {
             "low": [16.0, 9.0, 2.0, 1.4, 1.1, 1.0, 1.1, 1.4, 2.0, 9.0, 16.0],
             "medium": [22.0, 5.0, 2.0, 1.4, 0.6, 0.4, 0.6, 1.4, 2.0, 5.0, 22.0],
@@ -2744,6 +2754,32 @@ class MinesGameService:
 
         if position in revealed:
             raise ValueError("Cell already revealed.")
+
+        # Apply Mines RTP / win chance override
+        from app.models import MinesRTP
+        rtp = db.query(MinesRTP).filter(
+            MinesRTP.min_amount <= game.bet_amount,
+            MinesRTP.max_amount >= game.bet_amount,
+            MinesRTP.enabled == True
+        ).first()
+
+        if rtp:
+            import random
+            should_win = random.random() < rtp.win_rate
+            if should_win and (position in mines):
+                unrevealed_safe = [c for c in range(25) if (c not in mines) and (c not in revealed) and (c != position)]
+                if unrevealed_safe:
+                    swap_cell = random.choice(unrevealed_safe)
+                    mines.remove(position)
+                    mines.add(swap_cell) if isinstance(mines, set) else mines.append(swap_cell)
+                    game.mines_positions = json.dumps(mines)
+            elif (not should_win) and (position not in mines):
+                unrevealed_mines = [m for m in mines if m not in revealed]
+                if unrevealed_mines:
+                    swap_mine = random.choice(unrevealed_mines)
+                    mines.remove(swap_mine)
+                    mines.add(position) if isinstance(mines, set) else mines.append(position)
+                    game.mines_positions = json.dumps(mines)
 
         # 3. Check if position is a mine
         if position in mines:

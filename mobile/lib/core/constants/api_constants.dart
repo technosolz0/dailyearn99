@@ -64,6 +64,7 @@ class ApiConstants {
   static const String minesCashout = '/mines/cashout';
   static const String minesActive = '/mines/active';
   static const String minesHistory = '/mines/history';
+  static const String minesSettings = '/mines/settings';
 
   static const String plinkoPlay = '/plinko/play';
   static const String plinkoHistory = '/plinko/history';

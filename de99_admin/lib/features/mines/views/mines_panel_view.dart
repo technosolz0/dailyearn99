@@ -95,6 +95,32 @@ class MinesSettingsAdmin {
   }
 }
 
+class MinesRtpRule {
+  final int id;
+  final double minAmount;
+  final double maxAmount;
+  final double winRate;
+  final bool enabled;
+
+  MinesRtpRule({
+    required this.id,
+    required this.minAmount,
+    required this.maxAmount,
+    required this.winRate,
+    required this.enabled,
+  });
+
+  factory MinesRtpRule.fromJson(Map<String, dynamic> json) {
+    return MinesRtpRule(
+      id: json['id'] as int,
+      minAmount: (json['min_amount'] as num).toDouble(),
+      maxAmount: (json['max_amount'] as num).toDouble(),
+      winRate: (json['win_rate'] as num).toDouble(),
+      enabled: json['enabled'] as bool,
+    );
+  }
+}
+
 class MinesPanelView extends StatefulWidget {
   const MinesPanelView({super.key});
 
@@ -111,10 +137,16 @@ class _MinesPanelViewState extends State<MinesPanelView> {
   MinesStatsAdmin? _stats;
   MinesSettingsAdmin? _settings;
   List<MinesLogAdmin> _logs = [];
+  List<MinesRtpRule> _rtpRules = [];
 
   final _houseEdgeController = TextEditingController();
   final _minBetController = TextEditingController();
   final _maxBetController = TextEditingController();
+
+  final _rtpMinBetController = TextEditingController();
+  final _rtpMaxBetController = TextEditingController();
+  final _rtpWinRateController = TextEditingController();
+
   bool _maintenanceVal = false;
 
   @override
@@ -128,6 +160,9 @@ class _MinesPanelViewState extends State<MinesPanelView> {
     _houseEdgeController.dispose();
     _minBetController.dispose();
     _maxBetController.dispose();
+    _rtpMinBetController.dispose();
+    _rtpMaxBetController.dispose();
+    _rtpWinRateController.dispose();
     super.dispose();
   }
 
@@ -141,17 +176,22 @@ class _MinesPanelViewState extends State<MinesPanelView> {
       final statsResponse = await _apiClient.dio.get('/admin/mines/stats');
       final settingsResponse = await _apiClient.dio.get('/admin/mines/settings');
       final logsResponse = await _apiClient.dio.get('/admin/mines/logs');
+      final rtpResponse = await _apiClient.dio.get('/admin/mines/rtp');
 
       final stats = MinesStatsAdmin.fromJson(statsResponse.data);
       final settings = MinesSettingsAdmin.fromJson(settingsResponse.data);
       final logs = (logsResponse.data as List)
           .map((json) => MinesLogAdmin.fromJson(json))
           .toList();
+      final rtpRules = (rtpResponse.data as List)
+          .map((json) => MinesRtpRule.fromJson(json))
+          .toList();
 
       setState(() {
         _stats = stats;
         _settings = settings;
         _logs = logs;
+        _rtpRules = rtpRules;
         _isLoading = false;
 
         // Initialize controllers
@@ -202,6 +242,70 @@ class _MinesPanelViewState extends State<MinesPanelView> {
     } on DioException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.response?.data['detail'] ?? 'Failed to update settings'), backgroundColor: AdminTheme.error),
+      );
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _createRtpRule() async {
+    final min = double.tryParse(_rtpMinBetController.text);
+    final max = double.tryParse(_rtpMaxBetController.text);
+    final rate = double.tryParse(_rtpWinRateController.text);
+
+    if (min == null || max == null || rate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter valid values.'), backgroundColor: AdminTheme.error),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await _apiClient.dio.post(
+        '/admin/mines/rtp',
+        data: {
+          'min_amount': min,
+          'max_amount': max,
+          'win_rate': rate,
+          'enabled': true,
+        },
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('RTP override rule added successfully!'), backgroundColor: AdminTheme.success),
+      );
+      _rtpMinBetController.clear();
+      _rtpMaxBetController.clear();
+      _rtpWinRateController.clear();
+      await _refreshAll();
+    } on DioException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.response?.data['detail'] ?? 'Failed to add rule'), backgroundColor: AdminTheme.error),
+      );
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _deleteRtpRule(int id) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await _apiClient.dio.delete('/admin/mines/rtp/$id');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('RTP override rule deleted!'), backgroundColor: AdminTheme.success),
+      );
+      await _refreshAll();
+    } on DioException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.response?.data['detail'] ?? 'Failed to delete rule'), backgroundColor: AdminTheme.error),
       );
       setState(() {
         _isLoading = false;
@@ -260,6 +364,10 @@ class _MinesPanelViewState extends State<MinesPanelView> {
 
             // Configuration Form
             _buildConfigurationPanel(),
+            const SizedBox(height: 20),
+
+            // RTP overrides
+            _buildRtpOverridesPanel(),
             const SizedBox(height: 24),
 
             // Game Logs
@@ -426,6 +534,99 @@ class _MinesPanelViewState extends State<MinesPanelView> {
               )
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRtpOverridesPanel() {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.percent_outlined, color: AdminTheme.primary, size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'Win Rate Overrides (RTP settings)',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AdminTheme.textMain),
+                ),
+              ],
+            ),
+            const Divider(color: AdminTheme.borderColor, height: 24),
+            
+            if (_rtpRules.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: Text('No active range override rules configured.', style: TextStyle(color: AdminTheme.textMuted, fontSize: 13)),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _rtpRules.length,
+                itemBuilder: (context, index) {
+                  final rule = _rtpRules[index];
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('Bets ₹${rule.minAmount.toStringAsFixed(0)} – ₹${rule.maxAmount.toStringAsFixed(0)}'),
+                    subtitle: Text('Force Win Rate: ${(rule.winRate * 100).toStringAsFixed(0)}% safety probability'),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete_outline, color: AdminTheme.error),
+                      onPressed: () => _deleteRtpRule(rule.id),
+                    ),
+                  );
+                },
+              ),
+            
+            const Divider(color: AdminTheme.borderColor, height: 24),
+            const Text(
+              'Create Custom Override Rule',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AdminTheme.primary),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _rtpMinBetController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Min Bet'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextFormField(
+                    controller: _rtpMaxBetController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Max Bet'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextFormField(
+                    controller: _rtpWinRateController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Win Rate (0-1)'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AdminTheme.secondary,
+                foregroundColor: AdminTheme.textMain,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: _createRtpRule,
+              child: const Text('ADD WIN OVERRIDE RULE', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
         ),
       ),
     );

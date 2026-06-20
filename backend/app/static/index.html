@@ -141,6 +141,23 @@
                     </svg>
                     Lottery Engine
                 </button>
+                <button class="menu-item" data-tab="mines-engine">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                        <path d="M2 17l10 5 10-5" />
+                        <line x1="2" y1="12" x2="22" y2="12" />
+                    </svg>
+                    Mines Engine
+                </button>
+                <button class="menu-item" data-tab="plinko-engine">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="5" r="2" />
+                        <circle cx="6" cy="12" r="2" />
+                        <circle cx="18" cy="12" r="2" />
+                        <circle cx="12" cy="19" r="2" />
+                    </svg>
+                    Plinko Engine
+                </button>
             </nav>
 
             <div class="sidebar-footer">
@@ -1671,6 +1688,345 @@
                                 <tbody id="lottery-draws-table-body">
                                     <tr>
                                         <td colspan="11" class="table-placeholder">Loading lottery draws data...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 15. MINES ENGINE TAB -->
+                <section class="tab-panel" id="panel-mines-engine">
+                    <!-- KPI Cards for Mines Engine -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-icon-wrapper blue">
+                                <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M12 2v20M2 12h20" />
+                                </svg>
+                            </div>
+                            <div class="kpi-data">
+                                <span class="kpi-title">Total Bets Placed</span>
+                                <h3 class="kpi-value" id="mines-stat-bets">₹0.00</h3>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-icon-wrapper orange">
+                                <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                </svg>
+                            </div>
+                            <div class="kpi-data">
+                                <span class="kpi-title">Winnings Returned</span>
+                                <h3 class="kpi-value" id="mines-stat-winnings">₹0.00</h3>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-icon-wrapper green">
+                                <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="1" x2="12" y2="23" />
+                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                                </svg>
+                            </div>
+                            <div class="kpi-data">
+                                <span class="kpi-title">House Net Profit</span>
+                                <h3 class="kpi-value" id="mines-stat-profit">₹0.00</h3>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-icon-wrapper purple">
+                                <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <circle cx="12" cy="12" r="4" />
+                                </svg>
+                            </div>
+                            <div class="kpi-data">
+                                <span class="kpi-title">Payout Ratio (RTP)</span>
+                                <h3 class="kpi-value" id="mines-stat-rtp">0.00%</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Config Panel & Maintenance -->
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>Mines Settings & Maintenance</h2>
+                            </div>
+                            <form id="mines-settings-form" class="contest-form" style="margin-top: 15px;">
+                                <div style="display: flex; gap: 15px; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px;">
+                                    <div>
+                                        <h4 style="margin: 0; font-size: 13px; font-weight: bold;">Mines Maintenance Lock</h4>
+                                        <p style="margin: 3px 0 0 0; font-size: 10px; color: var(--text-muted);">Enable to lock Mines game for users instantly.</p>
+                                    </div>
+                                    <button type="button" class="btn btn-secondary" id="btn-mines-maintenance" style="padding: 6px 12px; font-size: 11px;">Enable Lockout</button>
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label for="mines-house-edge">House Edge (Decimal, e.g. 0.03 for 3%)</label>
+                                    <input type="number" id="mines-house-edge" min="0" max="0.5" step="0.01" value="0.03" required style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; margin-top:5px;">
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="mines-min-bet">Min Bet (₹)</label>
+                                        <input type="number" id="mines-min-bet" min="1" step="any" value="10" required style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; margin-top: 5px;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mines-max-bet">Max Bet (₹)</label>
+                                        <input type="number" id="mines-max-bet" min="1" step="any" value="5000" required style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; margin-top: 5px;">
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 15px;">Save Settings</button>
+                            </form>
+
+                            <!-- Add New Mines RTP Override Form -->
+                            <form id="mines-rtp-create-form" class="contest-form" style="margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                                <h3 style="font-size: 13px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 15px;">Add Specific Bet Override / Safety Tier</h3>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="mines-rtp-create-min">Min Bet (₹)</label>
+                                        <input type="number" id="mines-rtp-create-min" min="1" step="any" required style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; margin-top: 5px;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mines-rtp-create-max">Max Bet (₹)</label>
+                                        <input type="number" id="mines-rtp-create-max" min="1" step="any" required style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; margin-top: 5px;">
+                                    </div>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label for="mines-rtp-create-winrate">Safety / Win Chance (0.0 to 1.0)</label>
+                                    <input type="number" id="mines-rtp-create-winrate" min="0" max="1.0" step="0.05" value="0.90" required style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; margin-top: 5px;">
+                                    <span style="font-size: 9px; color: var(--text-muted); display: block; margin-top: 4px;">Probability that any clicked cell is forced safe/gem. 1.0 means never hit a mine on the first click. 0.0 means 100% loss.</span>
+                                </div>
+                                <button type="submit" class="btn btn-secondary btn-full">Create Mines Override Rule</button>
+                            </form>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>Active Safety/Win Rate Overrides</h2>
+                            </div>
+                            <div class="table-wrapper" style="margin-top: 15px;">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Range (₹)</th>
+                                            <th>Win Chance</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="mines-rtp-rules-table-body">
+                                        <tr>
+                                            <td colspan="4" class="table-placeholder">No custom override rules configured.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mines Game Logs -->
+                    <div class="card table-card" style="margin-top: 30px;">
+                        <div class="card-table-header">
+                            <h2>Recent Mines Game Sessions</h2>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>User Details</th>
+                                        <th>Bet Amount</th>
+                                        <th>Mines Count</th>
+                                        <th>Multiplier</th>
+                                        <th>Payout (₹)</th>
+                                        <th>Status</th>
+                                        <th>Date Logged</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="mines-logs-table-body">
+                                    <tr>
+                                        <td colspan="8" class="table-placeholder">Loading Mines games log...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 16. PLINKO ENGINE TAB -->
+                <section class="tab-panel" id="panel-plinko-engine">
+                    <!-- KPI Cards for Plinko Engine -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-icon-wrapper blue">
+                                <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M12 2v20M2 12h20" />
+                                </svg>
+                            </div>
+                            <div class="kpi-data">
+                                <span class="kpi-title">Total Bets Placed</span>
+                                <h3 class="kpi-value" id="plinko-stat-bets">₹0.00</h3>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-icon-wrapper orange">
+                                <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                </svg>
+                            </div>
+                            <div class="kpi-data">
+                                <span class="kpi-title">Winnings Returned</span>
+                                <h3 class="kpi-value" id="plinko-stat-winnings">₹0.00</h3>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-icon-wrapper green">
+                                <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="1" x2="12" y2="23" />
+                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                                </svg>
+                            </div>
+                            <div class="kpi-data">
+                                <span class="kpi-title">House Net Profit</span>
+                                <h3 class="kpi-value" id="plinko-stat-profit">₹0.00</h3>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-icon-wrapper purple">
+                                <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <circle cx="12" cy="12" r="4" />
+                                </svg>
+                            </div>
+                            <div class="kpi-data">
+                                <span class="kpi-title">Payout Ratio (RTP)</span>
+                                <h3 class="kpi-value" id="plinko-stat-rtp">0.00%</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Config Panel & Maintenance -->
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>Plinko Settings & Maintenance</h2>
+                            </div>
+                            <form id="plinko-settings-form" class="contest-form" style="margin-top: 15px;">
+                                <div style="display: flex; gap: 15px; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px;">
+                                    <div>
+                                        <h4 style="margin: 0; font-size: 13px; font-weight: bold;">Plinko Maintenance Lock</h4>
+                                        <p style="margin: 3px 0 0 0; font-size: 10px; color: var(--text-muted);">Enable to lock Plinko game for users instantly.</p>
+                                    </div>
+                                    <button type="button" class="btn btn-secondary" id="btn-plinko-maintenance" style="padding: 6px 12px; font-size: 11px;">Enable Lockout</button>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="plinko-min-bet">Min Bet (₹)</label>
+                                        <input type="number" id="plinko-min-bet" min="1" step="any" value="10" required style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; margin-top: 5px;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="plinko-max-bet">Max Bet (₹)</label>
+                                        <input type="number" id="plinko-max-bet" min="1" step="any" value="5000" required style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; margin-top: 5px;">
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 15px;">Save Settings</button>
+                            </form>
+
+                            <!-- Add New Plinko RTP Override Form -->
+                            <form id="plinko-rtp-create-form" class="contest-form" style="margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                                <h3 style="font-size: 13px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 15px;">Add Specific Bet Override / RTP Tier</h3>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="plinko-rtp-create-min">Min Bet (₹)</label>
+                                        <input type="number" id="plinko-rtp-create-min" min="1" step="any" required style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; margin-top: 5px;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="plinko-rtp-create-max">Max Bet (₹)</label>
+                                        <input type="number" id="plinko-rtp-create-max" min="1" step="any" required style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; margin-top: 5px;">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="plinko-rtp-create-rows">Rows</label>
+                                        <input type="number" id="plinko-rtp-create-rows" min="10" max="16" value="10" required style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; margin-top: 5px;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="plinko-rtp-create-mode">Mode</label>
+                                        <select id="plinko-rtp-create-mode" class="form-control" style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; margin-top:5px;">
+                                            <option value="low">Low Risk</option>
+                                            <option value="medium">Medium Risk</option>
+                                            <option value="high">High Risk</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label for="plinko-rtp-create-json">Probability Weights JSON</label>
+                                    <textarea id="plinko-rtp-create-json" required style="width:100%; height:100px; background:#1e293b; color:#51ff00; border:1px solid #334155; padding:10px; border-radius:6px; font-family: monospace; resize:none; font-size:12px; margin-top:5px; line-height: 1.5;"></textarea>
+                                    <span style="font-size: 9px; color: var(--text-muted); display: block; margin-top: 4px;">Sum of all weights must be exactly 100%. Formatted as list of decimals, e.g. [1.0, 5.0, 20.0, 48.0, 20.0, 5.0, 1.0]. Elements count must equal rows + 1.</span>
+                                </div>
+                                <button type="submit" class="btn btn-secondary btn-full">Create Plinko Override Rule</button>
+                            </form>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>Active Plinko RTP Overrides</h2>
+                            </div>
+                            <div class="table-wrapper" style="margin-top: 15px;">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Range (₹)</th>
+                                            <th>Rows/Mode</th>
+                                            <th>Probabilities</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="plinko-rtp-rules-table-body">
+                                        <tr>
+                                            <td colspan="4" class="table-placeholder">No custom override rules configured.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Plinko Game Logs -->
+                    <div class="card table-card" style="margin-top: 30px;">
+                        <div class="card-table-header">
+                            <h2>Recent Plinko Game Sessions</h2>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>User Details</th>
+                                        <th>Bet Amount</th>
+                                        <th>Rows</th>
+                                        <th>Mode</th>
+                                        <th>Multiplier</th>
+                                        <th>Payout (₹)</th>
+                                        <th>Date Logged</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="plinko-logs-table-body">
+                                    <tr>
+                                        <td colspan="8" class="table-placeholder">Loading Plinko games log...</td>
                                     </tr>
                                 </tbody>
                             </table>
