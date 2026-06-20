@@ -11,6 +11,18 @@ import 'package:de99_admin/features/notifications/views/notifications_view.dart'
 import 'package:de99_admin/features/mines/views/mines_panel_view.dart';
 import 'package:de99_admin/features/plinko/views/plinko_panel_view.dart';
 
+// New Feature Imports
+import 'package:de99_admin/features/quiz_manager/views/quiz_manager_view.dart';
+import 'package:de99_admin/features/wallet_manager/views/wallet_manager_view.dart';
+import 'package:de99_admin/features/spin_engine/views/spin_engine_view.dart';
+import 'package:de99_admin/features/fruit_manager/views/fruit_manager_view.dart';
+import 'package:de99_admin/features/puzzle_manager/views/puzzle_manager_view.dart';
+import 'package:de99_admin/features/arrow_manager/views/arrow_manager_view.dart';
+import 'package:de99_admin/features/word_manager/views/word_manager_view.dart';
+import 'package:de99_admin/features/portfolio_manager/views/portfolio_manager_view.dart';
+import 'package:de99_admin/features/promo_codes/views/promo_codes_view.dart';
+import 'package:de99_admin/features/lottery_engine/views/lottery_engine_view.dart';
+
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
 
@@ -18,18 +30,120 @@ class DashboardView extends StatefulWidget {
   State<DashboardView> createState() => _DashboardViewState();
 }
 
+class NavigationItemSpec {
+  final String title;
+  final String shortTitle;
+  final IconData icon;
+
+  const NavigationItemSpec({
+    required this.title,
+    required this.shortTitle,
+    required this.icon,
+  });
+}
+
 class _DashboardViewState extends State<DashboardView> {
   int _currentIndex = 0;
 
-  final List<String> _titles = [
-    'Overview Dashboard',
-    'User Management',
-    'Pending Requests',
-    'Contests Controller',
-    'Mines Controller',
-    'Plinko Controller',
-    'Notifications Manager',
+  static const List<NavigationItemSpec> _navSpecs = [
+    NavigationItemSpec(
+      title: 'Overview Dashboard',
+      shortTitle: 'Overview',
+      icon: Icons.dashboard_outlined,
+    ),
+    NavigationItemSpec(
+      title: 'User Management',
+      shortTitle: 'Users',
+      icon: Icons.people_outline,
+    ),
+    NavigationItemSpec(
+      title: 'Pending Requests',
+      shortTitle: 'Requests',
+      icon: Icons.swap_horiz_outlined,
+    ),
+    NavigationItemSpec(
+      title: 'Contests Controller',
+      shortTitle: 'Contests',
+      icon: Icons.sports_esports_outlined,
+    ),
+    NavigationItemSpec(
+      title: 'Mines Controller',
+      shortTitle: 'Mines',
+      icon: Icons.grid_on_outlined,
+    ),
+    NavigationItemSpec(
+      title: 'Plinko Controller',
+      shortTitle: 'Plinko',
+      icon: Icons.blur_linear_outlined,
+    ),
+    NavigationItemSpec(
+      title: 'Notifications Manager',
+      shortTitle: 'Alerts',
+      icon: Icons.notifications_active_outlined,
+    ),
+    NavigationItemSpec(
+      title: 'Quiz Manager',
+      shortTitle: 'Quiz',
+      icon: Icons.quiz_outlined,
+    ),
+    NavigationItemSpec(
+      title: 'Wallet Manager',
+      shortTitle: 'Wallet',
+      icon: Icons.account_balance_wallet_outlined,
+    ),
+    NavigationItemSpec(
+      title: 'Spin Engine',
+      shortTitle: 'Spin Wheel',
+      icon: Icons.rotate_right_outlined,
+    ),
+    NavigationItemSpec(
+      title: 'Fruit Manager',
+      shortTitle: 'Fruit Slicing',
+      icon: Icons.restaurant_outlined,
+    ),
+    NavigationItemSpec(
+      title: 'Puzzle Manager',
+      shortTitle: 'Slide Puzzle',
+      icon: Icons.extension_outlined,
+    ),
+    NavigationItemSpec(
+      title: 'Arrow Manager',
+      shortTitle: 'Go Arrows',
+      icon: Icons.navigation_outlined,
+    ),
+    NavigationItemSpec(
+      title: 'Word Manager',
+      shortTitle: 'Word Puzzle',
+      icon: Icons.font_download_outlined,
+    ),
+    NavigationItemSpec(
+      title: 'Portfolio Manager',
+      shortTitle: 'Portfolio',
+      icon: Icons.web_outlined,
+    ),
+    NavigationItemSpec(
+      title: 'Promo Codes',
+      shortTitle: 'Promo Codes',
+      icon: Icons.local_offer_outlined,
+    ),
+    NavigationItemSpec(
+      title: 'Lottery Engine',
+      shortTitle: 'Lucky Draw',
+      icon: Icons.casino_outlined,
+    ),
   ];
+
+  void _navigateToTab(String shortTitle) {
+    final index = _navSpecs.indexWhere((item) => item.shortTitle == shortTitle);
+    if (index != -1) {
+      setState(() {
+        _currentIndex = index;
+      });
+      if (index == 0) {
+        context.read<StatsCubit>().fetchStats();
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -148,7 +262,7 @@ class _DashboardViewState extends State<DashboardView> {
 
                   const SizedBox(height: 24),
                   const Text(
-                    'Quick Links',
+                    'Quick Links & Shortcuts',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -158,34 +272,55 @@ class _DashboardViewState extends State<DashboardView> {
                   const SizedBox(height: 16),
 
                   if (isWide)
-                    Row(
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 2.8,
                       children: [
-                        Expanded(
-                          child: _buildQuickActionCard(
-                            title: 'Mines Game Panel',
-                            subtitle: 'Manage house edge, maintenance settings, and custom RTP range overrides',
-                            icon: Icons.grid_on,
-                            color: AdminTheme.primary,
-                            onTap: () {
-                              setState(() {
-                                _currentIndex = 4;
-                              });
-                            },
-                          ),
+                        _buildQuickActionCard(
+                          title: 'Mines Game Panel',
+                          subtitle: 'Manage house edge, maintenance, and safety overrides',
+                          icon: Icons.grid_on,
+                          color: AdminTheme.primary,
+                          onTap: () => _navigateToTab('Mines'),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildQuickActionCard(
-                            title: 'Plinko Game Panel',
-                            subtitle: 'Manage bets, rows, game state, and bucket probability rules',
-                            icon: Icons.blur_linear,
-                            color: AdminTheme.info,
-                            onTap: () {
-                              setState(() {
-                                _currentIndex = 5;
-                              });
-                            },
-                          ),
+                        _buildQuickActionCard(
+                          title: 'Plinko Game Panel',
+                          subtitle: 'Manage bets, rows, and bucket probabilities',
+                          icon: Icons.blur_linear,
+                          color: AdminTheme.info,
+                          onTap: () => _navigateToTab('Plinko'),
+                        ),
+                        _buildQuickActionCard(
+                          title: 'Spin Wheel Engine',
+                          subtitle: 'Configure spin RTPs, metrics, and logs',
+                          icon: Icons.rotate_right,
+                          color: AdminTheme.success,
+                          onTap: () => _navigateToTab('Spin Wheel'),
+                        ),
+                        _buildQuickActionCard(
+                          title: 'Lucky Draw Engine',
+                          subtitle: 'Manage schedules and execute drawings',
+                          icon: Icons.casino,
+                          color: AdminTheme.warning,
+                          onTap: () => _navigateToTab('Lucky Draw'),
+                        ),
+                        _buildQuickActionCard(
+                          title: 'Quiz Manager',
+                          subtitle: 'Manage questions database and active math contests',
+                          icon: Icons.quiz,
+                          color: AdminTheme.secondary,
+                          onTap: () => _navigateToTab('Quiz'),
+                        ),
+                        _buildQuickActionCard(
+                          title: 'Promo Codes',
+                          subtitle: 'Manage system-wide deposit/signup promotion codes',
+                          icon: Icons.local_offer,
+                          color: Colors.pinkAccent,
+                          onTap: () => _navigateToTab('Promo Codes'),
                         ),
                       ],
                     )
@@ -195,23 +330,31 @@ class _DashboardViewState extends State<DashboardView> {
                       subtitle: 'Manage house edge, maintenance, and safety overrides',
                       icon: Icons.grid_on,
                       color: AdminTheme.primary,
-                      onTap: () {
-                        setState(() {
-                          _currentIndex = 4;
-                        });
-                      },
+                      onTap: () => _navigateToTab('Mines'),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     _buildQuickActionCard(
                       title: 'Plinko Game Panel',
                       subtitle: 'Manage bets, rows, and bucket probabilities',
                       icon: Icons.blur_linear,
                       color: AdminTheme.info,
-                      onTap: () {
-                        setState(() {
-                          _currentIndex = 5;
-                        });
-                      },
+                      onTap: () => _navigateToTab('Plinko'),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildQuickActionCard(
+                      title: 'Spin Wheel Engine',
+                      subtitle: 'Configure spin RTPs, metrics, and logs',
+                      icon: Icons.rotate_right,
+                      color: AdminTheme.success,
+                      onTap: () => _navigateToTab('Spin Wheel'),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildQuickActionCard(
+                      title: 'Lucky Draw Engine',
+                      subtitle: 'Manage schedules and execute drawings',
+                      icon: Icons.casino,
+                      color: AdminTheme.warning,
+                      onTap: () => _navigateToTab('Lucky Draw'),
                     ),
                   ],
                 ],
@@ -337,6 +480,203 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
+  Widget _buildNavigationList({required bool isDrawer}) {
+    final navItems = _navSpecs;
+    return Column(
+      children: [
+        // Premium Header
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top + 20,
+            bottom: 20,
+            left: 20,
+            right: 20,
+          ),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AdminTheme.surfaceDark, AdminTheme.surface],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            border: Border(
+              bottom: BorderSide(color: AdminTheme.borderColor),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AdminTheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.admin_panel_settings,
+                      color: AdminTheme.primary,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'DAILYEARN99',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AdminTheme.textMain,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        Text(
+                          'Admin Console v2.0',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AdminTheme.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // Scrollable List of Navigation Items
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: navItems.length,
+            itemBuilder: (context, index) {
+              final item = navItems[index];
+              final isSelected = _currentIndex == index;
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 2.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isSelected ? AdminTheme.primary.withOpacity(0.08) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    border: isSelected
+                        ? const Border(
+                            left: BorderSide(
+                              color: AdminTheme.primary,
+                              width: 3.5,
+                            ),
+                          )
+                        : null,
+                  ),
+                  child: ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.only(
+                      left: isSelected ? 12.5 : 16,
+                      right: 16,
+                    ),
+                    leading: Icon(
+                      item.icon,
+                      color: isSelected ? AdminTheme.primary : AdminTheme.textMuted,
+                      size: 20,
+                    ),
+                    title: Text(
+                      item.title,
+                      style: TextStyle(
+                        color: isSelected ? AdminTheme.textMain : AdminTheme.textMuted,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 13.5,
+                      ),
+                    ),
+                    onTap: () {
+                      setState(() {
+                        _currentIndex = index;
+                      });
+                      if (index == 0) {
+                        context.read<StatsCubit>().fetchStats();
+                      }
+                      if (isDrawer) {
+                        Navigator.pop(context);
+                      }
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+
+        // Footer / Logout Button
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            border: Border(
+              top: BorderSide(color: AdminTheme.borderColor),
+            ),
+          ),
+          child: InkWell(
+            onTap: () => _showLogoutConfirmation(),
+            borderRadius: BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Row(
+                children: const [
+                  Icon(
+                    Icons.logout_rounded,
+                    color: AdminTheme.error,
+                    size: 20,
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    'Logout Session',
+                    style: TextStyle(
+                      color: AdminTheme.error,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showLogoutConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Logout'),
+        content: const Text(
+          'Are you sure you want to end your admin session?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<AuthCubit>().logout();
+            },
+            child: const Text(
+              'LOGOUT',
+              style: TextStyle(color: AdminTheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<Widget> tabs = [
@@ -347,160 +687,60 @@ class _DashboardViewState extends State<DashboardView> {
       const MinesPanelView(),
       const PlinkoPanelView(),
       const NotificationsView(),
+      const QuizManagerView(),
+      const WalletManagerView(),
+      const SpinEngineView(),
+      const FruitManagerView(),
+      const PuzzleManagerView(),
+      const ArrowManagerView(),
+      const WordManagerView(),
+      const PortfolioManagerView(),
+      const PromoCodesView(),
+      const LotteryEngineView(),
     ];
 
     final bool isWide = MediaQuery.of(context).size.width > 800;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_titles[_currentIndex]),
+        title: Text(_navSpecs[_currentIndex].title),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: AdminTheme.error),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Confirm Logout'),
-                  content: const Text(
-                    'Are you sure you want to end your admin session?',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('CANCEL'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        context.read<AuthCubit>().logout();
-                      },
-                      child: const Text(
-                        'LOGOUT',
-                        style: TextStyle(color: AdminTheme.error),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
+            onPressed: _showLogoutConfirmation,
           ),
         ],
       ),
+      drawer: isWide
+          ? null
+          : Drawer(
+              backgroundColor: AdminTheme.surfaceDark,
+              child: _buildNavigationList(isDrawer: true),
+            ),
       body: isWide
           ? Row(
               children: [
-                NavigationRail(
-                  selectedIndex: _currentIndex,
-                  onDestinationSelected: (index) {
-                    setState(() {
-                      _currentIndex = index;
-                    });
-                    if (index == 0) {
-                      context.read<StatsCubit>().fetchStats();
-                    }
-                  },
-                  labelType: NavigationRailLabelType.all,
-                  selectedIconTheme: const IconThemeData(color: AdminTheme.primary),
-                  unselectedIconTheme: const IconThemeData(color: AdminTheme.textMuted),
-                  selectedLabelTextStyle: const TextStyle(color: AdminTheme.primary, fontWeight: FontWeight.bold),
-                  unselectedLabelTextStyle: const TextStyle(color: AdminTheme.textMuted),
-                  backgroundColor: AdminTheme.surfaceDark,
-                  destinations: const [
-                    NavigationRailDestination(
-                      icon: Icon(Icons.dashboard_outlined),
-                      selectedIcon: Icon(Icons.dashboard),
-                      label: Text('Overview'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.people_outline),
-                      selectedIcon: Icon(Icons.people),
-                      label: Text('Users'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.swap_horiz_outlined),
-                      selectedIcon: Icon(Icons.swap_horiz),
-                      label: Text('Requests'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.sports_esports_outlined),
-                      selectedIcon: Icon(Icons.sports_esports),
-                      label: Text('Contests'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.grid_on_outlined),
-                      selectedIcon: Icon(Icons.grid_on),
-                      label: Text('Mines'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.blur_linear_outlined),
-                      selectedIcon: Icon(Icons.blur_linear),
-                      label: Text('Plinko'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.notifications_active_outlined),
-                      selectedIcon: Icon(Icons.notifications_active),
-                      label: Text('Alerts'),
-                    ),
-                  ],
+                Container(
+                  width: 260,
+                  color: AdminTheme.surfaceDark,
+                  child: _buildNavigationList(isDrawer: false),
                 ),
-                const VerticalDivider(thickness: 1, width: 1, color: AdminTheme.borderColor),
+                const VerticalDivider(
+                  thickness: 1,
+                  width: 1,
+                  color: AdminTheme.borderColor,
+                ),
                 Expanded(
-                  child: IndexedStack(index: _currentIndex, children: tabs),
+                  child: IndexedStack(
+                    index: _currentIndex,
+                    children: tabs,
+                  ),
                 ),
               ],
             )
-          : IndexedStack(index: _currentIndex, children: tabs),
-      bottomNavigationBar: isWide
-          ? null
-          : BottomNavigationBar(
-              type: BottomNavigationBarType.fixed,
-              currentIndex: _currentIndex,
-              onTap: (index) {
-                setState(() {
-                  _currentIndex = index;
-                });
-                if (index == 0) {
-                  context.read<StatsCubit>().fetchStats();
-                }
-              },
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.dashboard_outlined),
-                  activeIcon: Icon(Icons.dashboard),
-                  label: 'Overview',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.people_outline),
-                  activeIcon: Icon(Icons.people),
-                  label: 'Users',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.swap_horiz_outlined),
-                  activeIcon: Icon(Icons.swap_horiz),
-                  label: 'Requests',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.sports_esports_outlined),
-                  activeIcon: Icon(Icons.sports_esports),
-                  label: 'Contests',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.grid_on_outlined),
-                  activeIcon: Icon(Icons.grid_on),
-                  label: 'Mines',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.blur_linear_outlined),
-                  activeIcon: Icon(Icons.blur_linear),
-                  label: 'Plinko',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.notifications_active_outlined),
-                  activeIcon: Icon(Icons.notifications_active),
-                  label: 'Alerts',
-                ),
-              ],
+          : IndexedStack(
+              index: _currentIndex,
+              children: tabs,
             ),
     );
   }

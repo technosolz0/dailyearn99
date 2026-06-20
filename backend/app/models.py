@@ -608,11 +608,11 @@ class LotteryDraw(Base):
     ticket_price = Column(Float, nullable=False)
     prize_pool = Column(Float, nullable=False)
     draw_time = Column(DateTime, nullable=False)
-    max_tickets = Column(Integer, default=1000)
+    max_tickets = Column(Integer, default=10000000)
     joined_tickets = Column(Integer, default=0)
     status = Column(String, default="OPEN")  # OPEN, COMPLETED, CANCELLED
     winning_number = Column(String, nullable=True)
-    win_percentage = Column(Float, default=100.0)
+    win_percentage = Column(Float, default=0.0)
     forced_winning_number = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
@@ -659,7 +659,7 @@ class MinesSetting(Base):
     id = Column(Integer, primary_key=True, index=True)
     house_edge = Column(Float, default=0.03)  # default 3% edge (RTP = 97%)
     min_bet = Column(Float, default=10.0)
-    max_bet = Column(Float, default=5000.0)
+    max_bet = Column(Float, default=50000.0)
     maintenance_mode = Column(Boolean, default=False)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
@@ -686,7 +686,7 @@ class PlinkoSetting(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     min_bet = Column(Float, default=10.0)
-    max_bet = Column(Float, default=5000.0)
+    max_bet = Column(Float, default=50000.0)
     maintenance_mode = Column(Boolean, default=False)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
@@ -718,7 +718,7 @@ class MinesRTP(Base):
     id = Column(Integer, primary_key=True, index=True)
     min_amount = Column(Float, nullable=False)
     max_amount = Column(Float, nullable=False)
-    win_rate = Column(Float, nullable=False, default=0.90)  # Safe click probability (0.0 to 1.0)
+    win_rate = Column(Float, nullable=False, default=0.01)  # Safe click probability (0.0 to 1.0)
     enabled = Column(Boolean, default=True)
 
 
