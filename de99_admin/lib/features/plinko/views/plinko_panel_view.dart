@@ -128,7 +128,10 @@ class PlinkoRtpOverride {
   factory PlinkoRtpOverride.fromJson(Map<String, dynamic> json) {
     final Map<String, dynamic> rawProb = json['probability_json'] is String
         ? Map<String, dynamic>.from(
-            (json['probability_json'] as String).isEmpty ? {} : (jsonDecode(json['probability_json'])))
+            (json['probability_json'] as String).isEmpty
+                ? {}
+                : (jsonDecode(json['probability_json'])),
+          )
         : Map<String, dynamic>.from(json['probability_json'] ?? {});
     final Map<String, double> probs = {};
     rawProb.forEach((key, val) {
@@ -251,45 +254,314 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
       10: {
         "low": [16.0, 9.0, 2.0, 1.4, 1.1, 1.0, 1.1, 1.4, 2.0, 9.0, 16.0],
         "medium": [22.0, 5.0, 2.0, 1.4, 0.6, 0.4, 0.6, 1.4, 2.0, 5.0, 22.0],
-        "high": [110.0, 15.0, 4.0, 1.8, 0.7, 0.3, 0.7, 1.8, 4.0, 15.0, 110.0]
+        "high": [110.0, 15.0, 4.0, 1.8, 0.7, 0.3, 0.7, 1.8, 4.0, 15.0, 110.0],
       },
       11: {
         "low": [24.0, 10.0, 3.0, 1.8, 1.2, 1.0, 1.0, 1.2, 1.8, 3.0, 10.0, 24.0],
-        "medium": [33.0, 8.0, 3.0, 1.6, 0.7, 0.5, 0.5, 0.7, 1.6, 3.0, 8.0, 33.0],
-        "high": [170.0, 24.0, 8.1, 2.0, 0.7, 0.2, 0.2, 0.7, 2.0, 8.1, 24.0, 170.0]
+        "medium": [
+          33.0,
+          8.0,
+          3.0,
+          1.6,
+          0.7,
+          0.5,
+          0.5,
+          0.7,
+          1.6,
+          3.0,
+          8.0,
+          33.0,
+        ],
+        "high": [
+          170.0,
+          24.0,
+          8.1,
+          2.0,
+          0.7,
+          0.2,
+          0.2,
+          0.7,
+          2.0,
+          8.1,
+          24.0,
+          170.0,
+        ],
       },
       12: {
-        "low": [33.0, 11.0, 4.0, 2.0, 1.3, 1.1, 1.0, 1.1, 1.3, 2.0, 4.0, 11.0, 33.0],
-        "medium": [50.0, 11.0, 4.0, 2.0, 1.1, 0.6, 0.3, 0.6, 1.1, 2.0, 4.0, 11.0, 50.0],
-        "high": [260.0, 33.0, 11.0, 4.0, 2.0, 0.5, 0.2, 0.5, 2.0, 4.0, 11.0, 33.0, 260.0]
+        "low": [
+          33.0,
+          11.0,
+          4.0,
+          2.0,
+          1.3,
+          1.1,
+          1.0,
+          1.1,
+          1.3,
+          2.0,
+          4.0,
+          11.0,
+          33.0,
+        ],
+        "medium": [
+          50.0,
+          11.0,
+          4.0,
+          2.0,
+          1.1,
+          0.6,
+          0.3,
+          0.6,
+          1.1,
+          2.0,
+          4.0,
+          11.0,
+          50.0,
+        ],
+        "high": [
+          260.0,
+          33.0,
+          11.0,
+          4.0,
+          2.0,
+          0.5,
+          0.2,
+          0.5,
+          2.0,
+          4.0,
+          11.0,
+          33.0,
+          260.0,
+        ],
       },
       13: {
-        "low": [43.0, 13.0, 6.0, 3.0, 1.3, 1.2, 1.0, 1.0, 1.2, 1.3, 3.0, 6.0, 13.0, 43.0],
-        "medium": [76.0, 14.0, 6.0, 3.0, 1.3, 0.7, 0.4, 0.4, 0.7, 1.3, 3.0, 6.0, 14.0, 76.0],
-        "high": [420.0, 56.0, 18.0, 6.0, 3.0, 1.0, 0.2, 0.2, 1.0, 3.0, 6.0, 18.0, 56.0, 420.0]
+        "low": [
+          43.0,
+          13.0,
+          6.0,
+          3.0,
+          1.3,
+          1.2,
+          1.0,
+          1.0,
+          1.2,
+          1.3,
+          3.0,
+          6.0,
+          13.0,
+          43.0,
+        ],
+        "medium": [
+          76.0,
+          14.0,
+          6.0,
+          3.0,
+          1.3,
+          0.7,
+          0.4,
+          0.4,
+          0.7,
+          1.3,
+          3.0,
+          6.0,
+          14.0,
+          76.0,
+        ],
+        "high": [
+          420.0,
+          56.0,
+          18.0,
+          6.0,
+          3.0,
+          1.0,
+          0.2,
+          0.2,
+          1.0,
+          3.0,
+          6.0,
+          18.0,
+          56.0,
+          420.0,
+        ],
       },
       14: {
-        "low": [56.0, 18.0, 8.0, 3.8, 2.0, 1.2, 1.0, 1.0, 1.0, 1.2, 2.0, 3.8, 8.0, 18.0, 56.0],
-        "medium": [110.0, 18.0, 8.0, 3.8, 1.5, 1.0, 0.5, 0.2, 0.5, 1.0, 1.5, 3.8, 8.0, 18.0, 110.0],
-        "high": [620.0, 83.0, 27.0, 8.0, 3.0, 1.3, 0.5, 0.2, 0.5, 1.3, 3.0, 8.0, 27.0, 83.0, 620.0]
+        "low": [
+          56.0,
+          18.0,
+          8.0,
+          3.8,
+          2.0,
+          1.2,
+          1.0,
+          1.0,
+          1.0,
+          1.2,
+          2.0,
+          3.8,
+          8.0,
+          18.0,
+          56.0,
+        ],
+        "medium": [
+          110.0,
+          18.0,
+          8.0,
+          3.8,
+          1.5,
+          1.0,
+          0.5,
+          0.2,
+          0.5,
+          1.0,
+          1.5,
+          3.8,
+          8.0,
+          18.0,
+          110.0,
+        ],
+        "high": [
+          620.0,
+          83.0,
+          27.0,
+          8.0,
+          3.0,
+          1.3,
+          0.5,
+          0.2,
+          0.5,
+          1.3,
+          3.0,
+          8.0,
+          27.0,
+          83.0,
+          620.0,
+        ],
       },
       15: {
-        "low": [79.0, 24.0, 10.0, 4.8, 2.5, 1.5, 1.0, 1.0, 1.0, 1.0, 1.5, 2.5, 4.8, 10.0, 24.0, 79.0],
-        "medium": [180.0, 29.0, 11.0, 5.0, 2.0, 1.1, 0.6, 0.3, 0.3, 0.6, 1.1, 2.0, 5.0, 11.0, 29.0, 180.0],
-        "high": [1000.0, 130.0, 37.0, 11.0, 4.0, 1.5, 1.0, 0.5, 0.5, 1.0, 1.5, 4.0, 11.0, 37.0, 130.0, 1000.0]
+        "low": [
+          79.0,
+          24.0,
+          10.0,
+          4.8,
+          2.5,
+          1.5,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.5,
+          2.5,
+          4.8,
+          10.0,
+          24.0,
+          79.0,
+        ],
+        "medium": [
+          180.0,
+          29.0,
+          11.0,
+          5.0,
+          2.0,
+          1.1,
+          0.6,
+          0.3,
+          0.3,
+          0.6,
+          1.1,
+          2.0,
+          5.0,
+          11.0,
+          29.0,
+          180.0,
+        ],
+        "high": [
+          1000.0,
+          130.0,
+          37.0,
+          11.0,
+          4.0,
+          1.5,
+          1.0,
+          0.5,
+          0.5,
+          1.0,
+          1.5,
+          4.0,
+          11.0,
+          37.0,
+          130.0,
+          1000.0,
+        ],
       },
       16: {
-        "low": [110.0, 33.0, 12.0, 6.0, 3.0, 1.8, 1.2, 1.0, 1.0, 1.0, 1.2, 1.8, 3.0, 6.0, 12.0, 33.0, 110.0],
-        "medium": [260.0, 43.0, 15.0, 6.0, 3.0, 1.5, 1.0, 0.5, 0.3, 0.5, 1.0, 1.5, 3.0, 6.0, 15.0, 43.0, 260.0],
-        "high": [1000.0, 130.0, 43.0, 14.0, 5.0, 2.0, 1.3, 0.5, 0.2, 0.5, 1.3, 2.0, 5.0, 14.0, 43.0, 130.0, 1000.0]
-      }
+        "low": [
+          110.0,
+          33.0,
+          12.0,
+          6.0,
+          3.0,
+          1.8,
+          1.2,
+          1.0,
+          1.0,
+          1.0,
+          1.2,
+          1.8,
+          3.0,
+          6.0,
+          12.0,
+          33.0,
+          110.0,
+        ],
+        "medium": [
+          260.0,
+          43.0,
+          15.0,
+          6.0,
+          3.0,
+          1.5,
+          1.0,
+          0.5,
+          0.3,
+          0.5,
+          1.0,
+          1.5,
+          3.0,
+          6.0,
+          15.0,
+          43.0,
+          260.0,
+        ],
+        "high": [
+          1000.0,
+          130.0,
+          43.0,
+          14.0,
+          5.0,
+          2.0,
+          1.3,
+          0.5,
+          0.2,
+          0.5,
+          1.3,
+          2.0,
+          5.0,
+          14.0,
+          43.0,
+          130.0,
+          1000.0,
+        ],
+      },
     };
     return fallbacks[rows]?[risk] ?? List.filled(rows + 1, 1.0);
   }
 
   void _initializeMultiplierInputs() {
     _disposeMultiplierControllers();
-    final List<double> mList = _getFallbackMultipliers(_multSelectedRows, _multSelectedRisk);
+    final List<double> mList = _getFallbackMultipliers(
+      _multSelectedRows,
+      _multSelectedRisk,
+    );
     for (final val in mList) {
       _multiplierControllers.add(TextEditingController(text: val.toString()));
     }
@@ -300,7 +572,9 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
     // Default weights map: symmetric weight mirroring binomial
     final double step = 100.0 / (_rtpRows + 1);
     for (int i = 0; i <= _rtpRows; i++) {
-      _rtpWeightControllers.add(TextEditingController(text: step.toStringAsFixed(1)));
+      _rtpWeightControllers.add(
+        TextEditingController(text: step.toStringAsFixed(1)),
+      );
     }
   }
 
@@ -312,14 +586,20 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
 
     try {
       final statsResponse = await _apiClient.dio.get('/admin/plinko/stats');
-      final settingsResponse = await _apiClient.dio.get('/admin/plinko/settings');
+      final settingsResponse = await _apiClient.dio.get(
+        '/admin/plinko/settings',
+      );
       final logsResponse = await _apiClient.dio.get('/admin/plinko/logs');
       final rtpResponse = await _apiClient.dio.get('/admin/plinko/rtp');
 
       final stats = PlinkoStatsAdmin.fromJson(statsResponse.data);
       final settings = PlinkoSettingsAdmin.fromJson(settingsResponse.data);
-      final logs = (logsResponse.data as List).map((json) => PlinkoLogAdmin.fromJson(json)).toList();
-      final rtps = (rtpResponse.data as List).map((json) => PlinkoRtpOverride.fromJson(json)).toList();
+      final logs = (logsResponse.data as List)
+          .map((json) => PlinkoLogAdmin.fromJson(json))
+          .toList();
+      final rtps = (rtpResponse.data as List)
+          .map((json) => PlinkoRtpOverride.fromJson(json))
+          .toList();
 
       setState(() {
         _stats = stats;
@@ -339,7 +619,10 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
     } on DioException catch (e) {
       setState(() {
         _isLoading = false;
-        _error = e.response?.data['detail'] ?? e.message ?? 'Unknown network failure';
+        _error =
+            e.response?.data['detail'] ??
+            e.message ??
+            'Unknown network failure';
       });
     } catch (e) {
       setState(() {
@@ -367,7 +650,10 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
         },
       );
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Plinko limits updated successfully!'), backgroundColor: AdminTheme.success),
+        const SnackBar(
+          content: Text('Plinko limits updated successfully!'),
+          backgroundColor: AdminTheme.success,
+        ),
       );
       setState(() {
         _settings = PlinkoSettingsAdmin.fromJson(response.data);
@@ -375,7 +661,12 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
       });
     } on DioException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.response?.data['detail'] ?? 'Failed to update limits'), backgroundColor: AdminTheme.error),
+        SnackBar(
+          content: Text(
+            e.response?.data['detail'] ?? 'Failed to update limits',
+          ),
+          backgroundColor: AdminTheme.error,
+        ),
       );
       setState(() {
         _isLoading = false;
@@ -403,14 +694,22 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
         },
       );
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Multipliers override saved successfully!'), backgroundColor: AdminTheme.success),
+        const SnackBar(
+          content: Text('Multipliers override saved successfully!'),
+          backgroundColor: AdminTheme.success,
+        ),
       );
       setState(() {
         _isLoading = false;
       });
     } on DioException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.response?.data['detail'] ?? 'Failed to update multipliers'), backgroundColor: AdminTheme.error),
+        SnackBar(
+          content: Text(
+            e.response?.data['detail'] ?? 'Failed to update multipliers',
+          ),
+          backgroundColor: AdminTheme.error,
+        ),
       );
       setState(() {
         _isLoading = false;
@@ -433,7 +732,10 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
 
     if (totalWeight < 0.01) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Total probability weight cannot be zero'), backgroundColor: AdminTheme.error),
+        const SnackBar(
+          content: Text('Total probability weight cannot be zero'),
+          backgroundColor: AdminTheme.error,
+        ),
       );
       return;
     }
@@ -468,12 +770,20 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
         },
       );
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('RTP Override tier added successfully!'), backgroundColor: AdminTheme.success),
+        const SnackBar(
+          content: Text('RTP Override tier added successfully!'),
+          backgroundColor: AdminTheme.success,
+        ),
       );
       _refreshAll();
     } on DioException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.response?.data['detail'] ?? 'Failed to add RTP override'), backgroundColor: AdminTheme.error),
+        SnackBar(
+          content: Text(
+            e.response?.data['detail'] ?? 'Failed to add RTP override',
+          ),
+          backgroundColor: AdminTheme.error,
+        ),
       );
       setState(() {
         _isLoading = false;
@@ -488,12 +798,20 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
     try {
       await _apiClient.dio.delete('/admin/plinko/rtp/$id');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Override rule deleted successfully!'), backgroundColor: AdminTheme.success),
+        const SnackBar(
+          content: Text('Override rule deleted successfully!'),
+          backgroundColor: AdminTheme.success,
+        ),
       );
       _refreshAll();
     } on DioException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.response?.data['detail'] ?? 'Failed to delete override'), backgroundColor: AdminTheme.error),
+        SnackBar(
+          content: Text(
+            e.response?.data['detail'] ?? 'Failed to delete override',
+          ),
+          backgroundColor: AdminTheme.error,
+        ),
       );
       setState(() {
         _isLoading = false;
@@ -503,10 +821,15 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormatter = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
+    final currencyFormatter = NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: '₹',
+    );
 
     if (_isLoading && _stats == null) {
-      return const Center(child: CircularProgressIndicator(color: AdminTheme.primary));
+      return const Center(
+        child: CircularProgressIndicator(color: AdminTheme.primary),
+      );
     }
 
     if (_error != null) {
@@ -516,11 +839,18 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 50, color: AdminTheme.error),
+              const Icon(
+                Icons.error_outline,
+                size: 50,
+                color: AdminTheme.error,
+              ),
               const SizedBox(height: 12),
               Text(_error!, textAlign: TextAlign.center),
               const SizedBox(height: 12),
-              ElevatedButton(onPressed: _refreshAll, child: const Text('Retry')),
+              ElevatedButton(
+                onPressed: _refreshAll,
+                child: const Text('Retry'),
+              ),
             ],
           ),
         ),
@@ -537,7 +867,11 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
           children: [
             const Text(
               'Plinko Originals Controller',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AdminTheme.primary),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AdminTheme.primary,
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -562,7 +896,11 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
             // Log tables
             const Text(
               'Recent Plinko Stakes Logs',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AdminTheme.textMain),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AdminTheme.textMain,
+              ),
             ),
             const SizedBox(height: 12),
             _buildLogsList(currencyFormatter),
@@ -572,7 +910,10 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
     );
   }
 
-  Widget _buildStatsCardGrid(PlinkoStatsAdmin stats, NumberFormat currencyFormatter) {
+  Widget _buildStatsCardGrid(
+    PlinkoStatsAdmin stats,
+    NumberFormat currencyFormatter,
+  ) {
     return Column(
       children: [
         Row(
@@ -591,7 +932,9 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                 title: 'Net Profit',
                 value: currencyFormatter.format(stats.platformNetProfit),
                 icon: Icons.account_balance_wallet_outlined,
-                color: stats.platformNetProfit >= 0 ? AdminTheme.success : AdminTheme.error,
+                color: stats.platformNetProfit >= 0
+                    ? AdminTheme.success
+                    : AdminTheme.error,
               ),
             ),
           ],
@@ -617,7 +960,7 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
               ),
             ),
           ],
-        )
+        ),
       ],
     );
   }
@@ -640,12 +983,25 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(color: AdminTheme.textMuted, fontSize: 11)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: AdminTheme.textMuted,
+                      fontSize: 11,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AdminTheme.textMain)),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: AdminTheme.textMain,
+                    ),
+                  ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -667,7 +1023,11 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                   SizedBox(width: 8),
                   Text(
                     'Operational settings',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AdminTheme.textMain),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: AdminTheme.textMain,
+                    ),
                   ),
                 ],
               ),
@@ -693,8 +1053,14 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 activeColor: AdminTheme.error,
-                title: const Text('Maintenance Mode', style: TextStyle(fontSize: 14, color: AdminTheme.textMain)),
-                subtitle: const Text('Prevent players from placing Plinko stakes', style: TextStyle(fontSize: 12, color: AdminTheme.textMuted)),
+                title: const Text(
+                  'Maintenance Mode',
+                  style: TextStyle(fontSize: 14, color: AdminTheme.textMain),
+                ),
+                subtitle: const Text(
+                  'Prevent players from placing Plinko stakes',
+                  style: TextStyle(fontSize: 12, color: AdminTheme.textMuted),
+                ),
                 value: _maintenanceVal,
                 onChanged: (val) {
                   setState(() {
@@ -710,8 +1076,11 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 onPressed: _updateLimits,
-                child: const Text('SAVE LIMITS CONFIG', style: TextStyle(fontWeight: FontWeight.bold)),
-              )
+                child: const Text(
+                  'SAVE LIMITS CONFIG',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
             ],
           ),
         ),
@@ -733,7 +1102,11 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                 SizedBox(width: 8),
                 Text(
                   'Override Bucket Multipliers',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AdminTheme.textMain),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: AdminTheme.textMain,
+                  ),
                 ),
               ],
             ),
@@ -744,9 +1117,14 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                   child: DropdownButtonFormField<int>(
                     value: _multSelectedRows,
                     decoration: const InputDecoration(labelText: 'Rows'),
-                    dropdownColor: AdminTheme.cardBg,
+                    dropdownColor: AdminTheme.surface,
                     items: List.generate(7, (i) => 10 + i)
-                        .map((rows) => DropdownMenuItem<int>(value: rows, child: Text('$rows Rows')))
+                        .map(
+                          (rows) => DropdownMenuItem<int>(
+                            value: rows,
+                            child: Text('$rows Rows'),
+                          ),
+                        )
                         .toList(),
                     onChanged: (val) {
                       if (val != null) {
@@ -763,10 +1141,17 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                   child: DropdownButtonFormField<String>(
                     value: _multSelectedRisk,
                     decoration: const InputDecoration(labelText: 'Risk'),
-                    dropdownColor: AdminTheme.cardBg,
+                    dropdownColor: AdminTheme.surface,
                     items: ['low', 'medium', 'high']
-                        .map((risk) => DropdownMenuItem<String>(
-                            value: risk, child: Text(risk.substring(0, 1).toUpperCase() + risk.substring(1))))
+                        .map(
+                          (risk) => DropdownMenuItem<String>(
+                            value: risk,
+                            child: Text(
+                              risk.substring(0, 1).toUpperCase() +
+                                  risk.substring(1),
+                            ),
+                          ),
+                        )
                         .toList(),
                     onChanged: (val) {
                       if (val != null) {
@@ -777,7 +1162,7 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                       }
                     },
                   ),
-                )
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -794,13 +1179,21 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                   width: 68,
                   child: TextField(
                     controller: _multiplierControllers[index],
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     textAlign: TextAlign.center,
                     decoration: InputDecoration(
                       labelText: 'B$index',
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 4,
+                      ),
                     ),
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 );
               }),
@@ -813,8 +1206,11 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               onPressed: _updateMultipliers,
-              child: const Text('SAVE MULTIPLIERS OVERRIDE', style: TextStyle(fontWeight: FontWeight.bold)),
-            )
+              child: const Text(
+                'SAVE MULTIPLIERS OVERRIDE',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
       ),
@@ -835,7 +1231,11 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                 SizedBox(width: 8),
                 Text(
                   'RTP Probability Weight Overrides',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AdminTheme.textMain),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: AdminTheme.textMain,
+                  ),
                 ),
               ],
             ),
@@ -845,7 +1245,10 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
             if (_rtps.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 10.0),
-                child: Text('No active custom RTP profiles.', style: TextStyle(color: AdminTheme.textMuted, fontSize: 12)),
+                child: Text(
+                  'No active custom RTP profiles.',
+                  style: TextStyle(color: AdminTheme.textMuted, fontSize: 12),
+                ),
               )
             else
               ListView.builder(
@@ -867,20 +1270,31 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                               children: [
                                 Text(
                                   'Bets: ₹${rtp.minAmount.toInt()} - ₹${rtp.maxAmount.toInt()}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AdminTheme.textMain),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: AdminTheme.textMain,
+                                  ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   'Game: ${rtp.rows} Rows (${rtp.mode.toUpperCase()}) | Enabled: ${rtp.enabled}',
-                                  style: const TextStyle(color: AdminTheme.textMuted, fontSize: 11),
+                                  style: const TextStyle(
+                                    color: AdminTheme.textMuted,
+                                    fontSize: 11,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline, color: AdminTheme.error, size: 20),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: AdminTheme.error,
+                              size: 20,
+                            ),
                             onPressed: () => _deleteRtpOverride(rtp.id),
-                          )
+                          ),
                         ],
                       ),
                     ),
@@ -889,7 +1303,14 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
               ),
 
             const SizedBox(height: 16),
-            const Text('Add New RTP Override Tier:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AdminTheme.textMain)),
+            const Text(
+              'Add New RTP Override Tier:',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: AdminTheme.textMain,
+              ),
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -897,7 +1318,9 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                   child: TextFormField(
                     controller: _rtpMinAmountController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Min Bet (INR)'),
+                    decoration: const InputDecoration(
+                      labelText: 'Min Bet (INR)',
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -905,7 +1328,9 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                   child: TextFormField(
                     controller: _rtpMaxAmountController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Max Bet (INR)'),
+                    decoration: const InputDecoration(
+                      labelText: 'Max Bet (INR)',
+                    ),
                   ),
                 ),
               ],
@@ -917,9 +1342,14 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                   child: DropdownButtonFormField<int>(
                     value: _rtpRows,
                     decoration: const InputDecoration(labelText: 'Rows'),
-                    dropdownColor: AdminTheme.cardBg,
+                    dropdownColor: AdminTheme.surface,
                     items: List.generate(7, (i) => 10 + i)
-                        .map((rows) => DropdownMenuItem<int>(value: rows, child: Text('$rows Rows')))
+                        .map(
+                          (rows) => DropdownMenuItem<int>(
+                            value: rows,
+                            child: Text('$rows Rows'),
+                          ),
+                        )
                         .toList(),
                     onChanged: (val) {
                       if (val != null) {
@@ -936,10 +1366,17 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                   child: DropdownButtonFormField<String>(
                     value: _rtpRisk,
                     decoration: const InputDecoration(labelText: 'Risk'),
-                    dropdownColor: AdminTheme.cardBg,
+                    dropdownColor: AdminTheme.surface,
                     items: ['low', 'medium', 'high']
-                        .map((risk) => DropdownMenuItem<String>(
-                            value: risk, child: Text(risk.substring(0, 1).toUpperCase() + risk.substring(1))))
+                        .map(
+                          (risk) => DropdownMenuItem<String>(
+                            value: risk,
+                            child: Text(
+                              risk.substring(0, 1).toUpperCase() +
+                                  risk.substring(1),
+                            ),
+                          ),
+                        )
                         .toList(),
                     onChanged: (val) {
                       if (val != null) {
@@ -949,11 +1386,14 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                       }
                     },
                   ),
-                )
+                ),
               ],
             ),
             const SizedBox(height: 16),
-            const Text('Specify Landing Probability Weights (%):', style: TextStyle(fontSize: 12, color: AdminTheme.textMuted)),
+            const Text(
+              'Specify Landing Probability Weights (%):',
+              style: TextStyle(fontSize: 12, color: AdminTheme.textMuted),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -963,13 +1403,21 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                   width: 68,
                   child: TextField(
                     controller: _rtpWeightControllers[index],
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     textAlign: TextAlign.center,
                     decoration: InputDecoration(
                       labelText: 'P$index',
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 4,
+                      ),
                     ),
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 );
               }),
@@ -982,8 +1430,11 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               onPressed: _addRtpOverride,
-              child: const Text('CREATE RTP RULE', style: TextStyle(fontWeight: FontWeight.bold)),
-            )
+              child: const Text(
+                'CREATE RTP RULE',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
       ),
@@ -996,7 +1447,10 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
         child: Padding(
           padding: EdgeInsets.all(20.0),
           child: Center(
-            child: Text('No Plinko stakes logged yet.', style: TextStyle(color: AdminTheme.textMuted)),
+            child: Text(
+              'No Plinko stakes logged yet.',
+              style: TextStyle(color: AdminTheme.textMuted),
+            ),
           ),
         ),
       );
@@ -1019,7 +1473,9 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: (isWin ? AdminTheme.success : AdminTheme.warning).withOpacity(0.1),
+                  backgroundColor:
+                      (isWin ? AdminTheme.success : AdminTheme.warning)
+                          .withOpacity(0.1),
                   child: Icon(
                     isWin ? Icons.trending_up : Icons.trending_flat,
                     color: isWin ? AdminTheme.success : AdminTheme.warning,
@@ -1031,17 +1487,29 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        log.userName != null ? '${log.userName} (${log.userPhone})' : log.userPhone,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AdminTheme.textMain),
+                        log.userName != null
+                            ? '${log.userName} (${log.userPhone})'
+                            : log.userPhone,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: AdminTheme.textMain,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Bet: ${currencyFormatter.format(log.betAmount)} | ${log.rows} Rows (${log.mode.toUpperCase()})',
-                        style: const TextStyle(color: AdminTheme.textMuted, fontSize: 11),
+                        style: const TextStyle(
+                          color: AdminTheme.textMuted,
+                          fontSize: 11,
+                        ),
                       ),
                       Text(
                         timeStr,
-                        style: const TextStyle(color: AdminTheme.textMuted, fontSize: 11),
+                        style: const TextStyle(
+                          color: AdminTheme.textMuted,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
@@ -1060,10 +1528,13 @@ class _PlinkoPanelViewState extends State<PlinkoPanelView> {
                     const SizedBox(height: 2),
                     Text(
                       '${log.multiplier.toStringAsFixed(2)}x',
-                      style: const TextStyle(color: AdminTheme.textMuted, fontSize: 11),
+                      style: const TextStyle(
+                        color: AdminTheme.textMuted,
+                        fontSize: 11,
+                      ),
                     ),
                   ],
-                )
+                ),
               ],
             ),
           ),
