@@ -36,6 +36,7 @@ def migrate_database():
         ("last_name", "VARCHAR"),
         ("device_details", "VARCHAR"),
         ("last_login", "TIMESTAMP"),
+        ("plinko_bet_count", "INTEGER DEFAULT 0"),  # New user seeded win tracking
     ]
     for col_name, col_type in columns_users:
         try:

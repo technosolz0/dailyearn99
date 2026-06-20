@@ -22,6 +22,7 @@ class User(Base):
     fcm_token = Column(String, nullable=True)
     device_details = Column(String, nullable=True)
     last_login = Column(DateTime, nullable=True)
+    plinko_bet_count = Column(Integer, default=0)  # Tracks new user seeded wins (0–5 = first 6 bets seeded, 6+ = normal)
     
     # Bank Details for Withdrawals
     bank_account_number = Column(String, nullable=True)

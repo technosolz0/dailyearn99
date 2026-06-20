@@ -720,37 +720,7 @@ class PlinkoGameService:
         )
         db.add(tx_deduct)
 
-        # Path & bucket index logic
-        # First check for custom RTP settings for this bet amount
-        rtp = (
-            db.query(PlinkoRTP)
-            .filter(
-                PlinkoRTP.min_amount <= bet_amount,
-                PlinkoRTP.max_amount >= bet_amount,
-                PlinkoRTP.rows == rows,
-                PlinkoRTP.mode == mode,
-                PlinkoRTP.enabled == True
-            )
-            .first()
-        )
-
-        if rtp:
-            # Override probabilities
-            weights_map = json.loads(rtp.probability_json)
-            # Keys are indices (e.g. "0", "1", ...), values are float weights
-            outcomes = [int(k) for k in weights_map.keys()]
-            probabilities = list(weights_map.values())
-            final_bucket = random.choices(outcomes, weights=probabilities, k=1)[0]
-            # Construct a matching path with final_bucket right steps and (rows - final_bucket) left steps
-            steps = [1] * final_bucket + [0] * (rows - final_bucket)
-            random.shuffle(steps)
-            path = steps
-        else:
-            # Standard binomial path simulation
-            path = [random.choice([0, 1]) for _ in range(rows)]
-            final_bucket = sum(path)
-
-        # Fetch multipliers
+        # ─── Fetch multiplier table (needed for both seeded & normal paths) ───
         multiplier_record = (
             db.query(PlinkoMultiplier)
             .filter(PlinkoMultiplier.rows == rows, PlinkoMultiplier.mode == mode)
@@ -761,8 +731,74 @@ class PlinkoGameService:
         else:
             multipliers = cls.DEFAULT_MULTIPLIERS.get(rows, {}).get(mode, [1.0] * (rows + 1))
 
-        multiplier = float(multipliers[final_bucket])
-        win_amount = bet_amount * multiplier
+        # ─── NEW USER SEEDED WIN LOGIC (Pehle 6 bets par fixed multiplier sequence) ───
+        # Bet range ₹10–₹49  → sequence: 2.0x, 1.4x, 1.4x, 0.6x, 1.4x, 0.0x
+        # Bet range ₹50–₹100 → sequence: 1.4x, 1.2x, 1.5x, 0.6x, 0.5x, 2.0x
+        # After 6th bet OR bet amount outside ₹10–₹100 → normal RTP/random logic
+        NEW_USER_SEEDED_SEQUENCES = {
+            "low_range":  [2.0, 1.4, 1.4, 0.6, 1.4, 0.0],  # ₹10–₹49
+            "high_range": [1.4, 1.2, 1.5, 0.6, 0.5, 2.0],  # ₹50–₹100
+        }
+
+        is_new_user_bet = locked_user.plinko_bet_count < 6 and 10.0 <= bet_amount <= 100.0
+
+        if is_new_user_bet:
+            bet_index = locked_user.plinko_bet_count  # 0-based index (0 = 1st bet, 5 = 6th bet)
+
+            if bet_amount <= 49.99:
+                target_multiplier = NEW_USER_SEEDED_SEQUENCES["low_range"][bet_index]
+            else:
+                target_multiplier = NEW_USER_SEEDED_SEQUENCES["high_range"][bet_index]
+
+            # Find the bucket index whose multiplier is closest to the target
+            if target_multiplier == 0.0:
+                # Full loss: pick bucket with the lowest multiplier value
+                final_bucket = int(multipliers.index(min(multipliers)))
+            else:
+                final_bucket = int(
+                    min(range(len(multipliers)), key=lambda i: abs(multipliers[i] - target_multiplier))
+                )
+
+            # Construct ball path that lands in final_bucket
+            # (final_bucket = number of right-bounces = sum of path)
+            steps = [1] * final_bucket + [0] * (rows - final_bucket)
+            random.shuffle(steps)
+            path = steps
+
+            # Use exact seeded multiplier (not the bucket's real table value)
+            multiplier = target_multiplier
+            win_amount = round(bet_amount * multiplier, 2)
+
+        else:
+            # ─── Normal Path Generation (existing RTP / binomial logic) ───
+            rtp = (
+                db.query(PlinkoRTP)
+                .filter(
+                    PlinkoRTP.min_amount <= bet_amount,
+                    PlinkoRTP.max_amount >= bet_amount,
+                    PlinkoRTP.rows == rows,
+                    PlinkoRTP.mode == mode,
+                    PlinkoRTP.enabled == True
+                )
+                .first()
+            )
+
+            if rtp:
+                # Admin-configured weighted bucket selection
+                weights_map = json.loads(rtp.probability_json)
+                outcomes = [int(k) for k in weights_map.keys()]
+                probabilities = list(weights_map.values())
+                final_bucket = random.choices(outcomes, weights=probabilities, k=1)[0]
+                steps = [1] * final_bucket + [0] * (rows - final_bucket)
+                random.shuffle(steps)
+                path = steps
+            else:
+                # Standard binomial path simulation
+                path = [random.choice([0, 1]) for _ in range(rows)]
+                final_bucket = sum(path)
+
+            multiplier = float(multipliers[final_bucket])
+            win_amount = bet_amount * multiplier
 
         # Credit winnings if any
         if win_amount > 0:
@@ -792,6 +828,9 @@ class PlinkoGameService:
 
         # Trigger referral check
         ReferralService.check_and_trigger_referral(db, locked_user)
+
+        # Increment plinko bet count (used for new user seeded win tracking)
+        locked_user.plinko_bet_count += 1
 
         db.commit()
 
