@@ -19,6 +19,8 @@ import 'package:dailyearn99/features/lottery/repository/lottery_repository.dart'
 import 'package:dailyearn99/core/widgets/lottery_countdown_dialog.dart';
 import 'package:dailyearn99/core/utils/dependency_injection.dart';
 import 'package:dailyearn99/core/network/api_client.dart';
+import 'package:dailyearn99/features/mines/mines_game_screen.dart';
+import 'package:dailyearn99/features/plinko/plinko_game_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -356,6 +358,60 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ).then((_) {
                               context.read<AppBloc>().add(LoadProfileEvent());
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _buildFeaturedGameCard(
+                          context: context,
+                          title: 'Mines Originals',
+                          emoji: '💣',
+                          desc:
+                              'Stake style provably fair Mines. Select tiles & Cash Out instantly!',
+                          badge: 'HOT CASINO',
+                          colors: [
+                            const Color(0xFF0F212E),
+                            const Color(0xFF1E3545),
+                          ],
+                          borderColor: const Color(0xFF00E676),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const MinesGameScreen(),
+                              ),
+                            ).then((_) {
+                              if (context.mounted) {
+                                context.read<AppBloc>().add(LoadProfileEvent());
+                              }
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _buildFeaturedGameCard(
+                          context: context,
+                          title: 'Plinko Originals',
+                          emoji: '🔴',
+                          desc:
+                              'Drop balls down the peg pyramid, hit multipliers & multiply your stake!',
+                          badge: 'NEW CASINO',
+                          colors: [
+                            const Color(0xFF1E0E1B),
+                            const Color(0xFF33152C),
+                          ],
+                          borderColor: const Color(0xFFFF2D55),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const PlinkoGameScreen(),
+                              ),
+                            ).then((_) {
+                              if (context.mounted) {
+                                context.read<AppBloc>().add(LoadProfileEvent());
+                              }
                             });
                           },
                         ),

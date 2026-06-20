@@ -8,6 +8,8 @@ import 'package:de99_admin/features/users/views/users_view.dart';
 import 'package:de99_admin/features/requests/views/requests_view.dart';
 import 'package:de99_admin/features/contests/views/contests_view.dart';
 import 'package:de99_admin/features/notifications/views/notifications_view.dart';
+import 'package:de99_admin/features/mines/views/mines_panel_view.dart';
+import 'package:de99_admin/features/plinko/views/plinko_panel_view.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -24,6 +26,8 @@ class _DashboardViewState extends State<DashboardView> {
     'User Management',
     'Pending Requests',
     'Contests Controller',
+    'Mines Controller',
+    'Plinko Controller',
     'Notifications Manager',
   ];
 
@@ -182,6 +186,8 @@ class _DashboardViewState extends State<DashboardView> {
       const UsersView(),
       const RequestsView(),
       const ContestsView(),
+      const MinesPanelView(),
+      const PlinkoPanelView(),
       const NotificationsView(),
     ];
 
@@ -221,6 +227,7 @@ class _DashboardViewState extends State<DashboardView> {
         children: tabs,
       ),
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() {
@@ -251,6 +258,16 @@ class _DashboardViewState extends State<DashboardView> {
             icon: Icon(Icons.sports_esports_outlined),
             activeIcon: Icon(Icons.sports_esports),
             label: 'Contests',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.grid_on_outlined),
+            activeIcon: Icon(Icons.grid_on),
+            label: 'Mines',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.blur_linear_outlined),
+            activeIcon: Icon(Icons.blur_linear),
+            label: 'Plinko',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.notifications_active_outlined),

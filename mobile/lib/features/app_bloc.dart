@@ -12,6 +12,8 @@ import 'package:dailyearn99/core/constants/app_constants.dart';
 import 'package:dailyearn99/core/models/contest_model.dart';
 import 'package:dailyearn99/core/models/user_model.dart';
 import 'package:dailyearn99/core/models/spin_model.dart';
+import 'package:dailyearn99/core/models/mines_model.dart';
+import 'package:dailyearn99/core/models/plinko_model.dart';
 import 'package:dailyearn99/core/network/api_client.dart';
 import 'package:dailyearn99/core/network/secure_storage_service.dart';
 import 'package:dailyearn99/core/network/remote_config_service.dart';
@@ -64,6 +66,19 @@ class AppState {
   final List<SpinResultModel> spinHistory;
   final String? spinError;
 
+  // Mines Game
+  final bool isMinesLoading;
+  final MinesGameModel? activeMinesGame;
+  final List<MinesGameModel> minesHistory;
+  final String? minesError;
+
+  // Plinko Game
+  final bool isPlinkoLoading;
+  final PlinkoPlayResultModel? latestPlinkoResult;
+  final List<PlinkoPlayResultModel> plinkoHistory;
+  final String? plinkoError;
+  final PlinkoSettingsModel? plinkoSettings;
+
   // Dynamic Backend Config
   final BackendConfigModel? backendConfig;
 
@@ -90,6 +105,15 @@ class AppState {
     this.latestSpinResult,
     this.spinHistory = const [],
     this.spinError,
+    this.isMinesLoading = false,
+    this.activeMinesGame,
+    this.minesHistory = const [],
+    this.minesError,
+    this.isPlinkoLoading = false,
+    this.latestPlinkoResult,
+    this.plinkoHistory = const [],
+    this.plinkoError,
+    this.plinkoSettings,
     this.updateRequired = false,
     this.updateOptional = false,
     this.updateUrl,
@@ -121,6 +145,15 @@ class AppState {
     SpinResultModel? latestSpinResult,
     List<SpinResultModel>? spinHistory,
     String? spinError,
+    bool? isMinesLoading,
+    MinesGameModel? activeMinesGame,
+    List<MinesGameModel>? minesHistory,
+    String? minesError,
+    bool? isPlinkoLoading,
+    PlinkoPlayResultModel? latestPlinkoResult,
+    List<PlinkoPlayResultModel>? plinkoHistory,
+    String? plinkoError,
+    PlinkoSettingsModel? plinkoSettings,
     bool? updateRequired,
     bool? updateOptional,
     String? updateUrl,
@@ -134,6 +167,10 @@ class AppState {
     bool clearReferralError = false,
     bool clearSpinError = false,
     bool clearLatestSpinResult = false,
+    bool clearMinesError = false,
+    bool clearActiveMinesGame = false,
+    bool clearPlinkoError = false,
+    bool clearLatestPlinkoResult = false,
   }) {
     return AppState(
       isAuthLoading: isAuthLoading ?? this.isAuthLoading,
@@ -167,6 +204,19 @@ class AppState {
           : (latestSpinResult ?? this.latestSpinResult),
       spinHistory: spinHistory ?? this.spinHistory,
       spinError: clearSpinError ? null : (spinError ?? this.spinError),
+      isMinesLoading: isMinesLoading ?? this.isMinesLoading,
+      activeMinesGame: clearActiveMinesGame
+          ? null
+          : (activeMinesGame ?? this.activeMinesGame),
+      minesHistory: minesHistory ?? this.minesHistory,
+      minesError: clearMinesError ? null : (minesError ?? this.minesError),
+      isPlinkoLoading: isPlinkoLoading ?? this.isPlinkoLoading,
+      latestPlinkoResult: clearLatestPlinkoResult
+          ? null
+          : (latestPlinkoResult ?? this.latestPlinkoResult),
+      plinkoHistory: plinkoHistory ?? this.plinkoHistory,
+      plinkoError: clearPlinkoError ? null : (plinkoError ?? this.plinkoError),
+      plinkoSettings: plinkoSettings ?? this.plinkoSettings,
       updateRequired: updateRequired ?? this.updateRequired,
       updateOptional: updateOptional ?? this.updateOptional,
       updateUrl: updateUrl ?? this.updateUrl,
@@ -279,6 +329,42 @@ class FetchSpinHistoryEvent extends AppEvent {}
 
 class ResetSpinEvent extends AppEvent {}
 
+class StartMinesGameEvent extends AppEvent {
+  final double betAmount;
+  final int minesCount;
+  StartMinesGameEvent(this.betAmount, this.minesCount);
+}
+
+class RevealMinesCellEvent extends AppEvent {
+  final int gameId;
+  final int position;
+  RevealMinesCellEvent(this.gameId, this.position);
+}
+
+class CashoutMinesGameEvent extends AppEvent {
+  final int gameId;
+  CashoutMinesGameEvent(this.gameId);
+}
+
+class FetchActiveMinesGameEvent extends AppEvent {}
+
+class FetchMinesHistoryEvent extends AppEvent {}
+
+class ResetMinesEvent extends AppEvent {}
+
+class PlayPlinkoEvent extends AppEvent {
+  final double betAmount;
+  final int rows;
+  final String mode;
+  PlayPlinkoEvent(this.betAmount, this.rows, this.mode);
+}
+
+class FetchPlinkoHistoryEvent extends AppEvent {}
+
+class FetchPlinkoSettingsEvent extends AppEvent {}
+
+class ResetPlinkoEvent extends AppEvent {}
+
 class RegisterFcmTokenEvent extends AppEvent {
   final String fcmToken;
   RegisterFcmTokenEvent(this.fcmToken);
@@ -318,6 +404,16 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     on<PlaySpinWheelEvent>(_onPlaySpinWheel);
     on<FetchSpinHistoryEvent>(_onFetchSpinHistory);
     on<ResetSpinEvent>(_onResetSpin);
+    on<StartMinesGameEvent>(_onStartMinesGame);
+    on<RevealMinesCellEvent>(_onRevealMinesCell);
+    on<CashoutMinesGameEvent>(_onCashoutMinesGame);
+    on<FetchActiveMinesGameEvent>(_onFetchActiveMinesGame);
+    on<FetchMinesHistoryEvent>(_onFetchMinesHistory);
+    on<ResetMinesEvent>(_onResetMines);
+    on<PlayPlinkoEvent>(_onPlayPlinko);
+    on<FetchPlinkoHistoryEvent>(_onFetchPlinkoHistory);
+    on<FetchPlinkoSettingsEvent>(_onFetchPlinkoSettings);
+    on<ResetPlinkoEvent>(_onResetPlinko);
   }
 
   Future<String> _getDeviceDetails() async {
@@ -1220,6 +1316,220 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         serverMinVersion: state.serverMinVersion,
         serverLatestVersion: state.serverLatestVersion,
         backendConfig: state.backendConfig,
+      ),
+    );
+  }
+
+  Future<void> _onStartMinesGame(
+    StartMinesGameEvent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        isMinesLoading: true,
+        clearMinesError: true,
+        clearActiveMinesGame: true,
+      ),
+    );
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.minesStart,
+        data: {
+          'bet_amount': event.betAmount,
+          'mines_count': event.minesCount,
+        },
+      );
+      final game = MinesGameModel.fromJson(response.data);
+      emit(state.copyWith(isMinesLoading: false, activeMinesGame: game));
+      add(LoadProfileEvent());
+    } catch (e, stackTrace) {
+      emit(
+        state.copyWith(
+          isMinesLoading: false,
+          minesError: ErrorHandler.handle(e, stackTrace),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onRevealMinesCell(
+    RevealMinesCellEvent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(state.copyWith(isMinesLoading: true, clearMinesError: true));
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.minesReveal,
+        data: {
+          'game_id': event.gameId,
+          'position': event.position,
+        },
+      );
+      final game = MinesGameModel.fromJson(response.data);
+      emit(state.copyWith(isMinesLoading: false, activeMinesGame: game));
+      if (!game.isInProgress) {
+        add(LoadProfileEvent());
+      }
+    } catch (e, stackTrace) {
+      emit(
+        state.copyWith(
+          isMinesLoading: false,
+          minesError: ErrorHandler.handle(e, stackTrace),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onCashoutMinesGame(
+    CashoutMinesGameEvent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(state.copyWith(isMinesLoading: true, clearMinesError: true));
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.minesCashout,
+        data: {
+          'game_id': event.gameId,
+        },
+      );
+      final game = MinesGameModel.fromJson(response.data);
+      emit(state.copyWith(isMinesLoading: false, activeMinesGame: game));
+      add(LoadProfileEvent());
+    } catch (e, stackTrace) {
+      emit(
+        state.copyWith(
+          isMinesLoading: false,
+          minesError: ErrorHandler.handle(e, stackTrace),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onFetchActiveMinesGame(
+    FetchActiveMinesGameEvent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(state.copyWith(isMinesLoading: true, clearMinesError: true));
+    try {
+      final response = await _apiClient.get(ApiConstants.minesActive);
+      if (response.data != null) {
+        final game = MinesGameModel.fromJson(response.data);
+        emit(state.copyWith(isMinesLoading: false, activeMinesGame: game));
+      } else {
+        emit(state.copyWith(isMinesLoading: false, clearActiveMinesGame: true));
+      }
+    } catch (e, stackTrace) {
+      emit(
+        state.copyWith(
+          isMinesLoading: false,
+          minesError: ErrorHandler.handle(e, stackTrace),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onFetchMinesHistory(
+    FetchMinesHistoryEvent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(state.copyWith(isMinesLoading: true, clearMinesError: true));
+    try {
+      final response = await _apiClient.get(ApiConstants.minesHistory);
+      final list = (response.data as List)
+          .map((json) => MinesGameModel.fromJson(json))
+          .toList();
+      emit(state.copyWith(isMinesLoading: false, minesHistory: list));
+    } catch (e, stackTrace) {
+      emit(
+        state.copyWith(
+          isMinesLoading: false,
+          minesError: ErrorHandler.handle(e, stackTrace),
+        ),
+      );
+    }
+  }
+
+  void _onResetMines(ResetMinesEvent event, Emitter<AppState> emit) {
+    emit(
+      state.copyWith(
+        clearMinesError: true,
+        clearActiveMinesGame: true,
+      ),
+    );
+  }
+
+  Future<void> _onPlayPlinko(
+    PlayPlinkoEvent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(state.copyWith(isPlinkoLoading: true, clearPlinkoError: true, clearLatestPlinkoResult: true));
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.plinkoPlay,
+        data: {
+          'bet_amount': event.betAmount,
+          'rows': event.rows,
+          'mode': event.mode,
+        },
+      );
+      final result = PlinkoPlayResultModel.fromJson(response.data);
+      emit(state.copyWith(isPlinkoLoading: false, latestPlinkoResult: result));
+      add(LoadProfileEvent());
+    } catch (e, stackTrace) {
+      emit(
+        state.copyWith(
+          isPlinkoLoading: false,
+          plinkoError: ErrorHandler.handle(e, stackTrace),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onFetchPlinkoHistory(
+    FetchPlinkoHistoryEvent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(state.copyWith(isPlinkoLoading: true, clearPlinkoError: true));
+    try {
+      final response = await _apiClient.get(ApiConstants.plinkoHistory);
+      final list = (response.data as List)
+          .map((json) => PlinkoPlayResultModel.fromJson(json))
+          .toList();
+      emit(state.copyWith(isPlinkoLoading: false, plinkoHistory: list));
+    } catch (e, stackTrace) {
+      emit(
+        state.copyWith(
+          isPlinkoLoading: false,
+          plinkoError: ErrorHandler.handle(e, stackTrace),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onFetchPlinkoSettings(
+    FetchPlinkoSettingsEvent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(state.copyWith(isPlinkoLoading: true, clearPlinkoError: true));
+    try {
+      final response = await _apiClient.get(ApiConstants.plinkoSettings);
+      final settings = PlinkoSettingsModel.fromJson(response.data);
+      emit(state.copyWith(isPlinkoLoading: false, plinkoSettings: settings));
+    } catch (e, stackTrace) {
+      emit(
+        state.copyWith(
+          isPlinkoLoading: false,
+          plinkoError: ErrorHandler.handle(e, stackTrace),
+        ),
+      );
+    }
+  }
+
+  void _onResetPlinko(ResetPlinkoEvent event, Emitter<AppState> emit) {
+    emit(
+      state.copyWith(
+        clearPlinkoError: true,
+        clearLatestPlinkoResult: true,
       ),
     );
   }

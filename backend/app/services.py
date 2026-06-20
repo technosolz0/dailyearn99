@@ -32,7 +32,7 @@ from app.models import ImagePuzzleGame
 from app.models import ImagePuzzleLeaderboard
 from app.models import RTPSettings
 from app.models import Spin as SpinModel, SpinAuditLog as AuditLogModel
-from app.models import User, Contest, ContestParticipant, WalletTransaction, Referral, Spin, WordContest, WordQuestion, WordAttempt, WordAnswer, WordLeaderboard, LotteryDraw, LotteryTicket
+from app.models import User, Contest, ContestParticipant, WalletTransaction, Referral, Spin, WordContest, WordQuestion, WordAttempt, WordAnswer, WordLeaderboard, LotteryDraw, LotteryTicket, MinesGame, MinesSetting, PlinkoGame, PlinkoSetting, PlinkoMultiplier, PlinkoRTP
 from app.websocket import arrow_leaderboard_manager, arrow_ws_manager
 from app.websocket import fruit_leaderboard_manager, fruit_ws_manager
 from app.websocket import puzzle_leaderboard_manager
@@ -583,6 +583,219 @@ class SpinGameService:
             )
 
         return spin
+
+
+class PlinkoGameService:
+    DEFAULT_MULTIPLIERS = {
+        10: {
+            "low": [16.0, 9.0, 2.0, 1.4, 1.1, 1.0, 1.1, 1.4, 2.0, 9.0, 16.0],
+            "medium": [22.0, 5.0, 2.0, 1.4, 0.6, 0.4, 0.6, 1.4, 2.0, 5.0, 22.0],
+            "high": [110.0, 15.0, 4.0, 1.8, 0.7, 0.3, 0.7, 1.8, 4.0, 15.0, 110.0]
+        },
+        11: {
+            "low": [24.0, 10.0, 3.0, 1.8, 1.2, 1.0, 1.0, 1.2, 1.8, 3.0, 10.0, 24.0],
+            "medium": [33.0, 8.0, 3.0, 1.6, 0.7, 0.5, 0.5, 0.7, 1.6, 3.0, 8.0, 33.0],
+            "high": [170.0, 24.0, 8.1, 2.0, 0.7, 0.2, 0.2, 0.7, 2.0, 8.1, 24.0, 170.0]
+        },
+        12: {
+            "low": [33.0, 11.0, 4.0, 2.0, 1.3, 1.1, 1.0, 1.1, 1.3, 2.0, 4.0, 11.0, 33.0],
+            "medium": [50.0, 11.0, 4.0, 2.0, 1.1, 0.6, 0.3, 0.6, 1.1, 2.0, 4.0, 11.0, 50.0],
+            "high": [260.0, 33.0, 11.0, 4.0, 2.0, 0.5, 0.2, 0.5, 2.0, 4.0, 11.0, 33.0, 260.0]
+        },
+        13: {
+            "low": [43.0, 13.0, 6.0, 3.0, 1.3, 1.2, 1.0, 1.0, 1.2, 1.3, 3.0, 6.0, 13.0, 43.0],
+            "medium": [76.0, 14.0, 6.0, 3.0, 1.3, 0.7, 0.4, 0.4, 0.7, 1.3, 3.0, 6.0, 14.0, 76.0],
+            "high": [420.0, 56.0, 18.0, 6.0, 3.0, 1.0, 0.2, 0.2, 1.0, 3.0, 6.0, 18.0, 56.0, 420.0]
+        },
+        14: {
+            "low": [56.0, 18.0, 8.0, 3.8, 2.0, 1.2, 1.0, 1.0, 1.0, 1.2, 2.0, 3.8, 8.0, 18.0, 56.0],
+            "medium": [110.0, 18.0, 8.0, 3.8, 1.5, 1.0, 0.5, 0.2, 0.5, 1.0, 1.5, 3.8, 8.0, 18.0, 110.0],
+            "high": [620.0, 83.0, 27.0, 8.0, 3.0, 1.3, 0.5, 0.2, 0.5, 1.3, 3.0, 8.0, 27.0, 83.0, 620.0]
+        },
+        15: {
+            "low": [79.0, 24.0, 10.0, 4.8, 2.5, 1.5, 1.0, 1.0, 1.0, 1.0, 1.5, 2.5, 4.8, 10.0, 24.0, 79.0],
+            "medium": [180.0, 29.0, 11.0, 5.0, 2.0, 1.1, 0.6, 0.3, 0.3, 0.6, 1.1, 2.0, 5.0, 11.0, 29.0, 180.0],
+            "high": [1000.0, 130.0, 37.0, 11.0, 4.0, 1.5, 1.0, 0.5, 0.5, 1.0, 1.5, 4.0, 11.0, 37.0, 130.0, 1000.0]
+        },
+        16: {
+            "low": [110.0, 33.0, 12.0, 6.0, 3.0, 1.8, 1.2, 1.0, 1.0, 1.0, 1.2, 1.8, 3.0, 6.0, 12.0, 33.0, 110.0],
+            "medium": [260.0, 43.0, 15.0, 6.0, 3.0, 1.5, 1.0, 0.5, 0.3, 0.5, 1.0, 1.5, 3.0, 6.0, 15.0, 43.0, 260.0],
+            "high": [1000.0, 130.0, 43.0, 14.0, 5.0, 2.0, 1.3, 0.5, 0.2, 0.5, 1.3, 2.0, 5.0, 14.0, 43.0, 130.0, 1000.0]
+        }
+    }
+
+    _maintenance_mode = False
+
+    @classmethod
+    def set_maintenance_mode(cls, enabled: bool):
+        cls._maintenance_mode = enabled
+
+    @classmethod
+    def is_maintenance_mode(cls) -> bool:
+        return cls._maintenance_mode
+
+    @classmethod
+    def play_plinko(
+        cls,
+        db: Session,
+        user_id: int,
+        bet_amount: float,
+        rows: int,
+        mode: str
+    ) -> PlinkoGame:
+        # Load settings
+        settings = db.query(PlinkoSetting).first()
+        if not settings:
+            settings = PlinkoSetting(min_bet=10.0, max_bet=5000.0, maintenance_mode=False)
+            db.add(settings)
+            db.commit()
+            db.refresh(settings)
+
+        if settings.maintenance_mode or cls._maintenance_mode:
+            raise ValueError("Plinko is currently under maintenance. Please try again later.")
+
+        if bet_amount < settings.min_bet or bet_amount > settings.max_bet:
+            raise ValueError(f"Bet amount must be between ₹{settings.min_bet:.2f} and ₹{settings.max_bet:.2f}.")
+
+        # Check KYC
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise ValueError("User not found.")
+        if user.is_banned:
+            raise ValueError("User account is banned.")
+        if user.kyc_status == "REJECTED":
+            raise ValueError("KYC has been rejected. Game access restricted.")
+
+        # Check daily limits
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        daily_bet_sum = (
+            db.query(func.sum(PlinkoGame.bet_amount))
+            .filter(PlinkoGame.user_id == user_id, PlinkoGame.created_at >= today_start)
+            .scalar()
+        ) or 0.0
+        if daily_bet_sum + bet_amount > 100000.0:
+            raise ValueError("Daily gaming limit reached (₹100000). Keep gaming responsible!")
+
+        # Lock user wallet
+        locked_user = (
+            db.query(User)
+            .filter(User.id == user_id)
+            .with_for_update()
+            .first()
+        )
+
+        # Deduct wallet: Max 20% bonus balance, rest from Deposit -> Winnings
+        bonus_limit = bet_amount * 0.20
+        bonus_to_deduct = min(locked_user.bonus_balance, bonus_limit)
+        remaining_fee = bet_amount - bonus_to_deduct
+
+        deposit_to_deduct = min(locked_user.deposit_balance, remaining_fee)
+        winnings_to_deduct = remaining_fee - deposit_to_deduct
+
+        if winnings_to_deduct > locked_user.winning_balance:
+            raise ValueError("Insufficient wallet balance for this bet.")
+
+        # Deduct wallet
+        locked_user.bonus_balance -= bonus_to_deduct
+        locked_user.deposit_balance -= deposit_to_deduct
+        locked_user.winning_balance -= winnings_to_deduct
+
+        # Record plinko charge transaction
+        tx_deduct = WalletTransaction(
+            user_id=user_id,
+            type="ENTRY_FEE",
+            amount=bet_amount,
+            status="SUCCESS",
+            description="Entry Fee: Plinko Game"
+        )
+        db.add(tx_deduct)
+
+        # Path & bucket index logic
+        # First check for custom RTP settings for this bet amount
+        rtp = (
+            db.query(PlinkoRTP)
+            .filter(
+                PlinkoRTP.min_amount <= bet_amount,
+                PlinkoRTP.max_amount >= bet_amount,
+                PlinkoRTP.rows == rows,
+                PlinkoRTP.mode == mode,
+                PlinkoRTP.enabled == True
+            )
+            .first()
+        )
+
+        if rtp:
+            # Override probabilities
+            weights_map = json.loads(rtp.probability_json)
+            # Keys are indices (e.g. "0", "1", ...), values are float weights
+            outcomes = [int(k) for k in weights_map.keys()]
+            probabilities = list(weights_map.values())
+            final_bucket = random.choices(outcomes, weights=probabilities, k=1)[0]
+            # Construct a matching path with final_bucket right steps and (rows - final_bucket) left steps
+            steps = [1] * final_bucket + [0] * (rows - final_bucket)
+            random.shuffle(steps)
+            path = steps
+        else:
+            # Standard binomial path simulation
+            path = [random.choice([0, 1]) for _ in range(rows)]
+            final_bucket = sum(path)
+
+        # Fetch multipliers
+        multiplier_record = (
+            db.query(PlinkoMultiplier)
+            .filter(PlinkoMultiplier.rows == rows, PlinkoMultiplier.mode == mode)
+            .first()
+        )
+        if multiplier_record:
+            multipliers = json.loads(multiplier_record.multipliers_json)
+        else:
+            multipliers = cls.DEFAULT_MULTIPLIERS.get(rows, {}).get(mode, [1.0] * (rows + 1))
+
+        multiplier = float(multipliers[final_bucket])
+        win_amount = bet_amount * multiplier
+
+        # Credit winnings if any
+        if win_amount > 0:
+            locked_user.winning_balance += win_amount
+            tx_win = WalletTransaction(
+                user_id=user_id,
+                type="PRIZE_WIN",
+                amount=win_amount,
+                status="SUCCESS",
+                description="Prize Win: Plinko Game"
+            )
+            db.add(tx_win)
+
+        # Save game
+        game = PlinkoGame(
+            user_id=user_id,
+            bet_amount=bet_amount,
+            rows=rows,
+            mode=mode,
+            path=json.dumps(path),
+            final_bucket=final_bucket,
+            multiplier=multiplier,
+            win_amount=win_amount
+        )
+        db.add(game)
+        db.flush()
+
+        # Trigger referral check
+        ReferralService.check_and_trigger_referral(db, locked_user)
+
+        db.commit()
+
+        # Send push notification for significant wins (>3x)
+        if multiplier >= 3.0:
+            send_push_to_user(
+                db,
+                user_id,
+                title="🔥 MASSSIVE PLINKO WIN!",
+                body=f"Congratulations! You hit a {multiplier}x multiplier and won ₹{win_amount:.2f} on Plinko!"
+            )
+
+        game.updated_balance = locked_user.winning_balance + locked_user.deposit_balance + locked_user.bonus_balance
+        return game
 
 
 class ContestService:
@@ -2396,6 +2609,263 @@ class LotteryService:
         draw.status = "CANCELLED"
         db.commit()
         return {"message": f"Draw cancelled. Refunded {refund_count} tickets successfully."}
+
+
+class MinesGameService:
+    @staticmethod
+    def calculate_multiplier(mines_count: int, revealed_count: int, house_edge: float = 0.03) -> float:
+        if revealed_count <= 0:
+            return 1.0
+        total_cells = 25
+        gems_count = total_cells - mines_count
+        if revealed_count > gems_count:
+            return 0.0
+        
+        # Fair multiplier = nCr(25, N) / nCr(25 - M, N)
+        import math
+        ways_total = math.comb(total_cells, revealed_count)
+        ways_gems = math.comb(gems_count, revealed_count)
+        if ways_gems == 0:
+            return 0.0
+        
+        fair_multiplier = ways_total / ways_gems
+        # Apply RTP / house edge
+        multiplier = fair_multiplier * (1.0 - house_edge)
+        return round(multiplier, 2)
+
+    @staticmethod
+    def start_game(db: Session, user_id: int, bet_amount: float, mines_count: int) -> MinesGame:
+        from app.models import User, MinesGame, MinesSetting, WalletTransaction
+        import random
+        import json
+        
+        # 1. Fetch settings
+        settings = db.query(MinesSetting).first()
+        if not settings:
+            # Fallback settings
+            settings = MinesSetting(house_edge=0.03, min_bet=10.0, max_bet=5000.0, maintenance_mode=False)
+            db.add(settings)
+            db.commit()
+            db.refresh(settings)
+            
+        if settings.maintenance_mode:
+            raise ValueError("Mines game is currently under maintenance. Please try again later.")
+            
+        if bet_amount < settings.min_bet or bet_amount > settings.max_bet:
+            raise ValueError(f"Bet amount must be between ₹{settings.min_bet:.2f} and ₹{settings.max_bet:.2f}")
+
+        # 2. Check user status
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise ValueError("User not found.")
+        if user.is_banned:
+            raise ValueError("User account is banned.")
+        if user.kyc_status == "REJECTED":
+            raise ValueError("KYC has been rejected. Game access restricted.")
+
+        # 3. Check for active game
+        active_game = db.query(MinesGame).filter(
+            MinesGame.user_id == user_id,
+            MinesGame.status == "IN_PROGRESS"
+        ).first()
+        if active_game:
+            raise ValueError("You have an active game in progress. Please settle it first.")
+
+        # 4. Lock user balance and deduct bet_amount
+        locked_user = db.query(User).filter(User.id == user_id).with_for_update().first()
+        
+        # Deduct wallet: Max 20% bonus balance, rest from Deposit -> Winnings
+        bonus_limit = bet_amount * 0.20
+        bonus_to_deduct = min(locked_user.bonus_balance, bonus_limit)
+        remaining_fee = bet_amount - bonus_to_deduct
+
+        deposit_to_deduct = min(locked_user.deposit_balance, remaining_fee)
+        winnings_to_deduct = remaining_fee - deposit_to_deduct
+
+        if winnings_to_deduct > locked_user.winning_balance:
+            raise ValueError("Insufficient wallet balance for this bet.")
+
+        locked_user.bonus_balance -= bonus_to_deduct
+        locked_user.deposit_balance -= deposit_to_deduct
+        locked_user.winning_balance -= winnings_to_deduct
+
+        # Record transaction
+        tx_deduct = WalletTransaction(
+            user_id=user_id,
+            type="ENTRY_FEE",
+            amount=bet_amount,
+            status="SUCCESS",
+            description="Entry Fee: Mines Game"
+        )
+        db.add(tx_deduct)
+
+        # 5. Generate mine positions [0-24]
+        mines_positions = random.sample(range(25), mines_count)
+
+        # 6. Create game record
+        game = MinesGame(
+            user_id=user_id,
+            bet_amount=bet_amount,
+            mines_count=mines_count,
+            mines_positions=json.dumps(mines_positions),
+            revealed_positions="[]",
+            current_multiplier=1.0,
+            current_win=0.0,
+            status="IN_PROGRESS"
+        )
+        db.add(game)
+        db.commit()
+        db.refresh(game)
+        
+        # Set dynamic balance for response mapping
+        game.updated_balance = locked_user.winning_balance + locked_user.deposit_balance + locked_user.bonus_balance
+        return game
+
+    @staticmethod
+    def reveal_cell(db: Session, user_id: int, game_id: int, position: int) -> MinesGame:
+        from app.models import User, MinesGame, MinesSetting, WalletTransaction
+        import json
+
+        # 1. Fetch game session
+        game = db.query(MinesGame).filter(
+            MinesGame.id == game_id,
+            MinesGame.user_id == user_id
+        ).with_for_update().first()
+
+        if not game:
+            raise ValueError("Mines game record not found.")
+
+        if game.status != "IN_PROGRESS":
+            raise ValueError(f"Game is already completed (Status: {game.status}).")
+
+        # 2. Parse arrays
+        mines = json.loads(game.mines_positions)
+        revealed = json.loads(game.revealed_positions)
+
+        if position in revealed:
+            raise ValueError("Cell already revealed.")
+
+        # 3. Check if position is a mine
+        if position in mines:
+            # Player hit a mine: lose game
+            game.status = "LOST"
+            game.current_multiplier = 0.0
+            game.current_win = 0.0
+            db.commit()
+            
+            user = db.query(User).filter(User.id == user_id).first()
+            game.updated_balance = user.winning_balance + user.deposit_balance + user.bonus_balance
+            return game
+
+        # 4. Success: Gem revealed
+        revealed.append(position)
+        game.revealed_positions = json.dumps(revealed)
+
+        # Get settings for house edge
+        settings = db.query(MinesSetting).first()
+        house_edge = settings.house_edge if settings else 0.03
+
+        # Update multiplier & current win
+        new_multiplier = MinesGameService.calculate_multiplier(game.mines_count, len(revealed), house_edge)
+        game.current_multiplier = new_multiplier
+        game.current_win = game.bet_amount * new_multiplier
+
+        # Check if all gems are revealed (auto cashout)
+        total_cells = 25
+        gems_count = total_cells - game.mines_count
+        if len(revealed) == gems_count:
+            game.status = "WON"
+            
+            # Lock and update wallet
+            locked_user = db.query(User).filter(User.id == user_id).with_for_update().first()
+            locked_user.winning_balance += game.current_win
+
+            # Record win transaction
+            tx_win = WalletTransaction(
+                user_id=user_id,
+                type="PRIZE_WIN",
+                amount=game.current_win,
+                status="SUCCESS",
+                description="Prize Win: Mines Game (Clean Sweep)"
+            )
+            db.add(tx_win)
+            db.commit()
+
+            game.updated_balance = locked_user.winning_balance + locked_user.deposit_balance + locked_user.bonus_balance
+            
+            # Send notification
+            try:
+                send_push_to_user(
+                    db,
+                    user_id,
+                    title="🎉 Mines Sweep Winner!",
+                    body=f"Fantastic! You swept the board in Mines and won ₹{game.current_win:.2f}!"
+                )
+            except Exception:
+                pass
+        else:
+            db.commit()
+            user = db.query(User).filter(User.id == user_id).first()
+            game.updated_balance = user.winning_balance + user.deposit_balance + user.bonus_balance
+
+        return game
+
+    @staticmethod
+    def cash_out(db: Session, user_id: int, game_id: int) -> MinesGame:
+        from app.models import User, MinesGame, WalletTransaction
+        import json
+
+        # 1. Fetch game session
+        game = db.query(MinesGame).filter(
+            MinesGame.id == game_id,
+            MinesGame.user_id == user_id
+        ).with_for_update().first()
+
+        if not game:
+            raise ValueError("Mines game record not found.")
+
+        if game.status != "IN_PROGRESS":
+            raise ValueError(f"Game is already completed (Status: {game.status}).")
+
+        revealed = json.loads(game.revealed_positions)
+        if len(revealed) == 0:
+            raise ValueError("You must reveal at least one gem before cashing out.")
+
+        # 2. Process Cash Out
+        game.status = "WON"
+        win_amount = game.current_win
+
+        # Lock user wallet and credit winnings
+        locked_user = db.query(User).filter(User.id == user_id).with_for_update().first()
+        locked_user.winning_balance += win_amount
+
+        # Record win transaction
+        tx_win = WalletTransaction(
+            user_id=user_id,
+            type="PRIZE_WIN",
+            amount=win_amount,
+            status="SUCCESS",
+            description="Prize Win: Mines Cashout"
+        )
+        db.add(tx_win)
+        db.commit()
+
+        game.updated_balance = locked_user.winning_balance + locked_user.deposit_balance + locked_user.bonus_balance
+
+        # Send notification for big wins
+        if game.current_multiplier >= 3.0:
+            try:
+                send_push_to_user(
+                    db,
+                    user_id,
+                    title="🔥 Mines Big Winner!",
+                    body=f"Nice! You cashed out with a {game.current_multiplier}x multiplier and won ₹{win_amount:.2f}!"
+                )
+            except Exception:
+                pass
+
+        return game
+
 
 
 

@@ -859,6 +859,227 @@ class LotteryTicketResponse(BaseModel):
         from_attributes = True
 
 
+class MinesStartRequest(BaseModel):
+    bet_amount: float = Field(..., gt=0, description="Bet amount in INR")
+    mines_count: int = Field(..., ge=1, le=24, description="Number of mines on the board")
+
+
+class MinesRevealRequest(BaseModel):
+    game_id: int
+    position: int = Field(..., ge=0, le=24, description="Index of cell clicked [0-24]")
+
+
+class MinesCashoutRequest(BaseModel):
+    game_id: int
+
+
+class MinesGameResponse(BaseModel):
+    id: int
+    bet_amount: float
+    mines_count: int
+    revealed_positions: List[int]
+    current_multiplier: float
+    current_win: float
+    status: str
+    created_at: datetime
+    mines_positions: Optional[List[int]] = None
+    updated_balance: Optional[float] = None
+
+    @field_validator("created_at", mode="after", check_fields=False)
+    @classmethod
+    def make_utc(cls, v):
+        if v and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
+
+    @field_validator("revealed_positions", mode="before")
+    @classmethod
+    def parse_revealed_positions(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
+
+    @field_validator("mines_positions", mode="before")
+    @classmethod
+    def parse_mines_positions(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
+
+    class Config:
+        from_attributes = True
+
+
+class MinesSettingsResponse(BaseModel):
+    house_edge: float
+    min_bet: float
+    max_bet: float
+    maintenance_mode: bool
+    
+    class Config:
+        from_attributes = True
+
+
+class MinesSettingsUpdateRequest(BaseModel):
+    house_edge: float = Field(..., ge=0.0, le=0.5)
+    min_bet: float = Field(..., gt=0)
+    max_bet: float = Field(..., gt=0)
+    maintenance_mode: bool
+
+
+class MinesStatsResponse(BaseModel):
+    total_games: int
+    total_winnings_paid: float
+    total_bet_amount: float
+    platform_net_profit: float
+    payout_ratio: float
+
+
+class MinesLogAdminResponse(BaseModel):
+    id: int
+    user_id: int
+    user_phone: str
+    user_name: Optional[str] = None
+    bet_amount: float
+    mines_count: int
+    multiplier: float
+    win_amount: float
+    result_type: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PlinkoPlayRequest(BaseModel):
+    bet_amount: float = Field(..., gt=0, description="Bet amount in INR")
+    rows: int = Field(..., ge=10, le=16, description="Number of rows [10-16]")
+    mode: str = Field(..., description="Risk mode: low, medium, high")
+
+
+class PlinkoPlayResponse(BaseModel):
+    id: int
+    bet_amount: float
+    rows: int
+    mode: str
+    path: List[int]
+    final_bucket: int
+    multiplier: float
+    win_amount: float
+    created_at: datetime
+    updated_balance: float
+
+    @field_validator("created_at", mode="after", check_fields=False)
+    @classmethod
+    def make_utc(cls, v):
+        if v and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
+
+    @field_validator("path", mode="before")
+    @classmethod
+    def parse_path(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
+
+    class Config:
+        from_attributes = True
+
+
+class PlinkoSettingsResponse(BaseModel):
+    min_bet: float
+    max_bet: float
+    maintenance_mode: bool
+
+    class Config:
+        from_attributes = True
+
+
+class PlinkoSettingsUpdateRequest(BaseModel):
+    min_bet: float = Field(..., gt=0)
+    max_bet: float = Field(..., gt=0)
+    maintenance_mode: bool
+
+
+class PlinkoStatsResponse(BaseModel):
+    total_games: int
+    total_winnings_paid: float
+    total_bet_amount: float
+    platform_net_profit: float
+    payout_ratio: float
+
+
+class PlinkoLogAdminResponse(BaseModel):
+    id: int
+    user_id: int
+    user_phone: str
+    user_name: Optional[str] = None
+    bet_amount: float
+    rows: int
+    mode: str
+    multiplier: float
+    win_amount: float
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PlinkoMultiplierResponse(BaseModel):
+    id: int
+    rows: int
+    mode: str
+    multipliers_json: str
+
+    class Config:
+        from_attributes = True
+
+
+class PlinkoMultiplierUpdateRequest(BaseModel):
+    rows: int = Field(..., ge=10, le=16)
+    mode: str
+    multipliers_json: str
+
+
+class PlinkoRTPResponse(BaseModel):
+    id: int
+    min_amount: float
+    max_amount: float
+    rows: int
+    mode: str
+    probability_json: str
+    enabled: bool
+
+    class Config:
+        from_attributes = True
+
+
+class PlinkoRTPCreateRequest(BaseModel):
+    min_amount: float = Field(..., ge=0)
+    max_amount: float = Field(..., ge=0)
+    rows: int = Field(..., ge=10, le=16)
+    mode: str
+    probability_json: str
+    enabled: bool = True
+
+
+class PlinkoRTPUpdateRequest(BaseModel):
+    probability_json: str
+    enabled: bool
+
+
+
+
 
 
 

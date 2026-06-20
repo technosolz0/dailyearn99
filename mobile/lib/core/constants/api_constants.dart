@@ -59,6 +59,16 @@ class ApiConstants {
   static const String spinCreate = '/spin/create';
   static const String spinHistory = '/spin/history';
 
+  static const String minesStart = '/mines/start';
+  static const String minesReveal = '/mines/reveal';
+  static const String minesCashout = '/mines/cashout';
+  static const String minesActive = '/mines/active';
+  static const String minesHistory = '/mines/history';
+
+  static const String plinkoPlay = '/plinko/play';
+  static const String plinkoHistory = '/plinko/history';
+  static const String plinkoSettings = '/plinko/settings';
+
   static const String referralDetails = '/referral/details';
   static const String registerFcmToken = '/auth/fcm-token';
 

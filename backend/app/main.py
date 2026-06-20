@@ -9,7 +9,7 @@ import os
 from app.core.config import settings
 from app.core.database import engine, Base, get_db
 from app.models import Contest
-from app.api import auth, contests, wallet, referral, admin, spin, puzzle_game, admin_puzzle, word_game, admin_word, fruit_game, admin_fruit, notifications, arrow_game, admin_arrow, portfolio, lottery, admin_lottery
+from app.api import auth, contests, wallet, referral, admin, spin, puzzle_game, admin_puzzle, word_game, admin_word, fruit_game, admin_fruit, notifications, arrow_game, admin_arrow, portfolio, lottery, admin_lottery, mines_game, admin_mines, plinko_game, admin_plinko
 from app.websocket import manager, puzzle_ws_manager, word_ws_manager, fruit_ws_manager, arrow_ws_manager
 
 # Create database tables
@@ -19,7 +19,8 @@ from app.models import (
     WordContest, WordQuestion, WordAttempt, WordAnswer, WordLeaderboard,
     FruitContest, FruitMatch, FruitEvent, FruitScore, FruitLeaderboard,
     ArrowContest, ArrowGame, ArrowAttempt, ArrowLeaderboard, ArrowPuzzleSeed,
-    PortfolioConfig, PortfolioContactMessage, LotteryDraw, LotteryTicket, AdminFCMToken
+    PortfolioConfig, PortfolioContactMessage, LotteryDraw, LotteryTicket, AdminFCMToken,
+    MinesGame, MinesSetting, PlinkoGame, PlinkoSetting, PlinkoMultiplier, PlinkoRTP
 )  # Explicitly import to register on Base
 Base.metadata.create_all(bind=engine)
 
@@ -176,6 +177,9 @@ async def startup_event():
         # Seed test users
         seed_test_users(db)
         seed_rtp_settings(db)
+        from app.core.seeds import seed_mines_settings, seed_plinko_settings
+        seed_mines_settings(db)
+        seed_plinko_settings(db)
         
         # Seed central questions pool
         if db.query(Question).count() == 0:
@@ -555,6 +559,10 @@ app.include_router(admin_fruit.router, prefix=settings.API_V1_STR)
 app.include_router(arrow_game.router, prefix=settings.API_V1_STR)
 app.include_router(admin_arrow.router, prefix=settings.API_V1_STR)
 app.include_router(notifications.router, prefix=settings.API_V1_STR)
+app.include_router(mines_game.router, prefix=settings.API_V1_STR)
+app.include_router(admin_mines.router, prefix=settings.API_V1_STR)
+app.include_router(plinko_game.router, prefix=settings.API_V1_STR)
+app.include_router(admin_plinko.router, prefix=settings.API_V1_STR)
 
 # Realtime Leaderboard WebSocket endpoint
 @app.websocket("/ws/leaderboard/{contest_id}")

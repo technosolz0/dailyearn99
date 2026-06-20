@@ -279,6 +279,87 @@ def seed_rtp_settings(db: Session):
     db.commit()
 
 
+def seed_mines_settings(db: Session):
+    from app.models import MinesSetting
+    if db.query(MinesSetting).count() == 0:
+        settings = MinesSetting(
+            house_edge=0.03,
+            min_bet=10.0,
+            max_bet=5000.0,
+            maintenance_mode=False
+        )
+        db.add(settings)
+        db.commit()
+        print("Database Seeding: Populated default Mines settings.")
+
+
+def seed_plinko_settings(db: Session):
+    from app.models import PlinkoSetting, PlinkoMultiplier
+    import json
+
+    # 1. Seed global plinko settings if none exist
+    if db.query(PlinkoSetting).count() == 0:
+        settings = PlinkoSetting(
+            min_bet=10.0,
+            max_bet=5000.0,
+            maintenance_mode=False
+        )
+        db.add(settings)
+        db.commit()
+        print("Database Seeding: Populated default Plinko settings.")
+
+    # 2. Seed default Plinko multipliers if none exist
+    if db.query(PlinkoMultiplier).count() == 0:
+        # Default multipliers matching Low, Medium, High risk for Rows 10 to 16
+        multipliers_by_row_mode = {
+            10: {
+                "low": [16, 9, 2, 1.4, 1.1, 1, 1.1, 1.4, 2, 9, 16],
+                "medium": [22, 5, 2, 1.4, 0.6, 0.4, 0.6, 1.4, 2, 5, 22],
+                "high": [110, 15, 4, 1.8, 0.7, 0.3, 0.7, 1.8, 4, 15, 110]
+            },
+            11: {
+                "low": [24, 10, 3, 1.8, 1.2, 1, 1, 1.2, 1.8, 3, 10, 24],
+                "medium": [33, 8, 3, 1.6, 0.7, 0.5, 0.5, 0.7, 1.6, 3, 8, 33],
+                "high": [170, 24, 8.1, 2, 0.7, 0.2, 0.2, 0.7, 2, 8.1, 24, 170]
+            },
+            12: {
+                "low": [33, 11, 4, 2, 1.3, 1.1, 1, 1.1, 1.3, 2, 4, 11, 33],
+                "medium": [50, 11, 4, 2, 1.1, 0.6, 0.3, 0.6, 1.1, 2, 4, 11, 50],
+                "high": [260, 33, 11, 4, 2, 0.5, 0.2, 0.5, 2, 4, 11, 33, 260]
+            },
+            13: {
+                "low": [43, 13, 6, 3, 1.3, 1.2, 1, 1, 1.2, 1.3, 3, 6, 13, 43],
+                "medium": [76, 14, 6, 3, 1.3, 0.7, 0.4, 0.4, 0.7, 1.3, 3, 6, 14, 76],
+                "high": [420, 56, 18, 6, 3, 1, 0.2, 0.2, 1, 3, 6, 18, 56, 420]
+            },
+            14: {
+                "low": [56, 18, 8, 3.8, 2, 1.2, 1, 1, 1, 1.2, 2, 3.8, 8, 18, 56],
+                "medium": [110, 18, 8, 3.8, 1.5, 1, 0.5, 0.2, 0.5, 1, 1.5, 3.8, 8, 18, 110],
+                "high": [620, 83, 27, 8, 3, 1.3, 0.5, 0.2, 0.5, 1.3, 3, 8, 27, 83, 620]
+            },
+            15: {
+                "low": [79, 24, 10, 4.8, 2.5, 1.5, 1, 1, 1, 1, 1.5, 2.5, 4.8, 10, 24, 79],
+                "medium": [180, 29, 11, 5, 2, 1.1, 0.6, 0.3, 0.3, 0.6, 1.1, 2, 5, 11, 29, 180],
+                "high": [1000, 130, 37, 11, 4, 1.5, 1, 0.5, 0.5, 1, 1.5, 4, 11, 37, 130, 1000]
+            },
+            16: {
+                "low": [110, 33, 12, 6, 3, 1.8, 1.2, 1, 1, 1, 1.2, 1.8, 3, 6, 12, 33, 110],
+                "medium": [260, 43, 15, 6, 3, 1.5, 1, 0.5, 0.3, 0.5, 1, 1.5, 3, 6, 15, 43, 260],
+                "high": [1000, 130, 43, 14, 5, 2, 1.3, 0.5, 0.2, 0.5, 1.3, 2, 5, 14, 43, 130, 1000]
+            }
+        }
+        for rows, modes in multipliers_by_row_mode.items():
+            for mode, m_list in modes.items():
+                m = PlinkoMultiplier(
+                    rows=rows,
+                    mode=mode,
+                    multipliers_json=json.dumps(m_list)
+                )
+                db.add(m)
+        db.commit()
+        print("Database Seeding: Populated default Plinko multipliers.")
+
+
 if __name__ == "__main__":
     from app.core.database import SessionLocal
     db = SessionLocal()
@@ -288,8 +369,13 @@ if __name__ == "__main__":
         seed_test_users(db)
         print("Seeding RTP settings...")
         seed_rtp_settings(db)
+        print("Seeding Mines settings...")
+        seed_mines_settings(db)
+        print("Seeding Plinko settings...")
+        seed_plinko_settings(db)
         print("Database seeding completed successfully!")
     except Exception as e:
         print(f"Error during database seeding: {e}")
     finally:
         db.close()
+

@@ -635,3 +635,82 @@ class LotteryTicket(Base):
     draw = relationship("LotteryDraw", back_populates="tickets")
 
 
+class MinesGame(Base):
+    __tablename__ = "mines_games"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    bet_amount = Column(Float, nullable=False)
+    mines_count = Column(Integer, nullable=False)
+    mines_positions = Column(String, nullable=False)  # JSON-serialized list of 25 cell indices [0-24]
+    revealed_positions = Column(String, default="[]")  # JSON-serialized list of clicked safe cells [0-24]
+    current_multiplier = Column(Float, default=1.0)
+    current_win = Column(Float, default=0.0)
+    status = Column(String, default="IN_PROGRESS")  # IN_PROGRESS, WON, LOST
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User")
+
+
+class MinesSetting(Base):
+    __tablename__ = "mines_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    house_edge = Column(Float, default=0.03)  # default 3% edge (RTP = 97%)
+    min_bet = Column(Float, default=10.0)
+    max_bet = Column(Float, default=5000.0)
+    maintenance_mode = Column(Boolean, default=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class PlinkoGame(Base):
+    __tablename__ = "plinko_games"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    bet_amount = Column(Float, nullable=False)
+    rows = Column(Integer, nullable=False)  # 10 to 16
+    mode = Column(String, nullable=False)  # "low", "medium", "high"
+    path = Column(String, nullable=False)  # JSON list of left/right bounces e.g. [0, 1, 0, 1, 0, 0, 1, 1, 0, 1]
+    final_bucket = Column(Integer, nullable=False)  # 0 to rows
+    multiplier = Column(Float, nullable=False)
+    win_amount = Column(Float, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User")
+
+
+class PlinkoSetting(Base):
+    __tablename__ = "plinko_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    min_bet = Column(Float, default=10.0)
+    max_bet = Column(Float, default=5000.0)
+    maintenance_mode = Column(Boolean, default=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class PlinkoMultiplier(Base):
+    __tablename__ = "plinko_multipliers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    rows = Column(Integer, nullable=False)
+    mode = Column(String, nullable=False)  # "low", "medium", "high"
+    multipliers_json = Column(String, nullable=False)  # JSON-serialized list of floats of size rows + 1
+
+
+class PlinkoRTP(Base):
+    __tablename__ = "plinko_rtp_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    min_amount = Column(Float, nullable=False)
+    max_amount = Column(Float, nullable=False)
+    rows = Column(Integer, nullable=False)
+    mode = Column(String, nullable=False)  # "low", "medium", "high"
+    probability_json = Column(String, nullable=False)  # JSON representation of weights of size rows + 1
+    enabled = Column(Boolean, default=True)
+
+
+
+
