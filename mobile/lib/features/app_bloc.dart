@@ -14,6 +14,7 @@ import 'package:dailyearn99/core/models/user_model.dart';
 import 'package:dailyearn99/core/models/spin_model.dart';
 import 'package:dailyearn99/core/models/mines_model.dart';
 import 'package:dailyearn99/core/models/plinko_model.dart';
+import 'package:dailyearn99/core/models/blackjack_model.dart';
 import 'package:dailyearn99/core/network/api_client.dart';
 import 'package:dailyearn99/core/network/secure_storage_service.dart';
 import 'package:dailyearn99/core/network/remote_config_service.dart';
@@ -80,6 +81,13 @@ class AppState {
   final String? plinkoError;
   final PlinkoSettingsModel? plinkoSettings;
 
+  // Blackjack Game
+  final bool isBlackjackLoading;
+  final BlackjackGameModel? activeBlackjackGame;
+  final List<BlackjackGameModel> blackjackHistory;
+  final String? blackjackError;
+  final BlackjackSettingsModel? blackjackSettings;
+
   // Dynamic Backend Config
   final BackendConfigModel? backendConfig;
 
@@ -116,6 +124,11 @@ class AppState {
     this.plinkoHistory = const [],
     this.plinkoError,
     this.plinkoSettings,
+    this.isBlackjackLoading = false,
+    this.activeBlackjackGame,
+    this.blackjackHistory = const [],
+    this.blackjackError,
+    this.blackjackSettings,
     this.updateRequired = false,
     this.updateOptional = false,
     this.updateUrl,
@@ -157,6 +170,11 @@ class AppState {
     List<PlinkoPlayResultModel>? plinkoHistory,
     String? plinkoError,
     PlinkoSettingsModel? plinkoSettings,
+    bool? isBlackjackLoading,
+    BlackjackGameModel? activeBlackjackGame,
+    List<BlackjackGameModel>? blackjackHistory,
+    String? blackjackError,
+    BlackjackSettingsModel? blackjackSettings,
     bool? updateRequired,
     bool? updateOptional,
     String? updateUrl,
@@ -174,6 +192,8 @@ class AppState {
     bool clearActiveMinesGame = false,
     bool clearPlinkoError = false,
     bool clearLatestPlinkoResult = false,
+    bool clearBlackjackError = false,
+    bool clearActiveBlackjackGame = false,
   }) {
     return AppState(
       isAuthLoading: isAuthLoading ?? this.isAuthLoading,
@@ -221,6 +241,14 @@ class AppState {
       plinkoHistory: plinkoHistory ?? this.plinkoHistory,
       plinkoError: clearPlinkoError ? null : (plinkoError ?? this.plinkoError),
       plinkoSettings: plinkoSettings ?? this.plinkoSettings,
+      isBlackjackLoading: isBlackjackLoading ?? this.isBlackjackLoading,
+      activeBlackjackGame: clearActiveBlackjackGame
+          ? null
+          : (activeBlackjackGame ?? this.activeBlackjackGame),
+      blackjackHistory: blackjackHistory ?? this.blackjackHistory,
+      blackjackError:
+          clearBlackjackError ? null : (blackjackError ?? this.blackjackError),
+      blackjackSettings: blackjackSettings ?? this.blackjackSettings,
       updateRequired: updateRequired ?? this.updateRequired,
       updateOptional: updateOptional ?? this.updateOptional,
       updateUrl: updateUrl ?? this.updateUrl,
@@ -371,6 +399,40 @@ class FetchPlinkoSettingsEvent extends AppEvent {}
 
 class ResetPlinkoEvent extends AppEvent {}
 
+// Blackjack Events
+class StartBlackjackEvent extends AppEvent {
+  final double betAmount;
+  StartBlackjackEvent(this.betAmount);
+}
+
+class HitBlackjackEvent extends AppEvent {
+  final int gameId;
+  HitBlackjackEvent(this.gameId);
+}
+
+class StandBlackjackEvent extends AppEvent {
+  final int gameId;
+  StandBlackjackEvent(this.gameId);
+}
+
+class DoubleBlackjackEvent extends AppEvent {
+  final int gameId;
+  DoubleBlackjackEvent(this.gameId);
+}
+
+class SplitBlackjackEvent extends AppEvent {
+  final int gameId;
+  SplitBlackjackEvent(this.gameId);
+}
+
+class FetchActiveBlackjackEvent extends AppEvent {}
+
+class FetchBlackjackHistoryEvent extends AppEvent {}
+
+class FetchBlackjackSettingsEvent extends AppEvent {}
+
+class ResetBlackjackEvent extends AppEvent {}
+
 class RegisterFcmTokenEvent extends AppEvent {
   final String fcmToken;
   RegisterFcmTokenEvent(this.fcmToken);
@@ -421,6 +483,17 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     on<FetchPlinkoHistoryEvent>(_onFetchPlinkoHistory);
     on<FetchPlinkoSettingsEvent>(_onFetchPlinkoSettings);
     on<ResetPlinkoEvent>(_onResetPlinko);
+
+    // Blackjack
+    on<StartBlackjackEvent>(_onStartBlackjack);
+    on<HitBlackjackEvent>(_onHitBlackjack);
+    on<StandBlackjackEvent>(_onStandBlackjack);
+    on<DoubleBlackjackEvent>(_onDoubleBlackjack);
+    on<SplitBlackjackEvent>(_onSplitBlackjack);
+    on<FetchActiveBlackjackEvent>(_onFetchActiveBlackjack);
+    on<FetchBlackjackHistoryEvent>(_onFetchBlackjackHistory);
+    on<FetchBlackjackSettingsEvent>(_onFetchBlackjackSettings);
+    on<ResetBlackjackEvent>(_onResetBlackjack);
   }
 
   Future<String> _getDeviceDetails() async {
@@ -1323,6 +1396,11 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         serverMinVersion: state.serverMinVersion,
         serverLatestVersion: state.serverLatestVersion,
         backendConfig: state.backendConfig,
+        isBlackjackLoading: state.isBlackjackLoading,
+        activeBlackjackGame: state.activeBlackjackGame,
+        blackjackHistory: state.blackjackHistory,
+        blackjackError: state.blackjackError,
+        blackjackSettings: state.blackjackSettings,
       ),
     );
   }
@@ -1556,6 +1634,218 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       state.copyWith(
         clearPlinkoError: true,
         clearLatestPlinkoResult: true,
+      ),
+    );
+  }
+
+  // --- BLACKJACK GAME EVENT HANDLERS ---
+
+  Future<void> _onStartBlackjack(
+    StartBlackjackEvent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        isBlackjackLoading: true,
+        clearBlackjackError: true,
+        clearActiveBlackjackGame: true,
+      ),
+    );
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.blackjackStart,
+        data: {'bet_amount': event.betAmount},
+      );
+      final game = BlackjackGameModel.fromJson(response.data);
+      emit(state.copyWith(isBlackjackLoading: false, activeBlackjackGame: game));
+      add(LoadProfileEvent());
+    } catch (e, stackTrace) {
+      emit(
+        state.copyWith(
+          isBlackjackLoading: false,
+          blackjackError: ErrorHandler.handle(e, stackTrace),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onHitBlackjack(
+    HitBlackjackEvent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(state.copyWith(isBlackjackLoading: true, clearBlackjackError: true));
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.blackjackHit,
+        data: {'game_id': event.gameId},
+      );
+      final game = BlackjackGameModel.fromJson(response.data);
+      emit(state.copyWith(isBlackjackLoading: false, activeBlackjackGame: game));
+      if (!game.isInProgress) {
+        add(LoadProfileEvent());
+      }
+    } catch (e, stackTrace) {
+      emit(
+        state.copyWith(
+          isBlackjackLoading: false,
+          blackjackError: ErrorHandler.handle(e, stackTrace),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onStandBlackjack(
+    StandBlackjackEvent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(state.copyWith(isBlackjackLoading: true, clearBlackjackError: true));
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.blackjackStand,
+        data: {'game_id': event.gameId},
+      );
+      final game = BlackjackGameModel.fromJson(response.data);
+      emit(state.copyWith(isBlackjackLoading: false, activeBlackjackGame: game));
+      add(LoadProfileEvent());
+    } catch (e, stackTrace) {
+      emit(
+        state.copyWith(
+          isBlackjackLoading: false,
+          blackjackError: ErrorHandler.handle(e, stackTrace),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onDoubleBlackjack(
+    DoubleBlackjackEvent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(state.copyWith(isBlackjackLoading: true, clearBlackjackError: true));
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.blackjackDouble,
+        data: {'game_id': event.gameId},
+      );
+      final game = BlackjackGameModel.fromJson(response.data);
+      emit(state.copyWith(isBlackjackLoading: false, activeBlackjackGame: game));
+      add(LoadProfileEvent());
+    } catch (e, stackTrace) {
+      emit(
+        state.copyWith(
+          isBlackjackLoading: false,
+          blackjackError: ErrorHandler.handle(e, stackTrace),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onSplitBlackjack(
+    SplitBlackjackEvent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(state.copyWith(isBlackjackLoading: true, clearBlackjackError: true));
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.blackjackSplit,
+        data: {'game_id': event.gameId},
+      );
+      final game = BlackjackGameModel.fromJson(response.data);
+      emit(state.copyWith(isBlackjackLoading: false, activeBlackjackGame: game));
+      add(LoadProfileEvent());
+    } catch (e, stackTrace) {
+      emit(
+        state.copyWith(
+          isBlackjackLoading: false,
+          blackjackError: ErrorHandler.handle(e, stackTrace),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onFetchActiveBlackjack(
+    FetchActiveBlackjackEvent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(state.copyWith(isBlackjackLoading: true, clearBlackjackError: true));
+    try {
+      final response = await _apiClient.get(ApiConstants.blackjackActive);
+      if (response.data != null) {
+        final game = BlackjackGameModel.fromJson(response.data);
+        emit(
+          state.copyWith(
+            isBlackjackLoading: false,
+            activeBlackjackGame: game,
+          ),
+        );
+      } else {
+        emit(
+          state.copyWith(
+            isBlackjackLoading: false,
+            clearActiveBlackjackGame: true,
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      emit(
+        state.copyWith(
+          isBlackjackLoading: false,
+          blackjackError: ErrorHandler.handle(e, stackTrace),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onFetchBlackjackHistory(
+    FetchBlackjackHistoryEvent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(state.copyWith(isBlackjackLoading: true, clearBlackjackError: true));
+    try {
+      final response = await _apiClient.get(ApiConstants.blackjackHistory);
+      final list = (response.data as List)
+          .map((json) => BlackjackGameModel.fromJson(json))
+          .toList();
+      emit(state.copyWith(isBlackjackLoading: false, blackjackHistory: list));
+    } catch (e, stackTrace) {
+      emit(
+        state.copyWith(
+          isBlackjackLoading: false,
+          blackjackError: ErrorHandler.handle(e, stackTrace),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onFetchBlackjackSettings(
+    FetchBlackjackSettingsEvent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(state.copyWith(isBlackjackLoading: true, clearBlackjackError: true));
+    try {
+      final response = await _apiClient.get(ApiConstants.blackjackSettings);
+      final settings = BlackjackSettingsModel.fromJson(response.data);
+      emit(
+        state.copyWith(
+          isBlackjackLoading: false,
+          blackjackSettings: settings,
+        ),
+      );
+    } catch (e, stackTrace) {
+      emit(
+        state.copyWith(
+          isBlackjackLoading: false,
+          blackjackError: ErrorHandler.handle(e, stackTrace),
+        ),
+      );
+    }
+  }
+
+  void _onResetBlackjack(ResetBlackjackEvent event, Emitter<AppState> emit) {
+    emit(
+      state.copyWith(
+        clearBlackjackError: true,
+        clearActiveBlackjackGame: true,
       ),
     );
   }
