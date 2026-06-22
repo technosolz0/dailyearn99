@@ -13,11 +13,14 @@ class RequestsView extends StatefulWidget {
 
 class _RequestsViewState extends State<RequestsView> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  String _searchQuery = '';
+  String _filterType = '';
+  String _filterStatus = '';
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     context.read<RequestsCubit>().fetchRequests();
   }
 
@@ -243,6 +246,7 @@ class _RequestsViewState extends State<RequestsView> with SingleTickerProviderSt
             tabs: const [
               Tab(icon: Icon(Icons.download), text: 'Pending Deposits'),
               Tab(icon: Icon(Icons.upload), text: 'Pending Withdrawals'),
+              Tab(icon: Icon(Icons.history), text: 'Transactions History'),
             ],
           ),
         ),
@@ -276,12 +280,187 @@ class _RequestsViewState extends State<RequestsView> with SingleTickerProviderSt
               children: [
                 _buildDepositsList(state.pendingDeposits, currencyFormatter),
                 _buildWithdrawalsList(state.pendingWithdrawals, currencyFormatter),
+                _buildTransactionsHistoryList(state.allTransactions, currencyFormatter),
               ],
             );
           }
           return const SizedBox.shrink();
         },
       ),
+    );
+  }
+
+  Widget _buildTransactionsHistoryList(List<PendingRequest> txs, NumberFormat currencyFormatter) {
+    final filtered = txs.where((t) {
+      final matchesSearch = t.userName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          t.userPhone.contains(_searchQuery) ||
+          t.id.toString() == _searchQuery ||
+          t.userId.toString() == _searchQuery ||
+          (t.utr ?? '').toLowerCase().contains(_searchQuery.toLowerCase());
+
+      final matchesType = _filterType.isEmpty || _filterType == 'ALL' || t.type == _filterType;
+      final matchesStatus = _filterStatus.isEmpty || _filterStatus == 'ALL' || t.status == _filterStatus;
+
+      return matchesSearch && matchesType && matchesStatus;
+    }).toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  style: const TextStyle(color: AdminTheme.textMain, fontSize: 13),
+                  decoration: const InputDecoration(
+                    hintText: 'Search phone/name/ID/UTR...',
+                    hintStyle: TextStyle(color: AdminTheme.textMuted, fontSize: 13),
+                    prefixIcon: Icon(Icons.search, size: 18, color: AdminTheme.textMuted),
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  ),
+                  onChanged: (val) {
+                    setState(() {
+                      _searchQuery = val.trim();
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              DropdownButton<String>(
+                value: _filterType.isEmpty ? 'ALL' : _filterType,
+                dropdownColor: AdminTheme.surfaceDark,
+                style: const TextStyle(color: AdminTheme.textMain, fontSize: 12),
+                underline: const SizedBox(),
+                items: const [
+                  DropdownMenuItem(value: 'ALL', child: Text('All Types')),
+                  DropdownMenuItem(value: 'DEPOSIT', child: Text('Deposits')),
+                  DropdownMenuItem(value: 'WITHDRAWAL', child: Text('Withdrawals')),
+                  DropdownMenuItem(value: 'PRIZE_WIN', child: Text('Prizes')),
+                  DropdownMenuItem(value: 'ENTRY_FEE', child: Text('Entry Fees')),
+                  DropdownMenuItem(value: 'REFERRAL_BONUS', child: Text('Referrals')),
+                ],
+                onChanged: (val) {
+                  setState(() {
+                    _filterType = val == 'ALL' ? '' : val!;
+                  });
+                },
+              ),
+              const SizedBox(width: 8),
+              DropdownButton<String>(
+                value: _filterStatus.isEmpty ? 'ALL' : _filterStatus,
+                dropdownColor: AdminTheme.surfaceDark,
+                style: const TextStyle(color: AdminTheme.textMain, fontSize: 12),
+                underline: const SizedBox(),
+                items: const [
+                  DropdownMenuItem(value: 'ALL', child: Text('All Statuses')),
+                  DropdownMenuItem(value: 'SUCCESS', child: Text('Success')),
+                  DropdownMenuItem(value: 'PENDING', child: Text('Pending')),
+                  DropdownMenuItem(value: 'FAILED', child: Text('Failed')),
+                ],
+                onChanged: (val) {
+                  setState(() {
+                    _filterStatus = val == 'ALL' ? '' : val!;
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: filtered.isEmpty
+              ? const Center(child: Text('No transactions match the criteria.', style: TextStyle(color: AdminTheme.textMuted)))
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final tx = filtered[index];
+                    final timeStr = DateFormat.yMMMd().add_jm().format(tx.createdAt);
+                    
+                    Color typeColor = AdminTheme.warning;
+                    IconData typeIcon = Icons.swap_horiz;
+                    String prefix = '';
+                    
+                    if (tx.type == 'DEPOSIT' || tx.type == 'PRIZE_WIN' || tx.type == 'REFERRAL_BONUS') {
+                      typeColor = AdminTheme.success;
+                      typeIcon = Icons.arrow_downward;
+                      prefix = '+';
+                    } else if (tx.type == 'WITHDRAWAL') {
+                      typeColor = AdminTheme.error;
+                      typeIcon = Icons.arrow_upward;
+                      prefix = '-';
+                    } else if (tx.type == 'ENTRY_FEE') {
+                      typeColor = AdminTheme.warning;
+                      typeIcon = Icons.arrow_upward;
+                      prefix = '-';
+                    }
+
+                    Color statusColor = AdminTheme.warning;
+                    if (tx.status == 'SUCCESS') statusColor = AdminTheme.success;
+                    if (tx.status == 'FAILED') statusColor = AdminTheme.error;
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: typeColor.withOpacity(0.1),
+                          child: Icon(typeIcon, color: typeColor, size: 20),
+                        ),
+                        title: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(tx.userName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AdminTheme.textMain)),
+                            Text(
+                              '$prefix${currencyFormatter.format(tx.amount)}',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: typeColor, fontSize: 14),
+                            ),
+                          ],
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${tx.userPhone} • ID: ${tx.userId} • Tx: #${tx.id}', style: const TextStyle(fontSize: 11, color: AdminTheme.textMuted)),
+                              if (tx.description != null && tx.description!.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2.0),
+                                  child: Text(tx.description!, style: const TextStyle(fontSize: 12, color: AdminTheme.textMain)),
+                                ),
+                              if (tx.utr != null && tx.utr!.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2.0),
+                                  child: Text('UTR: ${tx.utr}', style: const TextStyle(fontSize: 11, fontFamily: 'monospace', color: AdminTheme.primary)),
+                                ),
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(timeStr, style: const TextStyle(fontSize: 11, color: AdminTheme.textMuted)),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: statusColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: statusColor, width: 0.5),
+                                    ),
+                                    child: Text(
+                                      tx.status,
+                                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: statusColor),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 }

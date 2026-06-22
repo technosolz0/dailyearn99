@@ -69,7 +69,8 @@ class RequestsLoading extends RequestsState {}
 class RequestsLoaded extends RequestsState {
   final List<PendingRequest> pendingDeposits;
   final List<PendingRequest> pendingWithdrawals;
-  RequestsLoaded(this.pendingDeposits, this.pendingWithdrawals);
+  final List<PendingRequest> allTransactions;
+  RequestsLoaded(this.pendingDeposits, this.pendingWithdrawals, this.allTransactions);
 }
 class RequestsError extends RequestsState {
   final String message;
@@ -98,15 +99,18 @@ class RequestsCubit extends Cubit<RequestsState> {
       // 3. Map & Filter pending deposits/withdrawals
       final pendingDeposits = <PendingRequest>[];
       final pendingWithdrawals = <PendingRequest>[];
+      final allTransactions = <PendingRequest>[];
 
       for (var tx in txList) {
         final status = tx['status'] as String;
         final type = tx['type'] as String;
+        final userId = tx['user_id'] as int;
+        final user = userMap[userId];
+        final req = PendingRequest.fromTransactionAndUser(tx, user);
+
+        allTransactions.add(req);
+
         if (status == 'PENDING') {
-          final userId = tx['user_id'] as int;
-          final user = userMap[userId];
-          final req = PendingRequest.fromTransactionAndUser(tx, user);
-          
           if (type == 'DEPOSIT') {
             pendingDeposits.add(req);
           } else if (type == 'WITHDRAWAL') {
@@ -118,8 +122,9 @@ class RequestsCubit extends Cubit<RequestsState> {
       // Sort by newest first
       pendingDeposits.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       pendingWithdrawals.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      allTransactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-      emit(RequestsLoaded(pendingDeposits, pendingWithdrawals));
+      emit(RequestsLoaded(pendingDeposits, pendingWithdrawals, allTransactions));
     } on DioException catch (e) {
       String errMsg = 'Failed to load requests';
       if (e.response != null) {

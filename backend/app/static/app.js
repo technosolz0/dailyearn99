@@ -7,6 +7,7 @@ let state = {
     users: [],
     contests: [],
     withdrawals: [],
+    transactions: [],
     fruit_maintenance_active: false,
     puzzle_maintenance_active: false,
     word_maintenance_active: false,
@@ -1162,6 +1163,14 @@ function setupEventHandlers() {
             }
         });
     }
+
+    // Transactions History filtering event listeners
+    const txSearch = document.getElementById('tx-search');
+    const filterTxType = document.getElementById('filter-tx-type');
+    const filterTxStatus = document.getElementById('filter-tx-status');
+    if (txSearch) txSearch.addEventListener('input', filterTransactions);
+    if (filterTxType) filterTxType.addEventListener('change', filterTransactions);
+    if (filterTxStatus) filterTxStatus.addEventListener('change', filterTransactions);
 }
 
 // Data loading
@@ -1496,10 +1505,35 @@ async function viewUserDetails(userId) {
                 </table>
             </div>
         </div>
+
+        <!-- Wallet Transactions History Logs -->
+        <div style="margin-top: 20px;">
+            <div class="profile-section-title">Recent Wallet Transactions History Logs</div>
+            <div class="table-wrapper" style="max-height: 250px; overflow-y: auto;">
+                <table class="data-table" style="font-size: 11px;">
+                    <thead>
+                        <tr>
+                            <th>Tx ID</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Description</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-wallet-txs-tbody">
+                        <tr>
+                            <td colspan="6" class="table-placeholder">Loading transactions...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     `;
 
     document.getElementById('user-details-modal').classList.add('show');
     loadUserGameLogs(userId);
+    loadUserWalletTransactions(userId);
 }
 
 window.viewUserDetails = viewUserDetails;
@@ -1677,6 +1711,7 @@ async function loadWithdrawals() {
         const res = await fetch(`${API_BASE}/admin/transactions`);
         if (!res.ok) throw new Error("Failed to load transactions history.");
         const allTransactions = await res.json();
+        state.transactions = allTransactions;
 
         // Filter pending manual deposits for approvals table
         const pendingDeposits = allTransactions.filter(t => t.type === 'DEPOSIT' && t.status === 'PENDING');
@@ -1773,6 +1808,36 @@ function renderTransactionHistoryTable(txList) {
             </tr>
         `;
     }).join('');
+}
+
+function filterTransactions() {
+    const searchVal = document.getElementById('tx-search') ? document.getElementById('tx-search').value.toLowerCase().trim() : '';
+    const typeVal = document.getElementById('filter-tx-type') ? document.getElementById('filter-tx-type').value : '';
+    const statusVal = document.getElementById('filter-tx-status') ? document.getElementById('filter-tx-status').value : '';
+
+    let filtered = state.transactions || [];
+
+    if (searchVal) {
+        filtered = filtered.filter(tx => {
+            const userObj = state.users.find(u => u.id === tx.user_id);
+            const phone = userObj ? userObj.phone : '';
+            const name = userObj ? (userObj.name || '').toLowerCase() : '';
+            const userIdStr = tx.user_id.toString();
+            const txIdStr = tx.id.toString();
+            const utrStr = (tx.utr || '').toLowerCase();
+            return phone.includes(searchVal) || name.includes(searchVal) || userIdStr === searchVal || txIdStr === searchVal || utrStr.includes(searchVal);
+        });
+    }
+
+    if (typeVal) {
+        filtered = filtered.filter(tx => tx.type === typeVal);
+    }
+
+    if (statusVal) {
+        filtered = filtered.filter(tx => tx.status === statusVal);
+    }
+
+    renderTransactionHistoryTable(filtered);
 }
 
 async function approveWithdrawal(txId, approve) {
@@ -4523,6 +4588,59 @@ async function loadUserGameLogs(userId) {
     } catch (err) {
         console.error(err);
         tbody.innerHTML = `<tr><td colspan="7" class="table-placeholder" style="color: var(--error);">Error loading logs: ${err.message}</td></tr>`;
+    }
+}
+
+async function loadUserWalletTransactions(userId) {
+    const tbody = document.getElementById('user-wallet-txs-tbody');
+    if (!tbody) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/admin/users/${userId}/transactions`);
+        if (!res.ok) throw new Error(await res.text());
+        const txs = await res.json();
+
+        if (txs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="table-placeholder">No transactions recorded yet.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = txs.map(tx => {
+            const dateStr = new Date(tx.created_at).toLocaleString();
+            let statusBadge = 'badge-warning';
+            if (tx.status === 'SUCCESS') statusBadge = 'badge-success';
+            if (tx.status === 'FAILED') statusBadge = 'badge-error';
+
+            let typeBadge = 'badge-warning';
+            let typeStyle = 'color: var(--warning)';
+            let prefix = '-';
+
+            if (tx.type === 'DEPOSIT' || tx.type === 'PRIZE_WIN' || tx.type === 'REFERRAL_BONUS') {
+                typeBadge = 'badge-success';
+                typeStyle = 'color: var(--success); font-weight: 600;';
+                prefix = '+';
+            } else if (tx.type === 'WITHDRAWAL' || tx.type === 'ENTRY_FEE') {
+                typeBadge = 'badge-error';
+                typeStyle = 'color: var(--error);';
+                prefix = '-';
+            }
+
+            return `
+                <tr>
+                    <td>#${tx.id}</td>
+                    <td>
+                        <span class="badge ${typeBadge}">${tx.type}</span>
+                    </td>
+                    <td style="${typeStyle}">${prefix}₹${tx.amount.toFixed(2)}</td>
+                    <td><span class="badge ${statusBadge}">${tx.status}</span></td>
+                    <td><span style="font-size: 11px; color: var(--text-muted);">${tx.description || '-'}</span></td>
+                    <td style="white-space: nowrap;">${dateStr}</td>
+                </tr>
+            `;
+        }).join('');
+    } catch (err) {
+        console.error(err);
+        tbody.innerHTML = `<tr><td colspan="6" class="table-placeholder" style="color: var(--error);">Error loading transactions: ${err.message}</td></tr>`;
     }
 }
 

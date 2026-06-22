@@ -1,12 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:get_it/get_it.dart';
+import 'package:de99_admin/core/network/api_client.dart';
 import 'package:de99_admin/core/theme/admin_theme.dart';
 import 'package:de99_admin/features/users/bloc/users_cubit.dart';
 
-class UserDetailsView extends StatelessWidget {
+class UserDetailsView extends StatefulWidget {
   final AdminUser user;
 
   const UserDetailsView({super.key, required this.user});
+
+  @override
+  State<UserDetailsView> createState() => _UserDetailsViewState();
+}
+
+class _UserDetailsViewState extends State<UserDetailsView> {
+  final ApiClient _apiClient = GetIt.instance<ApiClient>();
+  List<dynamic> _transactions = [];
+  bool _isLoadingTxs = true;
+  String? _txError;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserTransactions();
+  }
+
+  Future<void> _fetchUserTransactions() async {
+    try {
+      final response = await _apiClient.dio.get(
+        '/admin/users/${widget.user.id}/transactions',
+      );
+      if (mounted) {
+        setState(() {
+          _transactions = response.data as List;
+          _isLoadingTxs = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _txError = e.toString();
+          _isLoadingTxs = false;
+        });
+      }
+    }
+  }
 
   Widget _buildSectionTitle(String title) {
     return Padding(
@@ -28,7 +67,10 @@ class UserDetailsView extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AdminTheme.textMuted, fontSize: 14)),
+          Text(
+            label,
+            style: const TextStyle(color: AdminTheme.textMuted, fontSize: 14),
+          ),
           Flexible(
             child: Text(
               value,
@@ -54,7 +96,11 @@ class UserDetailsView extends StatelessWidget {
           children: [
             Text(
               value,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
@@ -70,13 +116,17 @@ class UserDetailsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormatter = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
-    final totalBalance = user.depositBalance + user.winningBalance + user.bonusBalance;
+    final currencyFormatter = NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: '₹',
+    );
+    final totalBalance =
+        widget.user.depositBalance +
+        widget.user.winningBalance +
+        widget.user.bonusBalance;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(user.name ?? 'User Profile'),
-      ),
+      appBar: AppBar(title: Text(widget.user.name ?? 'User Profile')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -93,19 +143,32 @@ class UserDetailsView extends StatelessWidget {
                       radius: 30,
                       backgroundColor: AdminTheme.primary.withOpacity(0.1),
                       child: Text(
-                        (user.name?.isNotEmpty ?? false) ? user.name![0].toUpperCase() : 'U',
-                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AdminTheme.primary),
+                        (widget.user.name?.isNotEmpty ?? false)
+                            ? widget.user.name![0].toUpperCase()
+                            : 'U',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: AdminTheme.primary,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      user.name ?? 'Anonymous User',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AdminTheme.textMain),
+                      widget.user.name ?? 'Anonymous User',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AdminTheme.textMain,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${user.phone}  •  ID: ${user.id}',
-                      style: const TextStyle(fontSize: 13, color: AdminTheme.textMuted),
+                      '${widget.user.phone}  •  ID: ${widget.user.id}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AdminTheme.textMuted,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -113,42 +176,64 @@ class UserDetailsView extends StatelessWidget {
                       children: [
                         // KYC Badge
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: (user.kycStatus == 'VERIFIED' ? AdminTheme.success : AdminTheme.warning).withOpacity(0.1),
+                            color:
+                                (widget.user.kycStatus == 'VERIFIED'
+                                        ? AdminTheme.success
+                                        : AdminTheme.warning)
+                                    .withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: user.kycStatus == 'VERIFIED' ? AdminTheme.success : AdminTheme.warning,
+                              color: widget.user.kycStatus == 'VERIFIED'
+                                  ? AdminTheme.success
+                                  : AdminTheme.warning,
                               width: 1,
                             ),
                           ),
                           child: Text(
-                            'KYC: ${user.kycStatus}',
+                            'KYC: ${widget.user.kycStatus}',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: user.kycStatus == 'VERIFIED' ? AdminTheme.success : AdminTheme.warning,
+                              color: widget.user.kycStatus == 'VERIFIED'
+                                  ? AdminTheme.success
+                                  : AdminTheme.warning,
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         // Status Badge
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: (user.isBanned ? AdminTheme.error : AdminTheme.success).withOpacity(0.1),
+                            color:
+                                (widget.user.isBanned
+                                        ? AdminTheme.error
+                                        : AdminTheme.success)
+                                    .withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: user.isBanned ? AdminTheme.error : AdminTheme.success,
+                              color: widget.user.isBanned
+                                  ? AdminTheme.error
+                                  : AdminTheme.success,
                               width: 1,
                             ),
                           ),
                           child: Text(
-                            user.isBanned ? 'BANNED' : 'ACTIVE',
+                            widget.user.isBanned ? 'BANNED' : 'ACTIVE',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: user.isBanned ? AdminTheme.error : AdminTheme.success,
+                              color: widget.user.isBanned
+                                  ? AdminTheme.error
+                                  : AdminTheme.success,
                             ),
                           ),
                         ),
@@ -169,10 +254,26 @@ class UserDetailsView extends StatelessWidget {
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               children: [
-                _buildStatBox(currencyFormatter.format(user.depositBalance), 'Deposit Wallet', AdminTheme.primary),
-                _buildStatBox(currencyFormatter.format(user.winningBalance), 'Winning Wallet', AdminTheme.success),
-                _buildStatBox(currencyFormatter.format(user.bonusBalance), 'Bonus Wallet', AdminTheme.warning),
-                _buildStatBox(currencyFormatter.format(totalBalance), 'Total Value', AdminTheme.textMain),
+                _buildStatBox(
+                  currencyFormatter.format(widget.user.depositBalance),
+                  'Deposit Wallet',
+                  AdminTheme.primary,
+                ),
+                _buildStatBox(
+                  currencyFormatter.format(widget.user.winningBalance),
+                  'Winning Wallet',
+                  AdminTheme.success,
+                ),
+                _buildStatBox(
+                  currencyFormatter.format(widget.user.bonusBalance),
+                  'Bonus Wallet',
+                  AdminTheme.warning,
+                ),
+                _buildStatBox(
+                  currencyFormatter.format(totalBalance),
+                  'Total Value',
+                  AdminTheme.textMain,
+                ),
               ],
             ),
 
@@ -182,12 +283,23 @@ class UserDetailsView extends StatelessWidget {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    _buildFieldRow('First Name', user.firstName ?? '-'),
-                    _buildFieldRow('Last Name', user.lastName ?? '-'),
-                    _buildFieldRow('Email Address', user.email ?? '-'),
-                    _buildFieldRow('Referral Code', user.referralCode, isCode: true),
-                    _buildFieldRow('Referred By Code', user.referredBy ?? '-', isCode: true),
-                    _buildFieldRow('Device Specs', user.deviceDetails ?? 'Unknown Device'),
+                    _buildFieldRow('First Name', widget.user.firstName ?? '-'),
+                    _buildFieldRow('Last Name', widget.user.lastName ?? '-'),
+                    _buildFieldRow('Email Address', widget.user.email ?? '-'),
+                    _buildFieldRow(
+                      'Referral Code',
+                      widget.user.referralCode,
+                      isCode: true,
+                    ),
+                    _buildFieldRow(
+                      'Referred By Code',
+                      widget.user.referredBy ?? '-',
+                      isCode: true,
+                    ),
+                    _buildFieldRow(
+                      'Device Specs',
+                      widget.user.deviceDetails ?? 'Unknown Device',
+                    ),
                   ],
                 ),
               ),
@@ -197,13 +309,29 @@ class UserDetailsView extends StatelessWidget {
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: user.bankAccountNumber != null && user.bankAccountNumber!.isNotEmpty
+                child:
+                    widget.user.bankAccountNumber != null &&
+                        widget.user.bankAccountNumber!.isNotEmpty
                     ? Column(
                         children: [
-                          _buildFieldRow('Account Holder', user.bankAccountHolderName ?? '-'),
-                          _buildFieldRow('Bank Name', user.bankName ?? '-'),
-                          _buildFieldRow('Account Number', user.bankAccountNumber!, isCode: true),
-                          _buildFieldRow('IFSC Code', user.bankIfscCode ?? '-', isCode: true),
+                          _buildFieldRow(
+                            'Account Holder',
+                            widget.user.bankAccountHolderName ?? '-',
+                          ),
+                          _buildFieldRow(
+                            'Bank Name',
+                            widget.user.bankName ?? '-',
+                          ),
+                          _buildFieldRow(
+                            'Account Number',
+                            widget.user.bankAccountNumber!,
+                            isCode: true,
+                          ),
+                          _buildFieldRow(
+                            'IFSC Code',
+                            widget.user.bankIfscCode ?? '-',
+                            isCode: true,
+                          ),
                         ],
                       )
                     : const Padding(
@@ -211,7 +339,11 @@ class UserDetailsView extends StatelessWidget {
                         child: Center(
                           child: Text(
                             'No bank account details registered by this user.',
-                            style: TextStyle(fontSize: 13, color: AdminTheme.textMuted, fontStyle: FontStyle.italic),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AdminTheme.textMuted,
+                              fontStyle: FontStyle.italic,
+                            ),
                           ),
                         ),
                       ),
@@ -224,13 +356,196 @@ class UserDetailsView extends StatelessWidget {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    _buildFieldRow('Math Quiz (Joins / Cleared)', '${user.joinedContestIds.length} / ${user.completedContestIds.length}'),
-                    _buildFieldRow('Word Search (Joins / Cleared)', '${user.joinedWordContestIds.length} / ${user.completedWordContestIds.length}'),
-                    _buildFieldRow('Slide Puzzle (Joins / Cleared)', '${user.joinedPuzzleContestIds.length} / ${user.completedPuzzleContestIds.length}'),
-                    _buildFieldRow('Fruit Slicing (Joins / Cleared)', '${user.joinedFruitContestIds.length} / ${user.completedFruitContestIds.length}'),
-                    _buildFieldRow('Go Arrows (Joins / Cleared)', '${user.joinedArrowContestIds.length} / ${user.completedArrowContestIds.length}'),
+                    _buildFieldRow(
+                      'Math Quiz (Joins / Cleared)',
+                      '${widget.user.joinedContestIds.length} / ${widget.user.completedContestIds.length}',
+                    ),
+                    _buildFieldRow(
+                      'Word Search (Joins / Cleared)',
+                      '${widget.user.joinedWordContestIds.length} / ${widget.user.completedWordContestIds.length}',
+                    ),
+                    _buildFieldRow(
+                      'Slide Puzzle (Joins / Cleared)',
+                      '${widget.user.joinedPuzzleContestIds.length} / ${widget.user.completedPuzzleContestIds.length}',
+                    ),
+                    _buildFieldRow(
+                      'Fruit Slicing (Joins / Cleared)',
+                      '${widget.user.joinedFruitContestIds.length} / ${widget.user.completedFruitContestIds.length}',
+                    ),
+                    _buildFieldRow(
+                      'Go Arrows (Joins / Cleared)',
+                      '${widget.user.joinedArrowContestIds.length} / ${widget.user.completedArrowContestIds.length}',
+                    ),
                   ],
                 ),
+              ),
+            ),
+
+            _buildSectionTitle('Recent Wallet Transactions'),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: _isLoadingTxs
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AdminTheme.primary,
+                        ),
+                      )
+                    : _txError != null
+                    ? Center(
+                        child: Text(
+                          'Error loading transactions: $_txError',
+                          style: const TextStyle(
+                            color: AdminTheme.error,
+                            fontSize: 13,
+                          ),
+                        ),
+                      )
+                    : _transactions.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12.0),
+                        child: Center(
+                          child: Text(
+                            'No transactions recorded for this user.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AdminTheme.textMuted,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _transactions.length > 10
+                            ? 10
+                            : _transactions.length,
+                        itemBuilder: (context, index) {
+                          final tx =
+                              _transactions[index] as Map<String, dynamic>;
+                          final amount = (tx['amount'] ?? 0).toDouble();
+                          final type = tx['type'] ?? '';
+                          final status = tx['status'] ?? '';
+                          final description = tx['description'] ?? '';
+                          final createdAtStr = tx['created_at'] ?? '';
+                          final dateStr = createdAtStr.isNotEmpty
+                              ? DateFormat.yMMMd().add_jm().format(
+                                  DateTime.parse(createdAtStr),
+                                )
+                              : '-';
+
+                          Color typeColor = AdminTheme.warning;
+                          String prefix = '';
+                          if (type == 'DEPOSIT' ||
+                              type == 'PRIZE_WIN' ||
+                              type == 'REFERRAL_BONUS') {
+                            typeColor = AdminTheme.success;
+                            prefix = '+';
+                          } else if (type == 'WITHDRAWAL' ||
+                              type == 'ENTRY_FEE') {
+                            typeColor = AdminTheme.error;
+                            prefix = '-';
+                          }
+
+                          Color statusColor = AdminTheme.warning;
+                          if (status == 'SUCCESS')
+                            statusColor = AdminTheme.success;
+                          if (status == 'FAILED')
+                            statusColor = AdminTheme.error;
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: typeColor.withOpacity(0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              type,
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: typeColor,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: statusColor.withOpacity(
+                                                0.1,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              status,
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: statusColor,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      if (description.isNotEmpty)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 4.0,
+                                          ),
+                                          child: Text(
+                                            description,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              color: AdminTheme.textMain,
+                                            ),
+                                          ),
+                                        ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        dateStr,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: AdminTheme.textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  '$prefix${currencyFormatter.format(amount)}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: typeColor,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
               ),
             ),
             const SizedBox(height: 30),

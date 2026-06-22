@@ -204,6 +204,18 @@ def adjust_user_balance(id: int, request: AdminAdjustBalanceRequest, db: Session
     
     return user
 
+@router.get("/users/{id}/transactions", response_model=List[TransactionResponse])
+def get_user_transactions(id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return (
+        db.query(WalletTransaction)
+        .filter(WalletTransaction.user_id == id)
+        .order_by(WalletTransaction.created_at.desc())
+        .all()
+    )
+
 @router.get("/users/{id}/game-logs", response_model=List[UserGameLogItem])
 def get_user_game_logs(id: int, db: Session = Depends(get_db)):
     from app.models import (

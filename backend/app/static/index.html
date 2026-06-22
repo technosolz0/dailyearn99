@@ -422,8 +422,27 @@
                         </div>
                     </div>
                     <div class="card table-card" style="margin-top: 30px;">
-                        <div class="card-table-header">
+                        <div class="card-table-header" style="flex-wrap: wrap; gap: 15px;">
                             <h2>All Transactions (Deposits, Withdrawals, Prizes & Bonuses)</h2>
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <div class="search-box" style="margin: 0; min-width: 200px;">
+                                    <input type="text" id="tx-search" placeholder="Search by phone/name/ID...">
+                                </div>
+                                <select id="filter-tx-type" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; font-size:12px;">
+                                    <option value="">All Types</option>
+                                    <option value="DEPOSIT">Deposits</option>
+                                    <option value="WITHDRAWAL">Withdrawals</option>
+                                    <option value="PRIZE_WIN">Prizes</option>
+                                    <option value="ENTRY_FEE">Entry Fees</option>
+                                    <option value="REFERRAL_BONUS">Referral Bonuses</option>
+                                </select>
+                                <select id="filter-tx-status" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; font-size:12px;">
+                                    <option value="">All Statuses</option>
+                                    <option value="SUCCESS">Success</option>
+                                    <option value="PENDING">Pending</option>
+                                    <option value="FAILED">Failed</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="table-wrapper">
                             <table class="data-table">
