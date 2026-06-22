@@ -3,10 +3,11 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
 from app.core.security import get_current_admin
-from app.models import PortfolioConfig, PortfolioContactMessage
+from app.models import PortfolioConfig, PortfolioContactMessage, AdminBankDetail
 from app.schemas import (
     PortfolioConfigResponse, PortfolioConfigUpdate,
-    PortfolioContactMessageCreate, PortfolioContactMessageResponse
+    PortfolioContactMessageCreate, PortfolioContactMessageResponse,
+    AdminBankDetailCreate, AdminBankDetailUpdate, AdminBankDetailResponse
 )
 
 public_router = APIRouter(prefix="/portfolio", tags=["Portfolio Public"])
@@ -123,3 +124,59 @@ def delete_contact_message(id: int, db: Session = Depends(get_db)):
     db.delete(msg)
     db.commit()
     return {"message": "Message deleted successfully"}
+
+# Admin Bank Details CRUD
+@admin_router.get("/bank-details", response_model=List[AdminBankDetailResponse])
+def get_admin_bank_details(db: Session = Depends(get_db)):
+    return db.query(AdminBankDetail).order_by(AdminBankDetail.created_at.desc()).all()
+
+@admin_router.post("/bank-details", response_model=AdminBankDetailResponse)
+def create_admin_bank_detail(request: AdminBankDetailCreate, db: Session = Depends(get_db)):
+    if request.is_default:
+        db.query(AdminBankDetail).update({AdminBankDetail.is_default: False})
+        db.commit()
+        
+    detail = AdminBankDetail(
+        bank_name=request.bank_name.strip(),
+        account_holder_name=request.account_holder_name.strip(),
+        account_number=request.account_number.strip(),
+        ifsc_code=request.ifsc_code.strip().upper(),
+        upi_id=request.upi_id.strip() if request.upi_id else None,
+        is_default=request.is_default,
+        target_user_ids=request.target_user_ids.strip() if request.target_user_ids else None
+    )
+    db.add(detail)
+    db.commit()
+    db.refresh(detail)
+    return detail
+
+@admin_router.put("/bank-details/{id}", response_model=AdminBankDetailResponse)
+def update_admin_bank_detail(id: int, request: AdminBankDetailUpdate, db: Session = Depends(get_db)):
+    detail = db.query(AdminBankDetail).filter(AdminBankDetail.id == id).first()
+    if not detail:
+        raise HTTPException(status_code=404, detail="Bank detail not found")
+        
+    if request.is_default:
+        db.query(AdminBankDetail).filter(AdminBankDetail.id != id).update({AdminBankDetail.is_default: False})
+        db.commit()
+        
+    detail.bank_name = request.bank_name.strip()
+    detail.account_holder_name = request.account_holder_name.strip()
+    detail.account_number = request.account_number.strip()
+    detail.ifsc_code = request.ifsc_code.strip().upper()
+    detail.upi_id = request.upi_id.strip() if request.upi_id else None
+    detail.is_default = request.is_default
+    detail.target_user_ids = request.target_user_ids.strip() if request.target_user_ids else None
+    
+    db.commit()
+    db.refresh(detail)
+    return detail
+
+@admin_router.delete("/bank-details/{id}")
+def delete_admin_bank_detail(id: int, db: Session = Depends(get_db)):
+    detail = db.query(AdminBankDetail).filter(AdminBankDetail.id == id).first()
+    if not detail:
+        raise HTTPException(status_code=404, detail="Bank detail not found")
+    db.delete(detail)
+    db.commit()
+    return {"message": "Bank detail deleted successfully"}

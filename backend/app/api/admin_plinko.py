@@ -44,8 +44,39 @@ def get_plinko_logs(db: Session = Depends(get_db)):
         .all()
     )
 
+    import math
     logs = []
+    # Fetch active RTP overrides
+    rtps = db.query(PlinkoRTP).filter(PlinkoRTP.enabled == True).all()
     for game, phone, name in results:
+        # Check if an override applies
+        applied_rtp = None
+        for r in rtps:
+            if r.min_amount <= game.bet_amount <= r.max_amount and r.rows == game.rows and r.mode == game.mode.lower():
+                applied_rtp = r
+                break
+
+        prob = 0.0
+        if applied_rtp:
+            try:
+                weights = json.loads(applied_rtp.probability_json)
+                if isinstance(weights, dict):
+                    total_weight = sum(float(w) for w in weights.values())
+                    val = float(weights.get(str(game.final_bucket)) or weights.get(game.final_bucket, 0.0))
+                    prob = val / total_weight if total_weight > 0 else 0.0
+                elif isinstance(weights, list):
+                    total_weight = sum(float(w) for w in weights)
+                    if 0 <= game.final_bucket < len(weights):
+                        prob = float(weights[game.final_bucket]) / total_weight if total_weight > 0 else 0.0
+            except Exception:
+                pass
+        else:
+            # Binomial: C(rows, bucket) * 0.5^rows
+            n = game.rows
+            k = game.final_bucket
+            if 0 <= k <= n:
+                prob = math.comb(n, k) * (0.5 ** n)
+
         logs.append(
             PlinkoLogAdminResponse(
                 id=game.id,
@@ -57,7 +88,8 @@ def get_plinko_logs(db: Session = Depends(get_db)):
                 mode=game.mode,
                 multiplier=game.multiplier,
                 win_amount=game.win_amount,
-                created_at=game.created_at
+                created_at=game.created_at,
+                win_probability=prob
             )
         )
     return logs

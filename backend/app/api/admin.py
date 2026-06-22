@@ -8,7 +8,8 @@ from app.core.database import get_db
 from app.models import User, Contest, WalletTransaction
 from app.schemas import (
     AdminStatsResponse, UserResponse, ContestCreate, ContestResponse, TransactionResponse,
-    AdminAdjustBalanceRequest, QuestionSchema, AdminLoginRequest, FCMTokenRequest
+    AdminAdjustBalanceRequest, QuestionSchema, AdminLoginRequest, FCMTokenRequest,
+    UserGameLogItem
 )
 from app.core.config import settings
 from app.core.security import get_current_admin, create_access_token
@@ -202,6 +203,231 @@ def adjust_user_balance(id: int, request: AdminAdjustBalanceRequest, db: Session
     )
     
     return user
+
+@router.get("/users/{id}/game-logs", response_model=List[UserGameLogItem])
+def get_user_game_logs(id: int, db: Session = Depends(get_db)):
+    from app.models import (
+        Spin, MinesGame, PlinkoGame, ContestParticipant, Contest,
+        ImagePuzzleAttempt, ImagePuzzleContest, WordAttempt, WordContest,
+        FruitMatch, FruitContest, ArrowAttempt, ArrowContest,
+        LotteryTicket, LotteryDraw
+    )
+    import json
+
+    user = db.query(User).filter(User.id == id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    logs = []
+
+    # 1. Spins
+    spins = db.query(Spin).filter(Spin.user_id == id).all()
+    for s in spins:
+        logs.append(
+            UserGameLogItem(
+                game_type="SPIN",
+                game_id=s.id,
+                title="Casino Spin",
+                bet_amount=s.bet_amount,
+                win_amount=s.win_amount,
+                multiplier=s.multiplier,
+                status=s.result_type,
+                details=f"Sector: {s.wheel_segment}",
+                created_at=s.created_at
+            )
+        )
+
+    # 2. Mines
+    mines = db.query(MinesGame).filter(MinesGame.user_id == id).all()
+    for m in mines:
+        try:
+            revealed_count = len(json.loads(m.revealed_positions))
+        except Exception:
+            revealed_count = 0
+        logs.append(
+            UserGameLogItem(
+                game_type="MINES",
+                game_id=m.id,
+                title="Mines",
+                bet_amount=m.bet_amount,
+                win_amount=m.current_win,
+                multiplier=m.current_multiplier,
+                status=m.status,
+                details=f"{m.mines_count} Mines | {revealed_count} gems",
+                created_at=m.created_at
+            )
+        )
+
+    # 3. Plinko
+    plinkos = db.query(PlinkoGame).filter(PlinkoGame.user_id == id).all()
+    for p in plinkos:
+        logs.append(
+            UserGameLogItem(
+                game_type="PLINKO",
+                game_id=p.id,
+                title="Plinko",
+                bet_amount=p.bet_amount,
+                win_amount=p.win_amount,
+                multiplier=p.multiplier,
+                status="WON" if p.win_amount > p.bet_amount else "LOST" if p.win_amount == 0 else "PARTIAL",
+                details=f"{p.rows} Rows | {p.mode.capitalize()} Risk | Bucket {p.final_bucket}",
+                created_at=p.created_at
+            )
+        )
+
+    # 4. Math Quiz
+    quizzes = (
+        db.query(ContestParticipant, Contest.title, Contest.entry_fee)
+        .join(Contest, ContestParticipant.contest_id == Contest.id)
+        .filter(ContestParticipant.user_id == id)
+        .all()
+    )
+    for part, title, entry_fee in quizzes:
+        logs.append(
+            UserGameLogItem(
+                game_type="MATH_QUIZ",
+                game_id=part.id,
+                title=f"Math Quiz: {title}",
+                bet_amount=entry_fee,
+                win_amount=0.0,
+                multiplier=None,
+                status="COMPLETED" if part.completed else "JOINED",
+                details=f"Score: {part.score} | Rank: {part.rank or '-'}",
+                created_at=part.joined_at
+            )
+        )
+
+    # 5. Slide Puzzle
+    puzzles = (
+        db.query(ImagePuzzleAttempt, ImagePuzzleContest.title, ImagePuzzleContest.entry_fee)
+        .join(ImagePuzzleContest, ImagePuzzleAttempt.contest_id == ImagePuzzleContest.id)
+        .filter(ImagePuzzleAttempt.user_id == id)
+        .all()
+    )
+    for att, title, entry_fee in puzzles:
+        logs.append(
+            UserGameLogItem(
+                game_type="SLIDE_PUZZLE",
+                game_id=att.id,
+                title=f"Slide Puzzle: {title}",
+                bet_amount=entry_fee,
+                win_amount=0.0,
+                multiplier=None,
+                status=att.status,
+                details=f"Score: {att.score} | Moves: {att.moves}",
+                created_at=att.created_at
+            )
+        )
+
+    # 6. Word Guess
+    words = (
+        db.query(WordAttempt, WordContest.title, WordContest.entry_fee)
+        .join(WordContest, WordAttempt.contest_id == WordContest.id)
+        .filter(WordAttempt.user_id == id)
+        .all()
+    )
+    from app.models import WordLeaderboard
+    word_leaderboards = {
+        l.contest_id: l.prize_amount
+        for l in db.query(WordLeaderboard).filter(WordLeaderboard.user_id == id).all()
+    }
+    for att, title, entry_fee in words:
+        logs.append(
+            UserGameLogItem(
+                game_type="WORD_GUESS",
+                game_id=att.id,
+                title=f"Word Guess: {title}",
+                bet_amount=entry_fee,
+                win_amount=word_leaderboards.get(att.contest_id, 0.0),
+                multiplier=None,
+                status=att.status,
+                details=f"Score: {att.total_score} | Time: {att.completion_time_seconds or 0}s",
+                created_at=att.created_at
+            )
+        )
+
+    # 7. Fruit Slicing
+    fruits = (
+        db.query(FruitMatch, FruitContest.title, FruitContest.entry_fee)
+        .join(FruitContest, FruitMatch.contest_id == FruitContest.id)
+        .filter(FruitMatch.user_id == id)
+        .all()
+    )
+    from app.models import FruitScore, FruitLeaderboard
+    fruit_scores = {
+        s.match_id: s.score
+        for s in db.query(FruitScore).filter(FruitScore.user_id == id).all()
+    }
+    fruit_leaderboards = {
+        l.contest_id: l.prize_amount
+        for l in db.query(FruitLeaderboard).filter(FruitLeaderboard.user_id == id).all()
+    }
+    for match, title, entry_fee in fruits:
+        logs.append(
+            UserGameLogItem(
+                game_type="FRUIT_SLICING",
+                game_id=match.id,
+                title=f"Fruit Slicing: {title}",
+                bet_amount=entry_fee,
+                win_amount=fruit_leaderboards.get(match.contest_id, 0.0),
+                multiplier=None,
+                status=match.status,
+                details=f"Score: {fruit_scores.get(match.id, 0)}",
+                created_at=match.created_at
+            )
+        )
+
+    # 8. Go Arrows
+    arrows = (
+        db.query(ArrowAttempt, ArrowContest.title, ArrowContest.entry_fee)
+        .join(ArrowContest, ArrowAttempt.contest_id == ArrowContest.id)
+        .filter(ArrowAttempt.user_id == id)
+        .all()
+    )
+    from app.models import ArrowLeaderboard
+    arrow_leaderboards = {
+        l.contest_id: l.prize_amount
+        for l in db.query(ArrowLeaderboard).filter(ArrowLeaderboard.user_id == id).all()
+    }
+    for att, title, entry_fee in arrows:
+        logs.append(
+            UserGameLogItem(
+                game_type="GO_ARROWS",
+                game_id=att.id,
+                title=f"Go Arrows: {title}",
+                bet_amount=entry_fee,
+                win_amount=arrow_leaderboards.get(att.contest_id, 0.0),
+                multiplier=None,
+                status=att.status,
+                details=f"Score: {att.score} | Taps: {att.moves}",
+                created_at=att.created_at
+            )
+        )
+
+    # 9. Lottery
+    lotteries = (
+        db.query(LotteryTicket, LotteryDraw.title, LotteryDraw.ticket_price)
+        .join(LotteryDraw, LotteryTicket.draw_id == LotteryDraw.id)
+        .filter(LotteryTicket.user_id == id)
+        .all()
+    )
+    for ticket, title, ticket_price in lotteries:
+        logs.append(
+            UserGameLogItem(
+                game_type="LOTTERY",
+                game_id=ticket.id,
+                title=f"Lottery: {title}",
+                bet_amount=ticket_price,
+                win_amount=ticket.reward_amount,
+                multiplier=None,
+                status="WON" if ticket.is_winner else "LOST" if ticket.reward_amount == 0 else "PENDING",
+                details=f"Ticket: {ticket.ticket_number}",
+                created_at=ticket.purchase_time
+            )
+        )
+
+    logs.sort(key=lambda x: x.created_at, reverse=True)
+    return logs
 
 @router.post("/contests", response_model=ContestResponse)
 def create_contest(request: ContestCreate, db: Session = Depends(get_db)):

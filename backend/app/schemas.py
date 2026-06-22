@@ -740,6 +740,29 @@ class ArrowLeaderboardItem(BaseModel):
         from_attributes = True
 
 
+class AdminBankDetailBase(BaseModel):
+    bank_name: str
+    account_holder_name: str
+    account_number: str
+    ifsc_code: str
+    upi_id: Optional[str] = None
+    is_default: bool = False
+    target_user_ids: Optional[str] = None
+
+class AdminBankDetailCreate(AdminBankDetailBase):
+    pass
+
+class AdminBankDetailUpdate(AdminBankDetailBase):
+    pass
+
+class AdminBankDetailResponse(AdminBankDetailBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class PortfolioConfigResponse(BaseModel):
     id: int
     contact_email: Optional[str] = None
@@ -952,6 +975,7 @@ class MinesLogAdminResponse(BaseModel):
     win_amount: float
     result_type: str
     created_at: datetime
+    win_probability: Optional[float] = None
 
     class Config:
         from_attributes = True
@@ -1030,6 +1054,7 @@ class PlinkoLogAdminResponse(BaseModel):
     multiplier: float
     win_amount: float
     created_at: datetime
+    win_probability: Optional[float] = None
 
     class Config:
         from_attributes = True
@@ -1101,6 +1126,21 @@ class MinesRTPUpdateRequest(BaseModel):
     max_amount: float = Field(..., ge=0)
     win_rate: float = Field(..., ge=0.0, le=1.0)
     enabled: bool
+
+
+class UserGameLogItem(BaseModel):
+    game_type: str
+    game_id: int
+    title: str
+    bet_amount: float
+    win_amount: float
+    multiplier: Optional[float] = None
+    status: str
+    details: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 
 

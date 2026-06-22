@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
-from app.models import User, WalletTransaction
+from app.models import User, WalletTransaction, AdminBankDetail
 from app.schemas import (
     UserResponse, DepositRequest, WithdrawalRequest, TransactionResponse,
-    SaveBankDetailsRequest
+    SaveBankDetailsRequest, AdminBankDetailResponse
 )
 from app.core.security import get_current_user
 from app.services import WalletService
@@ -158,4 +158,35 @@ def get_transactions(
         .all()
     )
     return transactions
+
+@router.get("/bank-details", response_model=List[AdminBankDetailResponse])
+def get_user_bank_details(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    all_details = db.query(AdminBankDetail).all()
+    targeted_details = []
+    default_details = []
+    
+    for detail in all_details:
+        if detail.target_user_ids:
+            try:
+                uids = [int(x.strip()) for x in detail.target_user_ids.split(",") if x.strip()]
+                if current_user.id in uids:
+                    targeted_details.append(detail)
+            except Exception:
+                pass
+        else:
+            if detail.is_default:
+                default_details.append(detail)
+                
+    if targeted_details:
+        return targeted_details
+    elif default_details:
+        return default_details
+    else:
+        non_targeted = [d for d in all_details if not d.target_user_ids]
+        if non_targeted:
+            return non_targeted
+        return all_details
 

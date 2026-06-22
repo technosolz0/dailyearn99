@@ -45,7 +45,19 @@ def get_mines_logs(db: Session = Depends(get_db)):
     )
     
     logs = []
+    # Fetch active safety override rules
+    rtps = db.query(MinesRTP).filter(MinesRTP.enabled == True).all()
     for game, phone, name in results:
+        # Check if an override rule applies to this bet amount
+        applied_rtp = None
+        for r in rtps:
+            if r.min_amount <= game.bet_amount <= r.max_amount:
+                applied_rtp = r
+                break
+        
+        # Win rate is safety rate if rule active, else default is (25 - mines_count) / 25
+        win_prob = applied_rtp.win_rate if applied_rtp else (25.0 - game.mines_count) / 25.0
+        
         logs.append(
             MinesLogAdminResponse(
                 id=game.id,
@@ -57,7 +69,8 @@ def get_mines_logs(db: Session = Depends(get_db)):
                 multiplier=game.current_multiplier,
                 win_amount=game.current_win,
                 result_type=game.status,
-                created_at=game.created_at
+                created_at=game.created_at,
+                win_probability=win_prob
             )
         )
     return logs

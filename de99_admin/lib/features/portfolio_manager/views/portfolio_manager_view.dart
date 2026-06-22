@@ -104,6 +104,54 @@ class ContactInquiry {
   }
 }
 
+class AdminBankDetail {
+  final int id;
+  final String bankName;
+  final String accountHolderName;
+  final String accountNumber;
+  final String ifscCode;
+  final String? upiId;
+  final bool isDefault;
+  final String? targetUserIds;
+  final DateTime createdAt;
+
+  AdminBankDetail({
+    required this.id,
+    required this.bankName,
+    required this.accountHolderName,
+    required this.accountNumber,
+    required this.ifscCode,
+    this.upiId,
+    required this.isDefault,
+    this.targetUserIds,
+    required this.createdAt,
+  });
+
+  factory AdminBankDetail.fromJson(Map<String, dynamic> json) {
+    return AdminBankDetail(
+      id: json['id'] ?? 0,
+      bankName: json['bank_name'] ?? '',
+      accountHolderName: json['account_holder_name'] ?? '',
+      accountNumber: json['account_number'] ?? '',
+      ifscCode: json['ifsc_code'] ?? '',
+      upiId: json['upi_id'],
+      isDefault: json['is_default'] ?? false,
+      targetUserIds: json['target_user_ids'],
+      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'bank_name': bankName,
+        'account_holder_name': accountHolderName,
+        'account_number': accountNumber,
+        'ifsc_code': ifscCode,
+        'upi_id': upiId,
+        'is_default': isDefault,
+        'target_user_ids': targetUserIds,
+      };
+}
+
 class PortfolioManagerView extends StatefulWidget {
   const PortfolioManagerView({super.key});
 
@@ -121,6 +169,7 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
 
   PortfolioConfig? _config;
   List<ContactInquiry> _inquiries = [];
+  List<AdminBankDetail> _bankDetails = [];
 
   final _formKey = GlobalKey<FormState>();
 
@@ -144,7 +193,7 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadData();
   }
 
@@ -176,13 +225,16 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
     try {
       final configRes = await _apiClient.dio.get('/portfolio/config');
       final inquiriesRes = await _apiClient.dio.get('/admin/portfolio/contacts');
+      final bankDetailsRes = await _apiClient.dio.get('/admin/portfolio/bank-details');
 
       final config = PortfolioConfig.fromJson(configRes.data);
       final inquiries = (inquiriesRes.data as List).map((x) => ContactInquiry.fromJson(x)).toList();
+      final bankDetails = (bankDetailsRes.data as List).map((x) => AdminBankDetail.fromJson(x)).toList();
 
       setState(() {
         _config = config;
         _inquiries = inquiries;
+        _bankDetails = bankDetails;
         _isLoading = false;
 
         // Populate controllers
@@ -553,6 +605,7 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
             tabs: const [
               Tab(icon: Icon(Icons.settings), text: 'Portal settings'),
               Tab(icon: Icon(Icons.question_answer), text: 'User inquiries'),
+              Tab(icon: Icon(Icons.account_balance), text: 'Bank Accounts'),
             ],
           ),
         ),
@@ -565,7 +618,356 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
             onRefresh: _loadData,
             child: _buildInquiriesTab(),
           ),
+          _buildBankAccountsTab(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBankAccountsTab() {
+    if (_bankDetails.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('No bank details configured yet.', style: TextStyle(color: AdminTheme.textMuted)),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AdminTheme.primary,
+                foregroundColor: AdminTheme.background,
+              ),
+              onPressed: () => _showBankDetailForm(null),
+              icon: const Icon(Icons.add),
+              label: const Text('ADD BANK DETAIL'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AdminTheme.primary,
+        onPressed: () => _showBankDetailForm(null),
+        child: const Icon(Icons.add, color: AdminTheme.background),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _loadData,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: _bankDetails.length,
+          itemBuilder: (context, index) {
+            final detail = _bankDetails[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 16),
+              color: AdminTheme.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: AdminTheme.borderColor),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            detail.bankName,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        if (detail.isDefault)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AdminTheme.success.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: AdminTheme.success),
+                            ),
+                            child: const Text(
+                              'DEFAULT',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: AdminTheme.success,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const Divider(color: AdminTheme.borderColor, height: 24),
+                    _buildDetailRow('HOLDER NAME', detail.accountHolderName),
+                    const SizedBox(height: 8),
+                    _buildDetailRow('ACCOUNT NUMBER', detail.accountNumber),
+                    const SizedBox(height: 8),
+                    _buildDetailRow('IFSC CODE', detail.ifscCode),
+                    if (detail.upiId?.isNotEmpty == true) ...[
+                      const SizedBox(height: 8),
+                      _buildDetailRow('UPI ID', detail.upiId!),
+                    ],
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                      'TARGET USERS',
+                      detail.targetUserIds?.isNotEmpty == true
+                          ? detail.targetUserIds!
+                          : 'All Users',
+                      isChip: detail.targetUserIds?.isNotEmpty == true,
+                    ),
+                    const Divider(color: AdminTheme.borderColor, height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton.icon(
+                          onPressed: () => _deleteBankDetail(detail.id),
+                          icon: const Icon(Icons.delete, color: AdminTheme.error, size: 18),
+                          label: const Text(
+                            'DELETE',
+                            style: TextStyle(color: AdminTheme.error),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AdminTheme.primary,
+                            foregroundColor: AdminTheme.background,
+                          ),
+                          onPressed: () => _showBankDetailForm(detail),
+                          icon: const Icon(Icons.edit, size: 18),
+                          label: const Text('EDIT'),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, {bool isChip = false}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 140,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: AdminTheme.textMuted,
+            ),
+          ),
+        ),
+        Expanded(
+          child: isChip
+              ? Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AdminTheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: AdminTheme.primary.withOpacity(0.5)),
+                    ),
+                    child: Text(
+                      value,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AdminTheme.primary,
+                      ),
+                    ),
+                  ),
+                )
+              : Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _deleteBankDetail(int id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm Delete'),
+        content: const Text('Are you sure you want to delete this bank account?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('DELETE', style: TextStyle(color: AdminTheme.error)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await _apiClient.dio.delete('/admin/portfolio/bank-details/$id');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bank account deleted successfully!'), backgroundColor: AdminTheme.success),
+      );
+      await _loadData();
+    } on DioException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.response?.data['detail'] ?? 'Failed to delete bank account'), backgroundColor: AdminTheme.error),
+      );
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _showBankDetailForm(AdminBankDetail? detail) {
+    final formKey = GlobalKey<FormState>();
+    final nameCtrl = TextEditingController(text: detail?.bankName);
+    final holderCtrl = TextEditingController(text: detail?.accountHolderName);
+    final numCtrl = TextEditingController(text: detail?.accountNumber);
+    final ifscCtrl = TextEditingController(text: detail?.ifscCode);
+    final upiCtrl = TextEditingController(text: detail?.upiId);
+    final targetCtrl = TextEditingController(text: detail?.targetUserIds);
+    bool isDefault = detail?.isDefault ?? false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (dialogCtx, setState) => AlertDialog(
+          title: Text(detail == null ? 'Add Bank Account' : 'Edit Bank Account'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(labelText: 'Bank Name'),
+                    validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: holderCtrl,
+                    decoration: const InputDecoration(labelText: 'Account Holder Name'),
+                    validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: numCtrl,
+                    decoration: const InputDecoration(labelText: 'Account Number'),
+                    validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: ifscCtrl,
+                    decoration: const InputDecoration(labelText: 'IFSC Code'),
+                    textCapitalization: TextCapitalization.characters,
+                    validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: upiCtrl,
+                    decoration: const InputDecoration(labelText: 'UPI ID (Optional)'),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: isDefault,
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              isDefault = val;
+                            });
+                          }
+                        },
+                      ),
+                      const Expanded(child: Text('Set as Default Bank Account')),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: targetCtrl,
+                    decoration: const InputDecoration(labelText: 'Target User IDs (Optional)', hintText: 'e.g. 3,5,6,7'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('CANCEL'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AdminTheme.primary,
+                foregroundColor: AdminTheme.background,
+              ),
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+                
+                final payload = {
+                  'bank_name': nameCtrl.text.trim(),
+                  'account_holder_name': holderCtrl.text.trim(),
+                  'account_number': numCtrl.text.trim(),
+                  'ifsc_code': ifscCtrl.text.trim().toUpperCase(),
+                  'upi_id': upiCtrl.text.trim().isNotEmpty ? upiCtrl.text.trim() : null,
+                  'is_default': isDefault,
+                  'target_user_ids': targetCtrl.text.trim().isNotEmpty ? targetCtrl.text.trim() : null,
+                };
+                
+                Navigator.pop(ctx);
+                this.setState(() {
+                  _isLoading = true;
+                });
+                
+                try {
+                  if (detail == null) {
+                    await _apiClient.dio.post('/admin/portfolio/bank-details', data: payload);
+                  } else {
+                    await _apiClient.dio.put('/admin/portfolio/bank-details/${detail.id}', data: payload);
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Bank account saved successfully!'), backgroundColor: AdminTheme.success),
+                  );
+                  await _loadData();
+                } on DioException catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(e.response?.data['detail'] ?? 'Failed to save bank account'), backgroundColor: AdminTheme.error),
+                  );
+                  this.setState(() {
+                    _isLoading = false;
+                  });
+                }
+              },
+              child: const Text('SAVE'),
+            ),
+          ],
+        ),
       ),
     );
   }

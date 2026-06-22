@@ -601,6 +601,20 @@ class PortfolioContactMessage(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
+class AdminBankDetail(Base):
+    __tablename__ = "admin_bank_details"
+
+    id = Column(Integer, primary_key=True, index=True)
+    bank_name = Column(String, nullable=False)
+    account_holder_name = Column(String, nullable=False)
+    account_number = Column(String, nullable=False)
+    ifsc_code = Column(String, nullable=False)
+    upi_id = Column(String, nullable=True)
+    is_default = Column(Boolean, default=False)
+    target_user_ids = Column(String, nullable=True) # comma-separated user IDs
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
 class LotteryDraw(Base):
     __tablename__ = "lottery_draws"
 

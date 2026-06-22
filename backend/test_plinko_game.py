@@ -33,6 +33,7 @@ def run_tests():
             user.bonus_balance = 0.0
             user.is_banned = False
             user.kyc_status = "VERIFIED"
+            user.plinko_bet_count = 6
         else:
             user = User(
                 name="Test Plinko User",
@@ -42,7 +43,8 @@ def run_tests():
                 winning_balance=0.0,
                 bonus_balance=0.0,
                 kyc_status="VERIFIED",
-                is_banned=False
+                is_banned=False,
+                plinko_bet_count=6
             )
             db.add(user)
         db.commit()

@@ -6,6 +6,39 @@ import 'package:dailyearn99/core/theme/app_theme.dart';
 import 'package:dailyearn99/core/network/remote_config_service.dart';
 import 'package:dailyearn99/core/utils/dependency_injection.dart';
 import 'package:dailyearn99/features/app_bloc.dart';
+import 'package:dailyearn99/core/network/api_client.dart';
+
+class AdminBankDetailModel {
+  final int id;
+  final String bankName;
+  final String accountHolderName;
+  final String accountNumber;
+  final String ifscCode;
+  final String? upiId;
+  final bool isDefault;
+
+  AdminBankDetailModel({
+    required this.id,
+    required this.bankName,
+    required this.accountHolderName,
+    required this.accountNumber,
+    required this.ifscCode,
+    this.upiId,
+    required this.isDefault,
+  });
+
+  factory AdminBankDetailModel.fromJson(Map<String, dynamic> json) {
+    return AdminBankDetailModel(
+      id: json['id'] as int? ?? 0,
+      bankName: json['bank_name'] as String? ?? '',
+      accountHolderName: json['account_holder_name'] as String? ?? '',
+      accountNumber: json['account_number'] as String? ?? '',
+      ifscCode: json['ifsc_code'] as String? ?? '',
+      upiId: json['upi_id'] as String?,
+      isDefault: json['is_default'] as bool? ?? false,
+    );
+  }
+}
 
 class DepositBottomSheet extends StatefulWidget {
   final double? defaultAmount;
@@ -42,6 +75,11 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
 
   int _activeManualSubTab = 0; // 0 for UPI, 1 for Bank Details
 
+  List<AdminBankDetailModel> _bankDetails = [];
+  AdminBankDetailModel? _selectedBankDetail;
+  bool _isLoadingBankDetails = true;
+  String? _bankDetailsError;
+
   @override
   void initState() {
     super.initState();
@@ -67,6 +105,35 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
         }
       }
     });
+
+    _fetchBankDetails();
+  }
+
+  Future<void> _fetchBankDetails() async {
+    try {
+      final response = await getIt<ApiClient>().get('/wallet/bank-details');
+      final data = response.data as List;
+      final list = data.map((json) => AdminBankDetailModel.fromJson(json)).toList();
+      if (mounted) {
+        setState(() {
+          _bankDetails = list;
+          _isLoadingBankDetails = false;
+          if (_bankDetails.isNotEmpty) {
+            _selectedBankDetail = _bankDetails.firstWhere(
+              (element) => element.isDefault,
+              orElse: () => _bankDetails.first,
+            );
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingBankDetails = false;
+          _bankDetailsError = e.toString();
+        });
+      }
+    }
   }
 
   @override
@@ -90,22 +157,31 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
 
     final String method = backendConfig?.addAmountMethod ?? "UPI";
 
-    final String upiId = backendConfig?.adminUpiId.isNotEmpty == true
-        ? backendConfig!.adminUpiId
-        : remoteConfig.adminUpiId;
-    final String bankHolder = backendConfig?.adminBankHolder.isNotEmpty == true
-        ? backendConfig!.adminBankHolder
-        : remoteConfig.adminBankHolder;
-    final String bankName = backendConfig?.adminBankName.isNotEmpty == true
-        ? backendConfig!.adminBankName
-        : remoteConfig.adminBankName;
-    final String bankAccount =
-        backendConfig?.adminBankAccount.isNotEmpty == true
-        ? backendConfig!.adminBankAccount
-        : remoteConfig.adminBankAccount;
-    final String bankIfsc = backendConfig?.adminBankIfsc.isNotEmpty == true
-        ? backendConfig!.adminBankIfsc
-        : remoteConfig.adminBankIfsc;
+    final String upiId = _selectedBankDetail?.upiId?.isNotEmpty == true
+        ? _selectedBankDetail!.upiId!
+        : (backendConfig?.adminUpiId.isNotEmpty == true
+            ? backendConfig!.adminUpiId
+            : remoteConfig.adminUpiId);
+    final String bankHolder = _selectedBankDetail?.accountHolderName.isNotEmpty == true
+        ? _selectedBankDetail!.accountHolderName
+        : (backendConfig?.adminBankHolder.isNotEmpty == true
+            ? backendConfig!.adminBankHolder
+            : remoteConfig.adminBankHolder);
+    final String bankName = _selectedBankDetail?.bankName.isNotEmpty == true
+        ? _selectedBankDetail!.bankName
+        : (backendConfig?.adminBankName.isNotEmpty == true
+            ? backendConfig!.adminBankName
+            : remoteConfig.adminBankName);
+    final String bankAccount = _selectedBankDetail?.accountNumber.isNotEmpty == true
+        ? _selectedBankDetail!.accountNumber
+        : (backendConfig?.adminBankAccount.isNotEmpty == true
+            ? backendConfig!.adminBankAccount
+            : remoteConfig.adminBankAccount);
+    final String bankIfsc = _selectedBankDetail?.ifscCode.isNotEmpty == true
+        ? _selectedBankDetail!.ifscCode
+        : (backendConfig?.adminBankIfsc.isNotEmpty == true
+            ? backendConfig!.adminBankIfsc
+            : remoteConfig.adminBankIfsc);
     final String supportPhone = backendConfig?.contactPhone.isNotEmpty == true
         ? backendConfig!.contactPhone
         : remoteConfig.adminContactPhone;
@@ -157,6 +233,60 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                   ),
                 ),
                 const SizedBox(height: 20),
+                if (_isLoadingBankDetails)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: CircularProgressIndicator(color: AppTheme.accentCyan),
+                    ),
+                  )
+                else if (_bankDetails.length > 1) ...[
+                  const Text(
+                    'SELECT DEPOSIT ACCOUNT',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textMuted,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.borderCol),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<AdminBankDetailModel>(
+                        value: _selectedBankDetail,
+                        dropdownColor: AppTheme.cardBg,
+                        isExpanded: true,
+                        icon: const Icon(Icons.arrow_drop_down, color: AppTheme.accentCyan),
+                        items: _bankDetails.map((detail) {
+                          return DropdownMenuItem<AdminBankDetailModel>(
+                            value: detail,
+                            child: Text(
+                              '${detail.bankName} - ${detail.accountHolderName}',
+                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _selectedBankDetail = val;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ] else ...[
+                  const SizedBox(height: 20),
+                ],
 
                 // Manual Sub-Switcher
                 Container(

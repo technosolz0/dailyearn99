@@ -19,7 +19,7 @@ from app.models import (
     WordContest, WordQuestion, WordAttempt, WordAnswer, WordLeaderboard,
     FruitContest, FruitMatch, FruitEvent, FruitScore, FruitLeaderboard,
     ArrowContest, ArrowGame, ArrowAttempt, ArrowLeaderboard, ArrowPuzzleSeed,
-    PortfolioConfig, PortfolioContactMessage, LotteryDraw, LotteryTicket, AdminFCMToken,
+    PortfolioConfig, PortfolioContactMessage, AdminBankDetail, LotteryDraw, LotteryTicket, AdminFCMToken,
     MinesGame, MinesSetting, PlinkoGame, PlinkoSetting, PlinkoMultiplier, PlinkoRTP
 )  # Explicitly import to register on Base
 Base.metadata.create_all(bind=engine)

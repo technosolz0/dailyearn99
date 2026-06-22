@@ -1042,7 +1042,7 @@ function setupEventHandlers() {
             const telegram_link = document.getElementById('port-telegram').value.trim();
             const instagram_link = document.getElementById('port-instagram').value.trim();
             const referral_code = document.getElementById('port-ref-code').value.trim().toUpperCase();
-            
+
             const add_amount_method = document.getElementById('port-deposit-method').value;
             const admin_upi_id = document.getElementById('port-admin-upi').value.trim();
             const admin_bank_holder = document.getElementById('port-bank-holder').value.trim();
@@ -1086,6 +1086,79 @@ function setupEventHandlers() {
             } finally {
                 btn.disabled = false;
                 btn.innerText = "Save Settings";
+            }
+        });
+    }
+
+    // Admin Bank Accounts Modal Close / Open
+    const btnAddAdminBank = document.getElementById('btn-add-admin-bank');
+    const adminBankModal = document.getElementById('admin-bank-modal');
+    const btnCloseBankModal = document.getElementById('btn-close-bank-modal');
+    
+    if (btnAddAdminBank && adminBankModal) {
+        btnAddAdminBank.addEventListener('click', () => {
+            document.getElementById('admin-bank-modal-title').innerText = "Add Bank Account";
+            document.getElementById('modal-bank-id').value = "";
+            document.getElementById('modal-bank-name').value = "";
+            document.getElementById('modal-bank-holder').value = "";
+            document.getElementById('modal-bank-account').value = "";
+            document.getElementById('modal-bank-ifsc').value = "";
+            document.getElementById('modal-bank-upi').value = "";
+            document.getElementById('modal-bank-default').checked = false;
+            document.getElementById('modal-bank-target-users').value = "";
+            adminBankModal.classList.add('show');
+        });
+    }
+    
+    if (btnCloseBankModal && adminBankModal) {
+        btnCloseBankModal.addEventListener('click', () => {
+            adminBankModal.classList.remove('show');
+        });
+    }
+    
+    // Submit Admin Bank Details Form
+    const modalAdminBankForm = document.getElementById('modal-admin-bank-form');
+    if (modalAdminBankForm) {
+        modalAdminBankForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const bankId = document.getElementById('modal-bank-id').value;
+            const bankName = document.getElementById('modal-bank-name').value.trim();
+            const holderName = document.getElementById('modal-bank-holder').value.trim();
+            const accountNumber = document.getElementById('modal-bank-account').value.trim();
+            const ifscCode = document.getElementById('modal-bank-ifsc').value.trim().toUpperCase();
+            const upiId = document.getElementById('modal-bank-upi').value.trim();
+            const isDefault = document.getElementById('modal-bank-default').checked;
+            const targetUserIds = document.getElementById('modal-bank-target-users').value.trim();
+            
+            const payload = {
+                bank_name: bankName,
+                account_holder_name: holderName,
+                account_number: accountNumber,
+                ifsc_code: ifscCode,
+                upi_id: upiId || null,
+                is_default: isDefault,
+                target_user_ids: targetUserIds || null
+            };
+            
+            const url = bankId 
+                ? `${API_BASE}/admin/portfolio/bank-details/${bankId}`
+                : `${API_BASE}/admin/portfolio/bank-details`;
+            const method = bankId ? 'PUT' : 'POST';
+            
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!res.ok) throw new Error(await res.text());
+                
+                showToast(bankId ? "Bank account updated successfully!" : "Bank account added successfully!");
+                adminBankModal.classList.remove('show');
+                loadAdminBankAccounts();
+            } catch (err) {
+                showToast("Failed to save bank account: " + err.message, true);
             }
         });
     }
@@ -1398,9 +1471,35 @@ async function viewUserDetails(userId) {
                 </div>
             </div>
         </div>
+
+        <!-- Gameplay History Logs -->
+        <div style="margin-top: 20px;">
+            <div class="profile-section-title">Recent Gameplay History Logs</div>
+            <div class="table-wrapper" style="max-height: 250px; overflow-y: auto;">
+                <table class="data-table" style="font-size: 11px;">
+                    <thead>
+                        <tr>
+                            <th>Game</th>
+                            <th>Details</th>
+                            <th>Bet</th>
+                            <th>Multiplier</th>
+                            <th>Payout</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-game-logs-tbody">
+                        <tr>
+                            <td colspan="7" class="table-placeholder">Loading gameplay logs...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     `;
 
     document.getElementById('user-details-modal').classList.add('show');
+    loadUserGameLogs(userId);
 }
 
 window.viewUserDetails = viewUserDetails;
@@ -3422,19 +3521,91 @@ async function loadPortfolioManager() {
             document.getElementById('port-telegram').value = config.telegram_link || '';
             document.getElementById('port-instagram').value = config.instagram_link || '';
             document.getElementById('port-ref-code').value = config.referral_code || '';
-            
+
             document.getElementById('port-deposit-method').value = config.add_amount_method || 'UPI';
             document.getElementById('port-admin-upi').value = config.admin_upi_id || '';
             document.getElementById('port-bank-holder').value = config.admin_bank_holder || '';
             document.getElementById('port-bank-name').value = config.admin_bank_name || '';
             document.getElementById('port-bank-account').value = config.admin_bank_account || '';
             document.getElementById('port-bank-ifsc').value = config.admin_bank_ifsc || '';
-            
+
             updateDepositFieldsVisibility();
         }
         await loadPortfolioInquiries();
+        await loadAdminBankAccounts();
     } catch (err) {
         showToast("Error loading portfolio: " + err.message, true);
+    }
+}
+
+let adminBankAccountsList = [];
+
+async function loadAdminBankAccounts() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/portfolio/bank-details`);
+        if (!res.ok) throw new Error("Failed to load bank details.");
+        adminBankAccountsList = await res.json();
+        renderAdminBankTable(adminBankAccountsList);
+    } catch (err) {
+        showToast(err.message, true);
+    }
+}
+
+function renderAdminBankTable(details) {
+    const tbody = document.getElementById('admin-bank-table-body');
+    if (!tbody) return;
+    if (details.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="table-placeholder">No bank accounts added yet. Click "+ Add Bank Account" above.</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = details.map(d => {
+        return `
+            <tr>
+                <td>${d.id}</td>
+                <td><strong>${escapeHtml(d.bank_name)}</strong></td>
+                <td>${escapeHtml(d.account_holder_name)}</td>
+                <td><code>${escapeHtml(d.account_number)}</code></td>
+                <td><code>${escapeHtml(d.ifsc_code)}</code></td>
+                <td>${d.upi_id ? `<code>${escapeHtml(d.upi_id)}</code>` : '<span class="text-muted">-</span>'}</td>
+                <td>${d.is_default ? '<span class="badge badge-success">DEFAULT</span>' : '<span class="text-muted">No</span>'}</td>
+                <td>${d.target_user_ids ? `<span class="badge badge-info">${escapeHtml(d.target_user_ids)}</span>` : '<span class="text-muted">All Users</span>'}</td>
+                <td>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-action" onclick="openEditBankModal(${d.id})">Edit</button>
+                        <button class="btn btn-action btn-ban" onclick="deleteBankDetail(${d.id})">Delete</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+window.openEditBankModal = function(id) {
+    const d = adminBankAccountsList.find(x => x.id === id);
+    if (!d) return;
+    document.getElementById('admin-bank-modal-title').innerText = "Edit Bank Account";
+    document.getElementById('modal-bank-id').value = d.id;
+    document.getElementById('modal-bank-name').value = d.bank_name || '';
+    document.getElementById('modal-bank-holder').value = d.account_holder_name || '';
+    document.getElementById('modal-bank-account').value = d.account_number || '';
+    document.getElementById('modal-bank-ifsc').value = d.ifsc_code || '';
+    document.getElementById('modal-bank-upi').value = d.upi_id || '';
+    document.getElementById('modal-bank-default').checked = d.is_default || false;
+    document.getElementById('modal-bank-target-users').value = d.target_user_ids || '';
+    document.getElementById('admin-bank-modal').classList.add('show');
+}
+
+window.deleteBankDetail = async function(id) {
+    if (!confirm("Are you sure you want to delete this bank account?")) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/portfolio/bank-details/${id}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error(await res.text());
+        showToast("Bank account deleted successfully!");
+        loadAdminBankAccounts();
+    } catch (err) {
+        showToast("Failed to delete bank account: " + err.message, true);
     }
 }
 
@@ -3827,7 +3998,7 @@ async function loadMinesEngineData() {
         if (settingsRes.ok) {
             const settings = await settingsRes.json();
             state.mines_maintenance = settings.maintenance_mode;
-            
+
             document.getElementById('mines-house-edge').value = settings.house_edge;
             document.getElementById('mines-min-bet').value = settings.min_bet;
             document.getElementById('mines-max-bet').value = settings.max_bet;
@@ -3857,6 +4028,8 @@ async function loadMinesRtpSettings() {
         const res = await fetch(`${API_BASE}/admin/mines/rtp`);
         if (!res.ok) throw new Error("Failed to load Mines RTP rules.");
         const rules = await res.json();
+        state.mines_rtp_rules = rules;
+        inspectMinesProbability();
 
         const tbody = document.getElementById('mines-rtp-rules-table-body');
         if (!tbody) return;
@@ -3907,35 +4080,47 @@ async function loadMinesLogs() {
         if (!tbody) return;
 
         if (logs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" class="table-placeholder">No game logs found.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" class="table-placeholder">No game logs found.</td></tr>`;
             return;
         }
 
-        tbody.innerHTML = logs.map(l => `
-            <tr>
-                <td>${l.id}</td>
-                <td>
-                    <strong>${l.user_name || 'Anonymous'}</strong>
-                    <span class="text-muted" style="display:block; font-size:10px;">${l.user_phone}</span>
-                </td>
-                <td>₹${l.bet_amount.toFixed(2)}</td>
-                <td>${l.mines_count}</td>
-                <td>${l.multiplier.toFixed(2)}x</td>
-                <td>₹${l.win_amount.toFixed(2)}</td>
-                <td>
-                    <span class="badge ${l.result_type === 'WON' ? 'badge-success' : l.result_type === 'LOST' ? 'badge-error' : 'badge-info'}">
-                        ${l.result_type}
-                    </span>
-                </td>
-                <td>${new Date(l.created_at).toLocaleString()}</td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = logs.map(l => {
+            const probStr = l.win_probability !== null && l.win_probability !== undefined
+                ? `${(l.win_probability * 100).toFixed(0)}%`
+                : '-';
+            return `
+                <tr>
+                    <td>${l.id}</td>
+                    <td>
+                        <strong style="cursor: pointer; color: var(--primary);" onclick="viewUserDetails(${l.user_id})">${l.user_name || 'Anonymous'}</strong>
+                        <span class="text-muted" style="display:block; font-size:10px;">${l.user_phone}</span>
+                    </td>
+                    <td>₹${l.bet_amount.toFixed(2)}</td>
+                    <td>${l.mines_count}</td>
+                    <td>${l.multiplier.toFixed(2)}x</td>
+                    <td>₹${l.win_amount.toFixed(2)}</td>
+                    <td><span class="badge badge-info">${probStr}</span></td>
+                    <td>
+                        <span class="badge ${l.result_type === 'WON' ? 'badge-success' : l.result_type === 'LOST' ? 'badge-error' : 'badge-info'}">
+                            ${l.result_type}
+                        </span>
+                    </td>
+                    <td>${new Date(l.created_at).toLocaleString()}</td>
+                </tr>
+            `;
+        }).join('');
     } catch (err) {
         console.error(err);
     }
 }
 
 function setupMinesHandlers() {
+    // Probability Calculator listeners
+    const inspectMinesBet = document.getElementById('inspect-mines-bet');
+    const inspectMinesCount = document.getElementById('inspect-mines-count');
+    if (inspectMinesBet) inspectMinesBet.addEventListener('input', inspectMinesProbability);
+    if (inspectMinesCount) inspectMinesCount.addEventListener('change', inspectMinesProbability);
+
     // Maintenance Lock Button
     const btnMaintenance = document.getElementById('btn-mines-maintenance');
     if (btnMaintenance) {
@@ -4082,6 +4267,8 @@ async function loadPlinkoRtpSettings() {
         const res = await fetch(`${API_BASE}/admin/plinko/rtp`);
         if (!res.ok) throw new Error("Failed to load Plinko RTP rules.");
         const rules = await res.json();
+        state.plinko_rtp_rules = rules;
+        inspectPlinkoProbability();
 
         const tbody = document.getElementById('plinko-rtp-rules-table-body');
         if (!tbody) return;
@@ -4128,31 +4315,45 @@ async function loadPlinkoLogs() {
         if (!tbody) return;
 
         if (logs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" class="table-placeholder">No game logs found.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" class="table-placeholder">No game logs found.</td></tr>`;
             return;
         }
 
-        tbody.innerHTML = logs.map(l => `
-            <tr>
-                <td>${l.id}</td>
-                <td>
-                    <strong>${l.user_name || 'Anonymous'}</strong>
-                    <span class="text-muted" style="display:block; font-size:10px;">${l.user_phone}</span>
-                </td>
-                <td>₹${l.bet_amount.toFixed(2)}</td>
-                <td>${l.rows}</td>
-                <td>${l.mode}</td>
-                <td>${l.multiplier.toFixed(2)}x</td>
-                <td>₹${l.win_amount.toFixed(2)}</td>
-                <td>${new Date(l.created_at).toLocaleString()}</td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = logs.map(l => {
+            const probStr = l.win_probability !== null && l.win_probability !== undefined
+                ? `${(l.win_probability * 100).toFixed(2)}%`
+                : '-';
+            return `
+                <tr>
+                    <td>${l.id}</td>
+                    <td>
+                        <strong style="cursor: pointer; color: var(--primary);" onclick="viewUserDetails(${l.user_id})">${l.user_name || 'Anonymous'}</strong>
+                        <span class="text-muted" style="display:block; font-size:10px;">${l.user_phone}</span>
+                    </td>
+                    <td>₹${l.bet_amount.toFixed(2)}</td>
+                    <td>${l.rows}</td>
+                    <td>${l.mode}</td>
+                    <td>${l.multiplier.toFixed(2)}x</td>
+                    <td>₹${l.win_amount.toFixed(2)}</td>
+                    <td><span class="badge badge-info">${probStr}</span></td>
+                    <td>${new Date(l.created_at).toLocaleString()}</td>
+                </tr>
+            `;
+        }).join('');
     } catch (err) {
         console.error(err);
     }
 }
 
 function setupPlinkoHandlers() {
+    // Probability Calculator listeners
+    const inspectPlinkoBet = document.getElementById('inspect-plinko-bet');
+    const inspectPlinkoRows = document.getElementById('inspect-plinko-rows');
+    const inspectPlinkoMode = document.getElementById('inspect-plinko-mode');
+    if (inspectPlinkoBet) inspectPlinkoBet.addEventListener('input', inspectPlinkoProbability);
+    if (inspectPlinkoRows) inspectPlinkoRows.addEventListener('change', inspectPlinkoProbability);
+    if (inspectPlinkoMode) inspectPlinkoMode.addEventListener('change', inspectPlinkoProbability);
+
     // Maintenance Lock Button
     const btnMaintenance = document.getElementById('btn-plinko-maintenance');
     if (btnMaintenance) {
@@ -4278,6 +4479,131 @@ window.loadPlinkoEngineData = loadPlinkoEngineData;
 window.loadPlinkoRtpSettings = loadPlinkoRtpSettings;
 window.deletePlinkoRtpRule = deletePlinkoRtpRule;
 window.loadPlinkoLogs = loadPlinkoLogs;
+
+async function loadUserGameLogs(userId) {
+    const tbody = document.getElementById('user-game-logs-tbody');
+    if (!tbody) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/admin/users/${userId}/game-logs`);
+        if (!res.ok) throw new Error(await res.text());
+        const logs = await res.json();
+
+        if (logs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="table-placeholder">No games played yet.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = logs.map(l => {
+            const dateStr = new Date(l.created_at).toLocaleString();
+            const winStyle = l.win_amount > 0 ? 'color: var(--success); font-weight: 600;' : 'color: var(--text-muted);';
+            const multStr = l.multiplier !== null && l.multiplier !== undefined ? `${l.multiplier.toFixed(2)}x` : '-';
+
+            let statusClass = 'badge-neutral';
+            if (['WON', 'VERIFIED', 'SUCCESS', 'COMPLETED'].includes(l.status)) {
+                statusClass = 'badge-success';
+            } else if (['LOST', 'FAILED', 'SUSPICIOUS', 'DISQUALIFIED'].includes(l.status)) {
+                statusClass = 'badge-error';
+            } else if (l.status === 'IN_PROGRESS' || l.status === 'JOINED') {
+                statusClass = 'badge-warning';
+            }
+
+            return `
+                <tr>
+                    <td><span class="badge badge-info">${l.game_type}</span></td>
+                    <td><strong>${l.title}</strong><div style="font-size: 9px; color: var(--text-muted);">${l.details || ''}</div></td>
+                    <td>₹${l.bet_amount.toFixed(2)}</td>
+                    <td>${multStr}</td>
+                    <td style="${winStyle}">₹${l.win_amount.toFixed(2)}</td>
+                    <td><span class="badge ${statusClass}">${l.status}</span></td>
+                    <td style="white-space: nowrap;">${dateStr}</td>
+                </tr>
+            `;
+        }).join('');
+    } catch (err) {
+        console.error(err);
+        tbody.innerHTML = `<tr><td colspan="7" class="table-placeholder" style="color: var(--error);">Error loading logs: ${err.message}</td></tr>`;
+    }
+}
+
+function inspectMinesProbability() {
+    const betVal = parseFloat(document.getElementById('inspect-mines-bet').value);
+    const countVal = parseInt(document.getElementById('inspect-mines-count').value);
+
+    if (isNaN(betVal) || isNaN(countVal)) return;
+
+    const rtpRules = state.mines_rtp_rules || [];
+    const activeRule = rtpRules.find(r => r.enabled && r.min_amount <= betVal && betVal <= r.max_amount);
+
+    const resultEl = document.getElementById('inspect-mines-result');
+    const reasonEl = document.getElementById('inspect-mines-reason');
+    if (!resultEl || !reasonEl) return;
+
+    if (activeRule) {
+        resultEl.innerText = `${(activeRule.win_rate * 100).toFixed(0)}% Safe Click`;
+        reasonEl.innerText = `Override Rule ID #${activeRule.id} active for bet ₹${betVal}. Force-safe chance: ${(activeRule.win_rate * 100).toFixed(0)}%.`;
+    } else {
+        const defaultProb = ((25 - countVal) / 25) * 100;
+        resultEl.innerText = `${defaultProb.toFixed(0)}% Safe Click`;
+        reasonEl.innerText = `No active override rule. Default safe cell reveal chance is (25 - ${countVal}) / 25 = ${defaultProb.toFixed(0)}% on first click.`;
+    }
+}
+
+function inspectPlinkoProbability() {
+    const betVal = parseFloat(document.getElementById('inspect-plinko-bet').value);
+    const rowsVal = parseInt(document.getElementById('inspect-plinko-rows').value);
+    const modeVal = document.getElementById('inspect-plinko-mode').value;
+
+    if (isNaN(betVal) || isNaN(rowsVal) || !modeVal) return;
+
+    const rtpRules = state.plinko_rtp_rules || [];
+    const activeRule = rtpRules.find(r => r.enabled && r.min_amount <= betVal && betVal <= r.max_amount && r.rows === rowsVal && r.mode.toLowerCase() === modeVal.toLowerCase());
+
+    const resultEl = document.getElementById('inspect-plinko-result');
+    const reasonEl = document.getElementById('inspect-plinko-reason');
+    if (!resultEl || !reasonEl) return;
+
+    if (activeRule) {
+        try {
+            const weights = JSON.parse(activeRule.probability_json);
+            let probs = [];
+            if (Array.isArray(weights)) {
+                const sum = weights.reduce((a, b) => a + b, 0);
+                probs = weights.map(w => `${((w / sum) * 100).toFixed(1)}%`);
+            } else if (typeof weights === 'object') {
+                const sum = Object.values(weights).reduce((a, b) => a + b, 0);
+                probs = Object.keys(weights).map(k => `Bucket ${k}: ${((weights[k] / sum) * 100).toFixed(1)}%`);
+            }
+            resultEl.innerText = JSON.stringify(probs);
+            reasonEl.innerText = `Override Rule ID #${activeRule.id} active. Custom weighted probability distribution is applied.`;
+        } catch (e) {
+            resultEl.innerText = activeRule.probability_json;
+            reasonEl.innerText = `Error parsing override: ${e.message}`;
+        }
+    } else {
+        function comb(n, k) {
+            if (k < 0 || k > n) return 0;
+            if (k === 0 || k === n) return 1;
+            let res = 1;
+            for (let i = 1; i <= k; i++) {
+                res = res * (n - i + 1) / i;
+            }
+            return res;
+        }
+        let probs = [];
+        const factor = Math.pow(0.5, rowsVal);
+        for (let k = 0; k <= rowsVal; k++) {
+            const prob = comb(rowsVal, k) * factor * 100;
+            probs.push(`${prob.toFixed(1)}%`);
+        }
+        resultEl.innerText = JSON.stringify(probs);
+        reasonEl.innerText = `No active override rule. Standard binomial distribution applies (0.5 ^ ${rowsVal}).`;
+    }
+}
+
+window.inspectMinesProbability = inspectMinesProbability;
+window.inspectPlinkoProbability = inspectPlinkoProbability;
+window.loadUserGameLogs = loadUserGameLogs;
 
 
 
