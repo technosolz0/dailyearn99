@@ -4,181 +4,88 @@ from datetime import datetime, timezone
 from typing import List
 
 from app.core.database import get_db
-from app.models import User, FruitContest
+from app.models import User, FruitGame
 from app.schemas import (
-    FruitContestResponse,
-    JoinFruitContestRequest,
-    JoinFruitContestResponse,
-    StartFruitContestResponse,
-    SubmitFruitScoreRequest,
-    FruitLeaderboardItem
+    FruitSettingsResponse,
+    FruitGameStartRequest,
+    FruitGameResponse
 )
 from app.core.security import get_current_user
-from app.services import FruitGameService, FruitRewardService
-from app.websocket import fruit_leaderboard_manager
+from app.services import FruitSlicingService
 
 router = APIRouter(prefix="/fruit-game", tags=["Fruit Slicing Game"])
 
-@router.get("/contests", response_model=List[FruitContestResponse])
-def get_fruit_contests(db: Session = Depends(get_db)):
+
+@router.get("/settings", response_model=FruitSettingsResponse)
+def get_fruit_settings(db: Session = Depends(get_db)):
     """
-    Fetches all fruit slicing contests. Automatically transitions status from UPCOMING
-    to ACTIVE and completes expired contests payouts.
+    Fetches the active Fruit Slicing game settings (bet limits, multipliers, maintenance mode).
     """
-    now = datetime.utcnow()
-    
-    # 1. Select upcoming contests to transition and trigger notifications
-    upcoming_to_active = db.query(FruitContest).filter(
-        FruitContest.status == "UPCOMING",
-        FruitContest.start_time <= now
-    ).all()
-
-    for c in upcoming_to_active:
-        c.status = "ACTIVE"
-        db.commit()
-
-        # Find all users registered in this contest
-        from app.models import FruitMatch, Notification
-        from app.core.notifications import send_push_to_user
-        import json
-
-        matches = db.query(FruitMatch).filter(FruitMatch.contest_id == c.id).all()
-        for match in matches:
-            title = "🍎 Fruit Slicing Tournament Started!"
-            body = f"The tournament '{c.title}' has officially started! Tap to slice and earn now!"
-            data = {"type": "contest_started", "contest_id": str(c.id), "category": "FRUIT"}
-
-            # Save in database
-            db_notification = Notification(
-                user_id=match.user_id,
-                title=title,
-                body=body,
-                data_json=json.dumps(data)
-            )
-            db.add(db_notification)
-            db.commit()
-
-            # Trigger push notification
-            send_push_to_user(db, match.user_id, title, body, data, save_to_db=False)
-
-    # 2. Selectively process rewards only for expired ACTIVE contests
-    expired_contests = db.query(FruitContest).filter(
-        FruitContest.status == "ACTIVE",
-        FruitContest.end_time <= now
-    ).all()
-
-    for c in expired_contests:
-        FruitRewardService.complete_contest_rewards(db, c.id)
-
-    # 3. Retrieve all contests and filter completed ones > 24 hours
-    contests = db.query(FruitContest).all()
-    filtered_contests = []
-    for c in contests:
-        if c.status == "COMPLETED" and c.end_time:
-            if (now - c.end_time).total_seconds() > 24 * 3600:
-                continue
-        filtered_contests.append(c)
-    return filtered_contests
+    try:
+        return FruitSlicingService.get_settings(db)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch fruit settings: {str(e)}"
+        )
 
 
-
-@router.post("/join", response_model=JoinFruitContestResponse)
-def join_fruit_contest(
-    payload: JoinFruitContestRequest,
+@router.post("/start", response_model=FruitGameResponse)
+def start_fruit_game(
+    payload: FruitGameStartRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Registers a user in the contest, deducting entry fees cleanly with wallet transactions.
+    Starts a Fruit Slicing gameplay session, deducting bet amount from wallet balances.
+    Returns the game details and cryptographic signature.
     """
     try:
-        result = FruitGameService.start_fruit_session(
+        result = FruitSlicingService.start_game(
             db=db,
             user=current_user,
-            contest_id=payload.contest_id,
-            device_fingerprint=payload.device_fingerprint,
-            ip_address=payload.ip_address
+            bet_amount=payload.bet_amount
         )
-        return JoinFruitContestResponse(
-            session_id=result["session_id"],
-            entry_fee_deducted=db.query(FruitContest).filter(FruitContest.id == payload.contest_id).first().entry_fee,
-            status="SUCCESS"
+        game_res = result["game"]
+        response = FruitGameResponse(
+            id=game_res.id,
+            user_id=game_res.user_id,
+            bet_amount=game_res.bet_amount,
+            status=game_res.status,
+            current_multiplier=game_res.current_multiplier,
+            win_amount=game_res.win_amount,
+            created_at=game_res.created_at,
+            updated_balance=result["updated_balance"],
+            signature=result["signature"]
         )
+        return response
     except ValueError as e:
-        if str(e) == "You have already started or joined this contest.":
-            from app.models import FruitMatch
-            m = db.query(FruitMatch).filter(FruitMatch.contest_id == payload.contest_id, FruitMatch.user_id == current_user.id).first()
-            if m:
-                return JoinFruitContestResponse(
-                    session_id=m.session_id,
-                    entry_fee_deducted=0.0,
-                    status="SUCCESS"
-                )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
 
 
-@router.post("/start/{contest_id}", response_model=StartFruitContestResponse)
-def start_fruit_contest(
-    contest_id: int,
-    session_id: str,
+@router.post("/cashout/{game_id}", response_model=FruitGameResponse)
+def cashout_fruit_game(
+    game_id: int,
+    final_multiplier: float,
+    signature: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Starts the active tournament match and releases the deterministic random seed and signature.
+    Completes the game and claims bet * final_multiplier reward.
     """
     try:
-        match_record = db.query(FruitContest).filter(FruitContest.id == contest_id).first()
-        if not match_record:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found")
-        
-        if match_record.status != "ACTIVE":
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Contest is not active")
-
-        return StartFruitContestResponse(
-            session_id=session_id,
-            seed=match_record.seed,
-            duration_seconds=match_record.duration_seconds,
-            started_at=datetime.utcnow(),
-            signature=FruitGameService.start_fruit_session(db, current_user, contest_id, "unknown", "127.0.0.1")["signature"] # Return existing signature or generate dynamically
-        )
-    except ValueError as e:
-        # If already joined/started we fetch and serve existing signature details
-        from app.models import FruitMatch
-        m = db.query(FruitMatch).filter(FruitMatch.contest_id == contest_id, FruitMatch.user_id == current_user.id).first()
-        if m:
-            return StartFruitContestResponse(
-                session_id=m.session_id,
-                seed=match_record.seed,
-                duration_seconds=match_record.duration_seconds,
-                started_at=m.started_at,
-                signature=m.signature
-            )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-
-
-@router.post("/submit")
-def submit_fruit_score(
-    payload: SubmitFruitScoreRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Submits completed gameplay swipe event streams, performing kinematic and cryptographic validation.
-    """
-    try:
-        result = FruitGameService.submit_fruit_score(
+        game = FruitSlicingService.cashout_game(
             db=db,
             user=current_user,
-            data=payload
+            game_id=game_id,
+            final_multiplier=final_multiplier,
+            signature=signature
         )
-        return result
+        return game
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -186,31 +93,46 @@ def submit_fruit_score(
         )
 
 
-@router.get("/leaderboard/{contest_id}", response_model=List[FruitLeaderboardItem])
-def get_fruit_leaderboard(contest_id: int, db: Session = Depends(get_db)):
+@router.post("/bomb/{game_id}", response_model=FruitGameResponse)
+def bomb_fruit_game(
+    game_id: int,
+    signature: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """
-    Returns live sorting scoreboard standings from cache, falling back to db queries if cold.
+    Marks the game as lost due to a bomb slice.
     """
-    leaderboard = fruit_leaderboard_manager.get_leaderboard(contest_id)
-    if not leaderboard:
-        # Load from DB standings
-        fruit_leaderboard_manager.load_from_db(db, contest_id)
-        leaderboard = fruit_leaderboard_manager.get_leaderboard(contest_id)
+    try:
+        game = FruitSlicingService.bomb_hit_game(
+            db=db,
+            user=current_user,
+            game_id=game_id,
+            signature=signature
+        )
+        return game
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
-    result = []
-    for item in leaderboard:
-        # Find if paid or not
-        from app.models import FruitLeaderboard
-        lbl_db = db.query(FruitLeaderboard).filter(FruitLeaderboard.contest_id == contest_id, FruitLeaderboard.user_id == item["user_id"]).first()
-        prize = lbl_db.prize_amount if lbl_db else 0.0
 
-        result.append(FruitLeaderboardItem(
-            user_id=item["user_id"],
-            name=item["name"],
-            score=item["score"],
-            max_combo=item["max_combo"],
-            miss_count=item["miss_count"],
-            rank=item["rank"],
-            prize_amount=prize
-        ))
-    return result
+@router.get("/history", response_model=List[FruitGameResponse])
+def get_fruit_history(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Fetches the history of past games played by the current user.
+    """
+    try:
+        games = db.query(FruitGame).filter(
+            FruitGame.user_id == current_user.id
+        ).order_by(FruitGame.created_at.desc()).limit(50).all()
+        return games
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )

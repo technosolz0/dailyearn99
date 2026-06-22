@@ -216,3 +216,104 @@ class LocalSlicedItem {
     required this.angle,
   });
 }
+
+class FruitSettingsModel {
+  final double minBet;
+  final double maxBet;
+  final bool maintenanceMode;
+  final double winningPercentage;
+  final String multipliersJson;
+
+  FruitSettingsModel({
+    required this.minBet,
+    required this.maxBet,
+    required this.maintenanceMode,
+    required this.winningPercentage,
+    required this.multipliersJson,
+  });
+
+  factory FruitSettingsModel.fromJson(Map<String, dynamic> json) {
+    return FruitSettingsModel(
+      minBet: (json['min_bet'] ?? 10.0).toDouble(),
+      maxBet: (json['max_bet'] ?? 50000.0).toDouble(),
+      maintenanceMode: json['maintenance_mode'] ?? false,
+      winningPercentage: (json['winning_percentage'] ?? 95.0).toDouble(),
+      multipliersJson: json['multipliers_json'] ?? '{}',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'min_bet': minBet,
+      'max_bet': maxBet,
+      'maintenance_mode': maintenanceMode,
+      'winning_percentage': winningPercentage,
+      'multipliers_json': multipliersJson,
+    };
+  }
+
+  Map<String, double> getParsedMultipliers() {
+    try {
+      final Map<String, dynamic> decoded = jsonDecode(multipliersJson);
+      return decoded.map((key, value) => MapEntry(key, (value ?? 0.0).toDouble()));
+    } catch (_) {
+      return {};
+    }
+  }
+}
+
+class FruitGameModel {
+  final int id;
+  final int userId;
+  final double betAmount;
+  final String status;
+  final double currentMultiplier;
+  final double winAmount;
+  final DateTime createdAt;
+  final double? updatedBalance;
+  final String? signature;
+
+  FruitGameModel({
+    required this.id,
+    required this.userId,
+    required this.betAmount,
+    required this.status,
+    required this.currentMultiplier,
+    required this.winAmount,
+    required this.createdAt,
+    this.updatedBalance,
+    this.signature,
+  });
+
+  factory FruitGameModel.fromJson(Map<String, dynamic> json) {
+    return FruitGameModel(
+      id: json['id'] ?? 0,
+      userId: json['user_id'] ?? 0,
+      betAmount: (json['bet_amount'] ?? 0.0).toDouble(),
+      status: json['status'] ?? 'IN_PROGRESS',
+      currentMultiplier: (json['current_multiplier'] ?? 1.0).toDouble(),
+      winAmount: (json['win_amount'] ?? 0.0).toDouble(),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
+      updatedBalance: json['updated_balance'] != null
+          ? (json['updated_balance'] as num).toDouble()
+          : null,
+      signature: json['signature'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'bet_amount': betAmount,
+      'status': status,
+      'current_multiplier': currentMultiplier,
+      'win_amount': winAmount,
+      'created_at': createdAt.toIso8601String(),
+      'updated_balance': updatedBalance,
+      'signature': signature,
+    };
+  }
+}

@@ -158,6 +158,13 @@
                     </svg>
                     Plinko Engine
                 </button>
+                <button class="menu-item" data-tab="blackjack-engine">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="2" width="20" height="20" rx="2" ry="2" />
+                        <circle cx="12" cy="12" r="5" />
+                    </svg>
+                    Blackjack Engine
+                </button>
             </nav>
 
             <div class="sidebar-footer">
@@ -428,7 +435,8 @@
                                 <div class="search-box" style="margin: 0; min-width: 200px;">
                                     <input type="text" id="tx-search" placeholder="Search by phone/name/ID...">
                                 </div>
-                                <select id="filter-tx-type" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; font-size:12px;">
+                                <select id="filter-tx-type"
+                                    style="background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; font-size:12px;">
                                     <option value="">All Types</option>
                                     <option value="DEPOSIT">Deposits</option>
                                     <option value="WITHDRAWAL">Withdrawals</option>
@@ -436,7 +444,8 @@
                                     <option value="ENTRY_FEE">Entry Fees</option>
                                     <option value="REFERRAL_BONUS">Referral Bonuses</option>
                                 </select>
-                                <select id="filter-tx-status" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; font-size:12px;">
+                                <select id="filter-tx-status"
+                                    style="background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; font-size:12px;">
                                     <option value="">All Statuses</option>
                                     <option value="SUCCESS">Success</option>
                                     <option value="PENDING">Pending</option>
@@ -819,147 +828,144 @@
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                </section>
-
-                <!-- 9. FRUIT MANAGER TAB -->
-                <section class="tab-panel" id="panel-fruit-manager">
-                    <div class="kpi-grid">
-                        <div class="kpi-card">
-                            <div class="kpi-icon-wrapper blue">
-                                <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                                    <path d="M2 17l10 5 10-5" />
-                                </svg>
-                            </div>
-                            <div class="kpi-data">
-                                <span class="kpi-title">Active Fruit Contests</span>
-                                <h3 class="kpi-value" id="fruit-stat-active">-</h3>
-                            </div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-icon-wrapper green">
-                                <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <line x1="12" y1="1" x2="12" y2="23" />
-                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                                </svg>
-                            </div>
-                            <div class="kpi-data">
-                                <span class="kpi-title">Total Entry Fees</span>
-                                <h3 class="kpi-value" id="fruit-stat-fees">₹0.00</h3>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="dashboard-grid">
-                        <div class="card">
-                            <div class="card-header">
-                                <h2>Launch Fruit Slicing Contest</h2>
-                            </div>
-                            <form id="fruit-contest-form" class="contest-form">
-                                <div class="form-group">
-                                    <label for="fc-title">Contest Title</label>
-                                    <input type="text" id="fc-title" placeholder="e.g. 🍓 Strawberry Blitz Tournament"
-                                        required>
-                                </div>
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="fc-fee">Entry Fee (₹)</label>
-                                        <input type="number" id="fc-fee" value="20" min="0" required>
+                        <!-- 9. FRUIT MANAGER TAB -->
+                        <section class="tab-panel" id="panel-fruit-manager">
+                            <div class="kpi-grid">
+                                <div class="kpi-card">
+                                    <div class="kpi-icon-wrapper blue">
+                                        <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2">
+                                            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                                            <path d="M2 17l10 5 10-5" />
+                                        </svg>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="fc-slots">Total Slots</label>
-                                        <input type="number" id="fc-slots" value="100" min="2" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="fc-pool">Prize Pool (₹)</label>
-                                        <input type="number" id="fc-pool" value="1600" min="0" required>
+                                    <div class="kpi-data">
+                                        <span class="kpi-title">Total Play Count</span>
+                                        <h3 class="kpi-value" id="fruit-stat-games">-</h3>
                                     </div>
                                 </div>
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="fc-duration">Duration (seconds)</label>
-                                        <input type="number" id="fc-duration" value="60" min="10" required>
+                                <div class="kpi-card">
+                                    <div class="kpi-icon-wrapper green">
+                                        <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2">
+                                            <line x1="12" y1="1" x2="12" y2="23" />
+                                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                                        </svg>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="fc-start-time">Start Time</label>
-                                        <input type="datetime-local" id="fc-start-time" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="fc-end-time">End Time (Optional)</label>
-                                        <input type="datetime-local" id="fc-end-time">
-                                    </div>
-                                </div>
-
-                                <div class="prize-rules-section">
-                                    <div class="section-header">
-                                        <h3>Rank-wise Prize Rules</h3>
-                                        <button type="button" class="btn btn-secondary btn-icon btn-action"
-                                            id="btn-fc-add-prize-rule" style="padding: 4px 8px; font-size: 11px;">
-                                            + Add Rule
-                                        </button>
-                                    </div>
-                                    <div class="prize-rules-list" id="fc-prize-rules-list">
-                                        <!-- Dynamic rules rows -->
+                                    <div class="kpi-data">
+                                        <span class="kpi-title">Total Bets Turnover</span>
+                                        <h3 class="kpi-value" id="fruit-stat-bets">₹0.00</h3>
                                     </div>
                                 </div>
-
-                                <button type="submit" class="btn btn-primary btn-full">Launch Fruit Tournament</button>
-                            </form>
-                        </div>
-
-                        <div class="card" style="display: flex; flex-direction: column;">
-                            <div class="card-header">
-                                <h2>Active Lobbies Details</h2>
-                            </div>
-                            <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-                                <p style="margin-bottom: 10px;">Fruit Slicing tournaments utilize a cryptographically
-                                    secure spawner sequence generated using a deterministic seed.</p>
-                                <p style="margin-bottom: 20px;">Admin parameters let players challenge each other in
-                                    high-paced matches. All matches are fully validated on the backend to prevent
-                                    speed-hacks or score-tampering.</p>
-                            </div>
-                            <div
-                                style="display: flex; gap: 15px; align-items: center; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; margin-top: auto;">
-                                <div>
-                                    <h4 style="margin: 0; font-size: 13px; font-weight: bold; color: var(--text-main);">
-                                        Fruit Game Maintenance Lock</h4>
-                                    <p style="margin: 3px 0 0 0; font-size: 10px; color: var(--text-muted);">Enable to
-                                        restrict fruit game access for all players instantly.</p>
+                                <div class="kpi-card">
+                                    <div class="kpi-icon-wrapper orange">
+                                        <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2">
+                                            <polygon
+                                                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                        </svg>
+                                    </div>
+                                    <div class="kpi-data">
+                                        <span class="kpi-title">Winnings Paid Out</span>
+                                        <h3 class="kpi-value" id="fruit-stat-winnings">₹0.00</h3>
+                                    </div>
                                 </div>
-                                <button type="button" class="btn btn-secondary" id="btn-toggle-fruit-maintenance"
-                                    style="padding: 6px 12px; font-size: 11px;">Enable Lockout</button>
                             </div>
-                        </div>
-                    </div>
 
-                    <div class="card table-card" style="margin-top: 30px;">
-                        <div class="card-table-header">
-                            <h2>All Fruit Slicing Contests</h2>
-                        </div>
-                        <div class="table-wrapper">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Contest Name</th>
-                                        <th>Entry Fee</th>
-                                        <th>Slots Filled</th>
-                                        <th>Prize Pool</th>
-                                        <th>Timeline & Seed</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="fruit-contests-table-body">
-                                    <tr>
-                                        <td colspan="8" class="table-placeholder">Loading fruit contests...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                            <div class="dashboard-grid">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h2>Fruit Slicing Game Settings</h2>
+                                    </div>
+                                    <form id="fruit-settings-form" class="contest-form" style="margin-top: 15px;">
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label for="fruit-min-bet">Minimum Bet (₹)</label>
+                                                <input type="number" id="fruit-min-bet" value="10" min="1" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="fruit-max-bet">Maximum Bet (₹)</label>
+                                                <input type="number" id="fruit-max-bet" value="50000" min="10" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="fruit-winning-percentage">Target Win Ratio / RTP (%)</label>
+                                                <input type="number" id="fruit-winning-percentage" value="95" min="0"
+                                                    max="100" required>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group" style="margin-bottom: 15px;">
+                                            <label for="fruit-multipliers-json">Multiplier Increments (JSON
+                                                format)</label>
+                                            <textarea id="fruit-multipliers-json"
+                                                style="width:100%; height:140px; background:#1e293b; color:#51ff00; border:1px solid #334155; padding:10px; border-radius:6px; font-family: monospace; resize:none; font-size:12px; margin-top:5px; line-height: 1.5;"
+                                                required></textarea>
+                                            <span
+                                                style="font-size: 9px; color: var(--text-muted); display: block; margin-top: 4px;">
+                                                Specify the exact multiplier amount added for each fruit/vegetable
+                                                sliced.
+                                            </span>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary btn-full">Save Game
+                                            Settings</button>
+                                    </form>
+                                </div>
+
+                                <div class="card" style="display: flex; flex-direction: column;">
+                                    <div class="card-header">
+                                        <h2>Platform Controls</h2>
+                                    </div>
+                                    <div
+                                        style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 15px;">
+                                        <p>Fruit Slicing has been refactored into a single-player casino style game.
+                                            Users select a bet amount, slice items to increase multipliers, and cash out
+                                            dynamically.</p>
+                                        <p>Hitting a bomb results in immediate loss. Missing items drops multiplier
+                                            below 1x (floor 0.1x).</p>
+                                    </div>
+                                    <div
+                                        style="display: flex; gap: 15px; align-items: center; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; margin-top: auto;">
+                                        <div>
+                                            <h4
+                                                style="margin: 0; font-size: 13px; font-weight: bold; color: var(--text-main);">
+                                                Fruit Game Maintenance Lock</h4>
+                                            <p style="margin: 3px 0 0 0; font-size: 10px; color: var(--text-muted);">
+                                                Enable to restrict fruit game access for all players instantly.</p>
+                                        </div>
+                                        <button type="button" class="btn btn-secondary"
+                                            id="btn-toggle-fruit-maintenance"
+                                            style="padding: 6px 12px; font-size: 11px;">Enable Lockout</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card table-card" style="margin-top: 30px;">
+                                <div class="card-table-header">
+                                    <h2>Fruit Slicing Play History Logs</h2>
+                                </div>
+                                <div class="table-wrapper">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Game ID</th>
+                                                <th>User Details</th>
+                                                <th>Bet Amount</th>
+                                                <th>Multiplier</th>
+                                                <th>Payout Won</th>
+                                                <th>Status</th>
+                                                <th>Date Played</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="fruit-games-table-body">
+                                            <tr>
+                                                <td colspan="7" class="table-placeholder">Loading play logs...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </section>
                     </div>
                 </section>
 
@@ -2246,6 +2252,138 @@
                             </table>
                         </div>
                     </div>
+                </section>
+
+                <!-- 17. BLACKJACK ENGINE TAB -->
+                <section class="tab-panel" id="panel-blackjack-engine">
+                    <!-- KPI Cards for Blackjack Engine -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-icon-wrapper blue">
+                                <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M12 2v20M2 12h20" />
+                                </svg>
+                            </div>
+                            <div class="kpi-data">
+                                <span class="kpi-title">Total Bets Placed</span>
+                                <h3 class="kpi-value" id="blackjack-stat-bets">₹0.00</h3>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-icon-wrapper orange">
+                                <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <polygon
+                                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                </svg>
+                            </div>
+                            <div class="kpi-data">
+                                <span class="kpi-title">Winnings Returned</span>
+                                <h3 class="kpi-value" id="blackjack-stat-winnings">₹0.00</h3>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-icon-wrapper green">
+                                <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <line x1="12" y1="1" x2="12" y2="23" />
+                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                                </svg>
+                            </div>
+                            <div class="kpi-data">
+                                <span class="kpi-title">House Net Profit</span>
+                                <h3 class="kpi-value" id="blackjack-stat-profit">₹0.00</h3>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-icon-wrapper purple">
+                                <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <circle cx="12" cy="12" r="4" />
+                                </svg>
+                            </div>
+                            <div class="kpi-data">
+                                <span class="kpi-title">Payout Ratio (RTP)</span>
+                                <h3 class="kpi-value" id="blackjack-stat-rtp">0.00%</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Config Panel & Maintenance -->
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>Blackjack Settings & Maintenance</h2>
+                            </div>
+                            <form id="blackjack-settings-form" class="contest-form" style="margin-top: 15px;">
+                                <div
+                                    style="display: flex; gap: 15px; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px;">
+                                    <div>
+                                        <h4 style="margin: 0; font-size: 13px; font-weight: bold;">Blackjack Maintenance Lock</h4>
+                                        <p style="margin: 3px 0 0 0; font-size: 10px; color: var(--text-muted);">Enable to lock Blackjack game instantly.</p>
+                                    </div>
+                                    <button type="button" class="btn btn-secondary" id="btn-blackjack-maintenance"
+                                        style="padding: 6px 12px; font-size: 11px;">Enable Lockout</button>
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label for="blackjack-win-percentage">Player Win Rate Percentage (0 - 100%)</label>
+                                    <input type="number" id="blackjack-win-percentage" min="0" max="100" step="1"
+                                        value="50" required
+                                        style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; margin-top:5px;">
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="blackjack-min-bet">Min Bet (₹)</label>
+                                        <input type="number" id="blackjack-min-bet" min="1" step="any" value="10" required
+                                            style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; margin-top: 5px;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="blackjack-max-bet">Max Bet (₹)</label>
+                                        <input type="number" id="blackjack-max-bet" min="1" step="any" value="50000" required
+                                            style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; font-family:inherit; margin-top: 5px;">
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 15px;">Save Settings</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Blackjack Game Logs -->
+                    <div class="card table-card" style="margin-top: 30px;">
+                        <div class="card-table-header">
+                            <h2>Recent Blackjack Game Sessions</h2>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>User Details</th>
+                                        <th>Bet Amount</th>
+                                        <th>Payout (₹)</th>
+                                        <th>Win Prob.</th>
+                                        <th>Status</th>
+                                        <th>Date Logged</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="blackjack-logs-table-body">
+                                    <tr>
+                                        <td colspan="7" class="table-placeholder">Loading Blackjack games log...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
                 </section>
             </div>
         </main>

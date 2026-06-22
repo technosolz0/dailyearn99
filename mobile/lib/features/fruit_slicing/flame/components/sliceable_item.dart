@@ -140,6 +140,71 @@ class SliceableItem extends PositionComponent {
         innerColor = Colors.yellow.shade300;
         stripeColors = [Colors.yellow.shade400, Colors.yellow.shade200];
         break;
+      case 'apple':
+        outerColor = Colors.red.shade900;
+        innerColor = Colors.yellow.shade100;
+        stripeColors = [Colors.red.shade800, Colors.yellow.shade50];
+        break;
+      case 'tomato':
+        outerColor = Colors.red.shade800;
+        innerColor = Colors.red.shade500;
+        stripeColors = [Colors.red.shade700, Colors.red.shade300];
+        break;
+      case 'carrot':
+        outerColor = Colors.orange.shade900;
+        innerColor = Colors.orange.shade600;
+        stripeColors = [Colors.orange.shade800, Colors.orange.shade400];
+        break;
+      case 'broccoli':
+        outerColor = Colors.green.shade900;
+        innerColor = Colors.green.shade700;
+        stripeColors = [Colors.green.shade800, Colors.green.shade600];
+        break;
+      case 'pepper':
+        outerColor = Colors.red.shade900;
+        innerColor = Colors.red.shade400;
+        stripeColors = [Colors.red.shade800, Colors.white70];
+        break;
+      case 'pineapple':
+        outerColor = Colors.amber.shade900;
+        innerColor = Colors.yellow.shade500;
+        stripeColors = [Colors.amber.shade800, Colors.yellow.shade400];
+        break;
+      case 'strawberry':
+        outerColor = Colors.red.shade700;
+        innerColor = Colors.red.shade400;
+        stripeColors = [Colors.red.shade600, Colors.pink.shade300];
+        break;
+      case 'blueberry':
+        outerColor = Colors.blue.shade900;
+        innerColor = Colors.purple.shade900;
+        stripeColors = [Colors.blue.shade800, Colors.purple.shade800];
+        break;
+      case 'grape':
+        outerColor = Colors.purple.shade800;
+        innerColor = Colors.green.shade200;
+        stripeColors = [Colors.purple.shade700, Colors.green.shade100];
+        break;
+      case 'peach':
+        outerColor = Colors.orangeAccent;
+        innerColor = Colors.yellow.shade200;
+        stripeColors = [Colors.orange.shade400, Colors.yellow.shade100];
+        break;
+      case 'potato':
+        outerColor = Colors.brown.shade600;
+        innerColor = Colors.yellow.shade100;
+        stripeColors = [Colors.brown.shade500, Colors.yellow.shade50];
+        break;
+      case 'corn':
+        outerColor = Colors.yellow.shade700;
+        innerColor = Colors.yellow.shade400;
+        stripeColors = [Colors.yellow.shade600, Colors.white];
+        break;
+      case 'onion':
+        outerColor = Colors.purple.shade300;
+        innerColor = Colors.white;
+        stripeColors = [Colors.purple.shade200, Colors.white70];
+        break;
       default: // Coconut
         outerColor = Colors.brown.shade800;
         innerColor = Colors.white;

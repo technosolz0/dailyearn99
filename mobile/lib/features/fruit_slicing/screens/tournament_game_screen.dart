@@ -3,16 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/fruit_game_bloc.dart';
 import '../flame/fruit_slicing_game.dart';
+import '../models/fruit_models.dart';
 
 class TournamentGameScreen extends StatefulWidget {
-  final int contestId;
   final String title;
 
-  const TournamentGameScreen({
-    Key? key,
-    required this.contestId,
-    required this.title,
-  }) : super(key: key);
+  const TournamentGameScreen({Key? key, required this.title}) : super(key: key);
 
   @override
   State<TournamentGameScreen> createState() => _TournamentGameScreenState();
@@ -40,24 +36,32 @@ class _TournamentGameScreenState extends State<TournamentGameScreen> {
         backgroundColor: const Color(0xFF13102C),
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
+        automaticallyImplyLeading:
+            false, // Prevent users from going back mid-game easily
       ),
       body: BlocConsumer<FruitGameBloc, FruitGameState>(
         listener: (context, state) {
-          if (state is FruitGameSuccessState) {
-            _showCompletionDialog(context, state.finalScore);
-          } else if (state is FruitGameErrorState) {
-            ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.redAccent,
-              ),
+          if (state is FruitGameEndedState) {
+            _showCompletionDialog(
+              context,
+              state.session,
+              state.finalMultiplier,
+              state.payout,
             );
+          } else if (state is FruitGameErrorState) {
+            ScaffoldMessenger.of(context)
+              ..clearSnackBars()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.redAccent,
+                ),
+              );
           }
         },
         builder: (context, state) {
-          if (state is FruitGameInitialState) {
-            // Trigger automatic join loading
-            bloc.add(LoadFruitGameEvent(widget.contestId));
+          if (state is FruitGameInitialState ||
+              state is FruitGameLoadingSettingsState) {
             return const Center(
               child: CircularProgressIndicator(color: Color(0xFFFF4500)),
             );
@@ -69,30 +73,36 @@ class _TournamentGameScreenState extends State<TournamentGameScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CircularProgressIndicator(color: Color(0xFFFF4500)),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Text(
-                    'Acquiring secure gaming session...',
+                    'Initializing game session...',
                     style: TextStyle(color: Colors.white60, fontSize: 13),
-                  )
+                  ),
                 ],
               ),
             );
           }
 
           if (state is FruitGameActiveState) {
-            // Lazy load the Flame game loop instance once seed is acquired
-            _flameGame ??= FruitSlicingGame(gameBloc: bloc, seed: state.seed);
+            _flameGame ??= FruitSlicingGame(
+              gameBloc: bloc,
+              seed: state.session.signature ?? 'default_seed_value',
+            );
 
             return SafeArea(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildStatsBar(state),
                   const SizedBox(height: 4),
-                  
-                  // Central interactive Game Loop Canvas
+
+                  // Flame game screen canvas
                   Expanded(
                     child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(color: Colors.white10, width: 1.5),
@@ -101,7 +111,7 @@ class _TournamentGameScreenState extends State<TournamentGameScreen> {
                             color: Colors.black.withOpacity(0.4),
                             blurRadius: 16,
                             offset: const Offset(0, 8),
-                          )
+                          ),
                         ],
                       ),
                       child: ClipRRect(
@@ -111,8 +121,44 @@ class _TournamentGameScreenState extends State<TournamentGameScreen> {
                     ),
                   ),
 
-                  _buildLiveLeaderboard(state.liveLeaderboard),
-                  const SizedBox(height: 8),
+                  // Glowing bottom Cash out action button
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF13102C),
+                      border: Border(
+                        top: BorderSide(color: Colors.white.withOpacity(0.06)),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            bloc.add(TriggerCashoutEvent());
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.greenAccent.shade700,
+                            foregroundColor: Colors.white,
+                            shadowColor: Colors.greenAccent.withOpacity(0.5),
+                            elevation: 8,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: Text(
+                            'CASH OUT (₹${state.currentPayout.toStringAsFixed(2)})',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             );
@@ -126,7 +172,7 @@ class _TournamentGameScreenState extends State<TournamentGameScreen> {
                   const CircularProgressIndicator(color: Colors.greenAccent),
                   const SizedBox(height: 24),
                   const Text(
-                    'VERIFYING PLAYBACK REPLAY...',
+                    'SECURING PAYOUT...',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -136,8 +182,11 @@ class _TournamentGameScreenState extends State<TournamentGameScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Anti-Cheat Kinematics verification active.',
-                    style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+                    'Registering winnings on blockchain secure ledger.',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.5),
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
@@ -146,7 +195,7 @@ class _TournamentGameScreenState extends State<TournamentGameScreen> {
 
           return const Center(
             child: Text(
-              'Match Terminated.',
+              'Session Terminated.',
               style: TextStyle(color: Colors.white38),
             ),
           );
@@ -156,9 +205,7 @@ class _TournamentGameScreenState extends State<TournamentGameScreen> {
   }
 
   Widget _buildStatsBar(FruitGameActiveState state) {
-    final int mins = (state.remainingSeconds ~/ 60);
-    final int secs = (state.remainingSeconds % 60);
-    final String timeStr = '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+    final String timeStr = '${state.remainingSeconds}s';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -170,22 +217,22 @@ class _TournamentGameScreenState extends State<TournamentGameScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _buildStatCard(
-            'SCORE',
-            '${state.score}',
+            'BET AMOUNT',
+            '₹${state.session.betAmount.toStringAsFixed(0)}',
             Icons.stars,
             const Color(0xFFFF4500),
+          ),
+          _buildStatCard(
+            'MULTIPLIER',
+            '${state.multiplier.toStringAsFixed(2)}x',
+            Icons.trending_up,
+            Colors.cyanAccent,
           ),
           _buildStatCard(
             'TIME LEFT',
             timeStr,
             Icons.timer,
-            state.remainingSeconds < 15 ? Colors.redAccent : Colors.greenAccent,
-          ),
-          _buildStatCard(
-            'COMBO / MISS',
-            '${state.maxCombo}x / ${state.missCount}',
-            Icons.flash_on,
-            Colors.amberAccent,
+            state.remainingSeconds < 8 ? Colors.redAccent : Colors.greenAccent,
           ),
         ],
       ),
@@ -237,137 +284,92 @@ class _TournamentGameScreenState extends State<TournamentGameScreen> {
     );
   }
 
-  Widget _buildLiveLeaderboard(List<dynamic> list) {
-    return Container(
-      height: 64,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF13102C),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Row(
-        children: [
-          const Text(
-            'LIVE RANKS:',
-            style: TextStyle(
-              color: Color(0xFFFF4500),
-              fontSize: 9,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: list.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No matches logged yet. Play to set a score!',
-                      style: TextStyle(color: Colors.white38, fontSize: 11),
-                    ),
-                  )
-                : ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: list.length,
-                    itemBuilder: (context, index) {
-                      final item = list[index];
-                      return Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1D183B),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '#${item['rank']}',
-                              style: const TextStyle(
-                                color: Colors.amber,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '${item['name']}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${item['score']}',
-                              style: const TextStyle(
-                                color: Colors.greenAccent,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
+  void _showCompletionDialog(
+    BuildContext context,
+    FruitGameModel session,
+    double finalMultiplier,
+    double payout,
+  ) {
+    final bool isWon = session.status == 'WON';
 
-  void _showCompletionDialog(BuildContext context, int finalScore) {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
+      builder: (ctx) {
         return AlertDialog(
           backgroundColor: const Color(0xFF13102C),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: Colors.greenAccent, width: 1.5),
+            side: BorderSide(
+              color: isWon ? Colors.greenAccent : Colors.redAccent,
+              width: 1.5,
+            ),
           ),
-          title: const Center(
+          title: Center(
             child: Text(
-              'TOURNAMENT FINISHED!',
+              isWon ? 'CASHED OUT!' : 'GAME OVER / BOMB HIT',
               style: TextStyle(
-                color: Colors.greenAccent,
+                color: isWon ? Colors.greenAccent : Colors.redAccent,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2,
+                fontSize: 16,
               ),
             ),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.emoji_events, color: Colors.amber, size: 64),
+              Icon(
+                isWon ? Icons.emoji_events : Icons.error_outline,
+                color: isWon ? Colors.amber : Colors.redAccent,
+                size: 64,
+              ),
               const SizedBox(height: 16),
               Text(
-                'Replay telemetry verified successfully!\nstandings and cash distributions will refresh on contest end.',
+                isWon
+                    ? 'Winnings credited to your wallet balance.'
+                    : 'A bomb has detonated! Winnings are forfeited.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.7),
-                  fontSize: 13,
+                  fontSize: 12,
                 ),
               ),
               const SizedBox(height: 24),
               Text(
-                '$finalScore PTS',
-                style: const TextStyle(
-                  color: Color(0xFFFF4500),
+                '₹${payout.toStringAsFixed(2)}',
+                style: TextStyle(
+                  color: isWon ? Colors.greenAccent : Colors.redAccent,
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'monospace',
                 ),
               ),
               const Text(
-                'FINAL SCORE',
-                style: TextStyle(color: Colors.white38, fontSize: 9, letterSpacing: 0.5),
+                'PAYOUT AMOUNT',
+                style: TextStyle(
+                  color: Colors.white38,
+                  fontSize: 9,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '${finalMultiplier.toStringAsFixed(2)}x',
+                style: const TextStyle(
+                  color: Colors.cyanAccent,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'monospace',
+                ),
+              ),
+              const Text(
+                'FINAL MULTIPLIER SCALE',
+                style: TextStyle(
+                  color: Colors.white38,
+                  fontSize: 9,
+                  letterSpacing: 0.5,
+                ),
               ),
             ],
           ),
@@ -375,7 +377,7 @@ class _TournamentGameScreenState extends State<TournamentGameScreen> {
             Center(
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.of(context).pop(); // Close dialog
+                  Navigator.of(ctx).pop(); // Close dialog
                   Navigator.of(context).pop(); // Exit screen back to Lobby
                 },
                 style: ElevatedButton.styleFrom(
@@ -390,7 +392,7 @@ class _TournamentGameScreenState extends State<TournamentGameScreen> {
                   ),
                 ),
                 child: const Text(
-                  'RETURN TO TOURNAMENTS',
+                  'RETURN TO LOBBY',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               ),

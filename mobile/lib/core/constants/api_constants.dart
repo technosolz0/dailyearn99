@@ -118,10 +118,11 @@ class ApiConstants {
   }
 
   // Fruit Slicing APIs
-  static const String fruitContests = '/fruit-game/contests';
-  static const String fruitJoin = '/fruit-game/join';
-  static String fruitStart(int contestId) => '/fruit-game/start/$contestId';
-  static const String fruitSubmit = '/fruit-game/submit';
+  static const String fruitSettings = '/fruit-game/settings';
+  static const String fruitStart = '/fruit-game/start';
+  static String fruitCashout(int gameId) => '/fruit-game/cashout/$gameId';
+  static String fruitBomb(int gameId) => '/fruit-game/bomb/$gameId';
+  static const String fruitHistory = '/fruit-game/history';
   static String fruitLeaderboard(int contestId) =>
       '/fruit-game/leaderboard/$contestId';
   static String fruitWs(int contestId) {

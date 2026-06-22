@@ -1143,6 +1143,152 @@ class UserGameLogItem(BaseModel):
         from_attributes = True
 
 
+class FruitGameStartRequest(BaseModel):
+    bet_amount: float = Field(..., gt=0)
+
+
+class FruitGameResponse(BaseModel):
+    id: int
+    user_id: int
+    bet_amount: float
+    status: str
+    current_multiplier: float
+    win_amount: float
+    created_at: datetime
+    updated_balance: Optional[float] = None
+    signature: Optional[str] = None
+
+
+    @field_validator("created_at", mode="after", check_fields=False)
+    @classmethod
+    def make_utc(cls, v):
+        if v and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
+
+    class Config:
+        from_attributes = True
+
+
+class FruitSettingsResponse(BaseModel):
+    min_bet: float
+    max_bet: float
+    maintenance_mode: bool
+    winning_percentage: float
+    multipliers_json: str
+
+    class Config:
+        from_attributes = True
+
+
+class FruitSettingsUpdateRequest(BaseModel):
+    min_bet: float = Field(..., gt=0)
+    max_bet: float = Field(..., gt=0)
+    maintenance_mode: bool
+    winning_percentage: float = Field(..., ge=0.0, le=100.0)
+    multipliers_json: str
+
+
+class FruitLogAdminResponse(BaseModel):
+    id: int
+    user_id: int
+    user_phone: str
+    user_name: Optional[str] = None
+    bet_amount: float
+    multiplier: float
+    win_amount: float
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class BlackjackStartRequest(BaseModel):
+    bet_amount: float = Field(..., gt=0, description="Bet amount in INR")
+
+
+class BlackjackGameResponse(BaseModel):
+    id: int
+    user_id: int
+    bet_amount: float
+    is_split: bool
+    split_bet_amount: float
+    player_hand_1: List[dict]
+    player_hand_2: List[dict]
+    dealer_hand: List[dict]
+    current_hand_index: int
+    hand_1_status: str
+    hand_2_status: str
+    status: str
+    win_amount: float
+    created_at: datetime
+    updated_balance: Optional[float] = None
+
+    @field_validator("created_at", mode="after", check_fields=False)
+    @classmethod
+    def make_utc(cls, v):
+        if v and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
+
+    @field_validator("player_hand_1", "player_hand_2", "dealer_hand", mode="before")
+    @classmethod
+    def parse_hands(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
+
+    class Config:
+        from_attributes = True
+
+
+class BlackjackSettingsResponse(BaseModel):
+    min_bet: float
+    max_bet: float
+    winning_percentage: float
+    maintenance_mode: bool
+
+    class Config:
+        from_attributes = True
+
+
+class BlackjackSettingsUpdateRequest(BaseModel):
+    min_bet: float = Field(..., gt=0)
+    max_bet: float = Field(..., gt=0)
+    winning_percentage: float = Field(..., ge=0.0, le=100.0)
+    maintenance_mode: bool
+
+
+class BlackjackStatsResponse(BaseModel):
+    total_games: int
+    total_winnings_paid: float
+    total_bet_amount: float
+    platform_net_profit: float
+    payout_ratio: float
+
+
+class BlackjackLogAdminResponse(BaseModel):
+    id: int
+    user_id: int
+    user_phone: str
+    user_name: Optional[str] = None
+    bet_amount: float
+    multiplier: float
+    win_amount: float
+    status: str
+    created_at: datetime
+    win_probability: Optional[float] = None
+
+    class Config:
+        from_attributes = True
+
+
+
+
 
 
 

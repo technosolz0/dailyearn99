@@ -62,7 +62,12 @@ class Spawner extends Component with HasGameRef {
     final bool spawnBomb =
         seededRandom.nextDouble() < 0.15; // 15% bomb spawn rate
 
-    final List<String> types = ['watermelon', 'orange', 'banana', 'coconut'];
+    final List<String> types = [
+      'apple', 'orange', 'banana', 'coconut', 'watermelon',
+      'tomato', 'carrot', 'broccoli', 'pepper', 'pineapple',
+      'strawberry', 'blueberry', 'grape', 'peach', 'potato',
+      'corn', 'onion'
+    ];
     final String chosenType = types[seededRandom.nextInt(types.length)];
 
     final double radius = spawnBomb ? 28.0 : 32.0;

@@ -370,6 +370,51 @@ def seed_plinko_settings(db: Session):
         print("Database Seeding: Populated default Plinko multipliers.")
 
 
+def seed_fruit_settings(db: Session):
+    from app.models import FruitSetting
+    import json
+    if db.query(FruitSetting).count() == 0:
+        settings = FruitSetting(
+            min_bet=10.0,
+            max_bet=50000.0,
+            maintenance_mode=False,
+            winning_percentage=95.0,
+            multipliers_json=json.dumps({
+                "watermelon": 0.20,
+                "coconut": 0.25,
+                "orange": 0.15,
+                "banana": 0.10,
+                "apple": 0.08,
+                "pineapple": 0.18,
+                "strawberry": 0.12,
+                "kiwi": 0.16,
+                "grape": 0.06,
+                "tomato": 0.05,
+                "carrot": 0.07,
+                "broccoli": 0.14,
+                "potato": 0.04,
+                "eggplant": 0.09
+            })
+        )
+        db.add(settings)
+        db.commit()
+        print("Database Seeding: Populated default Fruit settings.")
+
+
+def seed_blackjack_settings(db: Session):
+    from app.models import BlackjackSetting
+    if db.query(BlackjackSetting).count() == 0:
+        settings = BlackjackSetting(
+            min_bet=10.0,
+            max_bet=50000.0,
+            winning_percentage=50.0,
+            maintenance_mode=False
+        )
+        db.add(settings)
+        db.commit()
+        print("Database Seeding: Populated default Blackjack settings.")
+
+
 if __name__ == "__main__":
     from app.core.database import SessionLocal
     db = SessionLocal()
@@ -383,6 +428,10 @@ if __name__ == "__main__":
         seed_mines_settings(db)
         print("Seeding Plinko settings...")
         seed_plinko_settings(db)
+        print("Seeding Fruit settings...")
+        seed_fruit_settings(db)
+        print("Seeding Blackjack settings...")
+        seed_blackjack_settings(db)
         print("Database seeding completed successfully!")
     except Exception as e:
         print(f"Error during database seeding: {e}")

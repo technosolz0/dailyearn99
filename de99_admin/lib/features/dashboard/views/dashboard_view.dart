@@ -22,6 +22,7 @@ import 'package:de99_admin/features/word_manager/views/word_manager_view.dart';
 import 'package:de99_admin/features/portfolio_manager/views/portfolio_manager_view.dart';
 import 'package:de99_admin/features/promo_codes/views/promo_codes_view.dart';
 import 'package:de99_admin/features/lottery_engine/views/lottery_engine_view.dart';
+import 'package:de99_admin/features/blackjack/views/blackjack_panel_view.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -130,6 +131,11 @@ class _DashboardViewState extends State<DashboardView> {
       title: 'Lottery Engine',
       shortTitle: 'Lucky Draw',
       icon: Icons.casino_outlined,
+    ),
+    NavigationItemSpec(
+      title: 'Blackjack Controller',
+      shortTitle: 'Blackjack',
+      icon: Icons.casino_sharp,
     ),
   ];
 
@@ -697,6 +703,7 @@ class _DashboardViewState extends State<DashboardView> {
       const PortfolioManagerView(),
       const PromoCodesView(),
       const LotteryEngineView(),
+      const BlackjackPanelView(),
     ];
 
     final bool isWide = MediaQuery.of(context).size.width > 800;

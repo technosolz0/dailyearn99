@@ -737,6 +737,69 @@ class MinesRTP(Base):
     enabled = Column(Boolean, default=True)
 
 
+class FruitSetting(Base):
+    __tablename__ = "fruit_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    min_bet = Column(Float, default=10.0)
+    max_bet = Column(Float, default=50000.0)
+    maintenance_mode = Column(Boolean, default=False)
+    winning_percentage = Column(Float, default=95.0)  # Payout expectation/RTP
+    multipliers_json = Column(String, nullable=False)  # JSON representation of fruit/veg values
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class FruitGame(Base):
+    __tablename__ = "fruit_games"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    bet_amount = Column(Float, nullable=False)
+    status = Column(String, default="IN_PROGRESS")  # IN_PROGRESS, WON, LOST
+    current_multiplier = Column(Float, default=1.0)
+    win_amount = Column(Float, default=0.0)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User")
+
+
+class BlackjackSetting(Base):
+    __tablename__ = "blackjack_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    min_bet = Column(Float, default=10.0)
+    max_bet = Column(Float, default=50000.0)
+    winning_percentage = Column(Float, default=50.0)  # Payout expectation/RTP
+    maintenance_mode = Column(Boolean, default=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class BlackjackGame(Base):
+    __tablename__ = "blackjack_games"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    bet_amount = Column(Float, nullable=False)
+    is_split = Column(Boolean, default=False)
+    split_bet_amount = Column(Float, default=0.0)
+    player_hand_1 = Column(String, nullable=False)  # JSON-serialized list of card dicts
+    player_hand_2 = Column(String, nullable=False, default="[]")  # JSON-serialized list of card dicts for split hand
+    dealer_hand = Column(String, nullable=False)  # JSON-serialized list of card dicts
+    current_hand_index = Column(Integer, default=0)  # 0 or 1 for split hand gameplay
+    hand_1_status = Column(String, default="IN_PROGRESS")  # IN_PROGRESS, STAND, BUST, WON, LOST, PUSH, BLACKJACK
+    hand_2_status = Column(String, default="IN_PROGRESS")  # IN_PROGRESS, STAND, BUST, WON, LOST, PUSH, BLACKJACK
+    status = Column(String, default="IN_PROGRESS")  # IN_PROGRESS, COMPLETED
+    win_amount = Column(Float, default=0.0)
+    target_outcome = Column(String, nullable=False)  # WIN, LOSS
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User")
+
+
+
+
 
 
 

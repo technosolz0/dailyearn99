@@ -1,3 +1,5 @@
+from app.models import FruitGame
+from app.models import FruitSetting
 from datetime import datetime, timezone
 from typing import List, Dict, Tuple, Optional
 import asyncio
@@ -2940,6 +2942,181 @@ class MinesGameService:
                 pass
 
         return game
+
+
+class FruitSlicingService:
+    SECRET_KEY = b"FRUIT_SLICING_GAME_SECRET_KEY_9988_CASHOUT"
+
+    @classmethod
+    def generate_game_signature(cls, game_id: int, user_id: int, bet_amount: float) -> str:
+        payload = f"{game_id}:{user_id}:{bet_amount}".encode()
+        return hmac.new(cls.SECRET_KEY, payload, hashlib.sha256).hexdigest()
+
+    @classmethod
+    def verify_game_signature(cls, game_id: int, user_id: int, bet_amount: float, signature: str) -> bool:
+        expected = cls.generate_game_signature(game_id, user_id, bet_amount)
+        return hmac.compare_digest(expected, signature)
+
+    @staticmethod
+    def get_settings(db: Session) -> FruitSetting:
+        settings = db.query(FruitSetting).first()
+        if not settings:
+            # If not seeded yet, seed default setting
+            from app.core.seeds import seed_fruit_settings
+            seed_fruit_settings(db)
+            settings = db.query(FruitSetting).first()
+        return settings
+
+    @staticmethod
+    def update_settings(
+        db: Session,
+        min_bet: float,
+        max_bet: float,
+        maintenance_mode: bool,
+        winning_percentage: float,
+        multipliers_json: str
+    ) -> FruitSetting:
+        settings = FruitSlicingService.get_settings(db)
+        settings.min_bet = min_bet
+        settings.max_bet = max_bet
+        settings.maintenance_mode = maintenance_mode
+        settings.winning_percentage = winning_percentage
+        settings.multipliers_json = multipliers_json
+        db.commit()
+        db.refresh(settings)
+        return settings
+
+    @staticmethod
+    def start_game(db: Session, user: User, bet_amount: float) -> dict:
+        settings = FruitSlicingService.get_settings(db)
+        if settings.maintenance_mode:
+            raise ValueError("Fruit Slicing game is currently under maintenance. Please try again later.")
+        
+        if bet_amount < settings.min_bet or bet_amount > settings.max_bet:
+            raise ValueError(f"Bet amount must be between ₹{settings.min_bet:.2f} and ₹{settings.max_bet:.2f}.")
+
+        # Check KYC
+        if user.is_banned:
+            raise ValueError("User account is banned.")
+        if user.kyc_status == "REJECTED":
+            raise ValueError("KYC has been rejected. Game access restricted.")
+
+        # Lock user wallet inside transactional context to prevent race conditions
+        locked_user = db.query(User).filter(User.id == user.id).with_for_update().first()
+
+        # Deduct wallet: Max 20% bonus balance, rest from Deposit -> Winnings
+        bonus_limit = bet_amount * 0.20
+        bonus_to_deduct = min(locked_user.bonus_balance, bonus_limit)
+        remaining_fee = bet_amount - bonus_to_deduct
+
+        deposit_to_deduct = min(locked_user.deposit_balance, remaining_fee)
+        winnings_to_deduct = remaining_fee - deposit_to_deduct
+
+        if winnings_to_deduct > locked_user.winning_balance:
+            raise ValueError("Insufficient wallet balance for this bet.")
+
+        # Deduct balances
+        locked_user.bonus_balance -= bonus_to_deduct
+        locked_user.deposit_balance -= deposit_to_deduct
+        locked_user.winning_balance -= winnings_to_deduct
+
+        # Log entry fee transaction
+        tx_deduct = WalletTransaction(
+            user_id=user.id,
+            type="ENTRY_FEE",
+            amount=bet_amount,
+            status="SUCCESS",
+            description="Entry Fee: Fruit Slicing Game"
+        )
+        db.add(tx_deduct)
+
+        # Create game session
+        game = FruitGame(
+            user_id=user.id,
+            bet_amount=bet_amount,
+            status="IN_PROGRESS",
+            current_multiplier=1.0,
+            win_amount=0.0
+        )
+        db.add(game)
+        db.flush()  # Populate game.id
+
+        db.commit()
+
+        # Generate cryptographic signature for verification on cashout/bomb
+        signature = FruitSlicingService.generate_game_signature(game.id, user.id, bet_amount)
+        updated_balance = locked_user.winning_balance + locked_user.deposit_balance + locked_user.bonus_balance
+
+        return {
+            "game": game,
+            "signature": signature,
+            "updated_balance": updated_balance
+        }
+
+    @staticmethod
+    def cashout_game(db: Session, user: User, game_id: int, final_multiplier: float, signature: str) -> FruitGame:
+        # Find active session
+        game = db.query(FruitGame).filter(FruitGame.id == game_id, FruitGame.user_id == user.id).with_for_update().first()
+        if not game:
+            raise ValueError("Fruit game session not found.")
+        if game.status != "IN_PROGRESS":
+            raise ValueError(f"Game session already completed (Status: {game.status}).")
+
+        # Verify signature to prevent tampering
+        if not FruitSlicingService.verify_game_signature(game.id, user.id, game.bet_amount, signature):
+            raise ValueError("Invalid game signature.")
+
+        if final_multiplier < 0.1:
+            final_multiplier = 0.1  # enforce floor on backend
+
+        # Update session
+        game.status = "WON"
+        game.current_multiplier = final_multiplier
+        win_amount = round(game.bet_amount * final_multiplier, 2)
+        game.win_amount = win_amount
+
+        # Credit winnings
+        locked_user = db.query(User).filter(User.id == user.id).with_for_update().first()
+        locked_user.winning_balance += win_amount
+
+        # Record prize win transaction
+        tx_win = WalletTransaction(
+            user_id=user.id,
+            type="PRIZE_WIN",
+            amount=win_amount,
+            status="SUCCESS",
+            description="Prize Win: Fruit Slicing Game"
+        )
+        db.add(tx_win)
+        db.commit()
+
+        game.updated_balance = locked_user.winning_balance + locked_user.deposit_balance + locked_user.bonus_balance
+        return game
+
+    @staticmethod
+    def bomb_hit_game(db: Session, user: User, game_id: int, signature: str) -> FruitGame:
+        # Find active session
+        game = db.query(FruitGame).filter(FruitGame.id == game_id, FruitGame.user_id == user.id).with_for_update().first()
+        if not game:
+            raise ValueError("Fruit game session not found.")
+        if game.status != "IN_PROGRESS":
+            raise ValueError(f"Game session already completed (Status: {game.status}).")
+
+        # Verify signature
+        if not FruitSlicingService.verify_game_signature(game.id, user.id, game.bet_amount, signature):
+            raise ValueError("Invalid game signature.")
+
+        # Update session to lost
+        game.status = "LOST"
+        game.current_multiplier = 0.0
+        game.win_amount = 0.0
+
+        db.commit()
+
+        locked_user = db.query(User).filter(User.id == user.id).first()
+        game.updated_balance = locked_user.winning_balance + locked_user.deposit_balance + locked_user.bonus_balance
+        return game
+
 
 
 

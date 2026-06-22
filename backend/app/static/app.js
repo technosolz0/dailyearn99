@@ -188,6 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupLotteryHandlers();
     setupMinesHandlers();
     setupPlinkoHandlers();
+    setupBlackjackHandlers();
 
     // Check initial authentication status
     const token = localStorage.getItem('adminToken');
@@ -312,6 +313,10 @@ function updateHeaders(tab) {
         case 'plinko-engine':
             el.pageTitle.innerText = "Plinko Engine Controller";
             el.pageSubtitle.innerText = "Manage Plinko drop mechanics, multipliers, and statistics";
+            break;
+        case 'blackjack-engine':
+            el.pageTitle.innerText = "Blackjack Engine Controller";
+            el.pageSubtitle.innerText = "Configure win rates, operational bet limits, and monitor gaming history";
             break;
         case 'fruit-manager':
             el.pageTitle.innerText = "Fruit Slicing Manager";
@@ -769,53 +774,51 @@ function setupEventHandlers() {
         return rules;
     }
 
-    // 3. Launch Fruit Contest Form Submit
-    const fcForm = document.getElementById('fruit-contest-form');
-    if (fcForm) {
-        fcForm.addEventListener('submit', async (e) => {
+    // 3. Fruit Settings Form Submit
+    const fsForm = document.getElementById('fruit-settings-form');
+    if (fsForm) {
+        fsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const title = document.getElementById('fc-title').value.trim();
-            const entryFee = parseFloat(document.getElementById('fc-fee').value);
-            const totalSlots = parseInt(document.getElementById('fc-slots').value);
-            const prizePool = parseFloat(document.getElementById('fc-pool').value);
-            const duration = parseInt(document.getElementById('fc-duration').value);
-            const startTimeStr = document.getElementById('fc-start-time').value;
-            const endTimeStr = document.getElementById('fc-end-time').value;
+            const minBet = parseFloat(document.getElementById('fruit-min-bet').value);
+            const maxBet = parseFloat(document.getElementById('fruit-max-bet').value);
+            const winPercentage = parseFloat(document.getElementById('fruit-winning-percentage').value);
+            const multipliersJson = document.getElementById('fruit-multipliers-json').value.trim();
 
-            const prizeRules = collectPrizeRules('fc-prize-rules-list');
+            // Validate multipliersJson
+            try {
+                JSON.parse(multipliersJson);
+            } catch (err) {
+                showToast("Invalid JSON in multipliers field!", true);
+                return;
+            }
 
             const payload = {
-                title,
-                entry_fee: entryFee,
-                total_slots: totalSlots,
-                prize_pool: prizePool,
-                duration_seconds: duration,
-                start_time: new Date(startTimeStr).toISOString(),
-                end_time: endTimeStr ? new Date(endTimeStr).toISOString() : null,
-                prize_rules: prizeRules
+                min_bet: minBet,
+                max_bet: maxBet,
+                maintenance_mode: !!state.fruit_maintenance_active,
+                winning_percentage: winPercentage,
+                multipliers_json: multipliersJson
             };
 
-            const btn = fcForm.querySelector('button[type="submit"]');
+            const btn = fsForm.querySelector('button[type="submit"]');
             btn.disabled = true;
-            btn.innerText = "Launching...";
+            btn.innerText = "Saving...";
 
             try {
-                const res = await fetch(`${API_BASE}/admin/fruit-slicing/contests`, {
+                const res = await fetch(`${API_BASE}/admin/fruit-slicing/settings`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
                 if (!res.ok) throw new Error(await res.text());
 
-                showToast("Fruit slicing tournament launched successfully!");
-                fcForm.reset();
-                document.getElementById('fc-prize-rules-list').innerHTML = '';
+                showToast("Fruit Slicing game settings saved successfully!");
                 loadFruitManager();
             } catch (err) {
-                showToast("Failed to launch: " + err.message, true);
+                showToast("Failed to save settings: " + err.message, true);
             } finally {
                 btn.disabled = false;
-                btn.innerText = "Launch Fruit Tournament";
+                btn.innerText = "Save Game Settings";
             }
         });
     }
@@ -1228,6 +1231,9 @@ function loadTabSpecificData(tab) {
             break;
         case 'plinko-engine':
             loadPlinkoEngineData();
+            break;
+        case 'blackjack-engine':
+            loadBlackjackEngineData();
             break;
         case 'fruit-manager':
             loadFruitManager();
@@ -2592,7 +2598,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 // ==========================================
-// FRUIT SLICING TOURNAMENT MANAGER CONTROLLER
+// FRUIT SLICING GAME CONFIG & LOGS MANAGER
 // ==========================================
 
 async function loadFruitManager() {
@@ -2610,123 +2616,86 @@ async function loadFruitManager() {
             }
         }
 
-        const res = await fetch(`${API_BASE}/fruit-game/contests`);
-        if (!res.ok) throw new Error("Failed to load Fruit Slicing contests.");
-        const contests = await res.json();
+        // Fetch settings and populate settings form
+        const settingsRes = await fetch(`${API_BASE}/admin/fruit-slicing/settings`);
+        if (settingsRes.ok) {
+            const s = await settingsRes.json();
+            const minBetInput = document.getElementById('fruit-min-bet');
+            const maxBetInput = document.getElementById('fruit-max-bet');
+            const winPercentageInput = document.getElementById('fruit-winning-percentage');
+            const multipliersJsonInput = document.getElementById('fruit-multipliers-json');
+            
+            if (minBetInput) minBetInput.value = s.min_bet;
+            if (maxBetInput) maxBetInput.value = s.max_bet;
+            if (winPercentageInput) winPercentageInput.value = s.winning_percentage;
+            if (multipliersJsonInput && !multipliersJsonInput.matches(':focus')) {
+                try {
+                    multipliersJsonInput.value = JSON.stringify(JSON.parse(s.multipliers_json), null, 2);
+                } catch(e) {
+                    multipliersJsonInput.value = s.multipliers_json;
+                }
+            }
+        }
 
-        // 1. Calculate and update stats
-        const activeCount = contests.filter(c => c.status === 'ACTIVE').length;
-        const totalFees = contests.reduce((sum, c) => sum + (c.entry_fee * c.joined_slots), 0);
+        // Fetch logs/history
+        const historyRes = await fetch(`${API_BASE}/admin/fruit-slicing/history`);
+        if (!historyRes.ok) throw new Error("Failed to load Fruit Slicing play logs.");
+        const logs = await historyRes.json();
 
-        document.getElementById('fruit-stat-active').innerText = activeCount;
-        document.getElementById('fruit-stat-fees').innerText = `₹${totalFees.toFixed(2)}`;
+        // Calculate and update stats
+        const playCount = logs.length;
+        const totalBets = logs.reduce((sum, l) => sum + l.bet_amount, 0);
+        const winningsPaid = logs.reduce((sum, l) => sum + l.win_amount, 0);
 
-        // 2. Render table
-        const tbody = document.getElementById('fruit-contests-table-body');
+        const statGames = document.getElementById('fruit-stat-games');
+        const statBets = document.getElementById('fruit-stat-bets');
+        const statWinnings = document.getElementById('fruit-stat-winnings');
+
+        if (statGames) statGames.innerText = playCount;
+        if (statBets) statBets.innerText = `₹${totalBets.toFixed(2)}`;
+        if (statWinnings) statWinnings.innerText = `₹${winningsPaid.toFixed(2)}`;
+
+        // Render table
+        const tbody = document.getElementById('fruit-games-table-body');
         if (tbody) {
-            if (contests.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="table-placeholder">No Fruit Slicing contests active or defined yet.</td></tr>`;
+            if (logs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="table-placeholder">No Fruit Slicing play logs available yet.</td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = contests.map(c => {
+            tbody.innerHTML = logs.map(l => {
                 let statusBadge = 'badge-warning';
-                if (c.status === 'ACTIVE') statusBadge = 'badge-success';
-                if (c.status === 'COMPLETED') statusBadge = 'badge-info';
+                if (l.status === 'WON') statusBadge = 'badge-success';
+                if (l.status === 'LOST') statusBadge = 'badge-error';
 
-                const startTimeStr = new Date(c.start_time).toLocaleString();
-                const endTimeStr = c.end_time ? new Date(c.end_time).toLocaleString() : 'N/A';
-
-                const actionBtn = c.status !== 'COMPLETED'
-                    ? `<button class="btn btn-action btn-unban" onclick="completeFruitContest(${c.id})">Complete</button>`
-                    : `<span class="text-muted" style="font-size:12px;">Payout Done</span>`;
-
-                const deleteBtn = `<button class="btn btn-action btn-ban" onclick="deleteFruitContest(${c.id})">Delete</button>`;
-
-                let rulesHtml = '';
-                if (c.prize_rules && c.prize_rules.length > 0) {
-                    rulesHtml = `<div style="font-size: 11px; color: var(--text-muted); margin-top: 5px; display: flex; flex-direction: column; gap: 2px;">` +
-                        c.prize_rules.map(r => `<span>Rank ${r.min_rank}${r.min_rank === r.max_rank ? '' : '-' + r.max_rank}: ₹${r.prize}</span>`).join('') +
-                        `</div>`;
-                }
+                const playedAtStr = new Date(l.created_at).toLocaleString();
 
                 return `
                     <tr>
-                        <td>${c.id}</td>
-                        <td>
-                            <strong style="font-size:14px; color:var(--text-main);">${c.title}</strong>
-                        </td>
-                        <td>₹${c.entry_fee.toFixed(2)}</td>
+                        <td>${l.id}</td>
                         <td>
                             <div class="user-cell">
-                                <span>${c.joined_slots} / ${c.total_slots} filled</span>
-                                <div style="background-color: rgba(255,255,255,0.05); width:120px; height:4px; border-radius:2px; margin-top:4px; overflow:hidden;">
-                                    <div style="background:var(--primary); height:100%; width: ${(c.joined_slots / c.total_slots) * 100}%"></div>
-                                </div>
+                                <span class="user-name">${escapeHtml(l.user_name)}</span>
+                                <span class="user-phone">${escapeHtml(l.user_phone)}</span>
                             </div>
                         </td>
-                        <td>
-                            <strong>₹${c.prize_pool.toFixed(2)}</strong>
-                            ${rulesHtml}
-                        </td>
-                        <td>
-                            <div style="font-size: 11px;">
-                                <div><strong>Start:</strong> ${startTimeStr}</div>
-                                <div><strong>End:</strong> ${endTimeStr}</div>
-                                <div><strong>Duration:</strong> ${c.duration_seconds}s</div>
-                                <div><strong>Seed:</strong> <code style="color:var(--warning);">${c.seed}</code></div>
-                            </div>
-                        </td>
-                        <td><span class="badge ${statusBadge}">${c.status}</span></td>
-                        <td>
-                            <div style="display:flex; gap:8px;">
-                                ${actionBtn}
-                                ${deleteBtn}
-                            </div>
-                        </td>
+                        <td>₹${l.bet_amount.toFixed(2)}</td>
+                        <td>${l.multiplier.toFixed(2)}x</td>
+                        <td><strong>₹${l.win_amount.toFixed(2)}</strong></td>
+                        <td><span class="badge ${statusBadge}">${l.status}</span></td>
+                        <td>${playedAtStr}</td>
                     </tr>
                 `;
             }).join('');
         }
     } catch (err) {
         showToast(err.message, true);
-        const tbody = document.getElementById('fruit-contests-table-body');
+        const tbody = document.getElementById('fruit-games-table-body');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="8" class="table-placeholder" style="color: var(--error);">Failed to load Fruit Slicing contests: ${err.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="table-placeholder" style="color: var(--error);">Failed to load Fruit Slicing play logs: ${err.message}</td></tr>`;
         }
     }
 }
-
-async function completeFruitContest(contestId) {
-    if (!confirm("Are you sure you want to complete this Fruit contest and award the winners?")) return;
-    try {
-        const res = await fetch(`${API_BASE}/admin/fruit-slicing/contests/${contestId}/complete`, {
-            method: 'POST'
-        });
-        if (!res.ok) throw new Error(await res.text());
-        showToast("Fruit tournament completed and prize payouts distributed!");
-        loadFruitManager();
-    } catch (err) {
-        showToast("Error completing Fruit tournament: " + err.message, true);
-    }
-}
-
-async function deleteFruitContest(contestId) {
-    if (!confirm("Are you sure you want to permanently delete this Fruit Slicing contest? This will delete all associated matches and results!")) return;
-    try {
-        const res = await fetch(`${API_BASE}/admin/fruit-slicing/contests/${contestId}`, {
-            method: 'DELETE'
-        });
-        if (!res.ok) throw new Error(await res.text());
-        showToast("Fruit contest deleted successfully!");
-        loadFruitManager();
-    } catch (err) {
-        showToast("Error deleting Fruit contest: " + err.message, true);
-    }
-}
-
-window.deleteFruitContest = deleteFruitContest;
-window.completeFruitContest = completeFruitContest;
 
 
 // ==========================================
@@ -4719,6 +4688,162 @@ function inspectPlinkoProbability() {
     }
 }
 
+window.inspectMinesProbability = inspectMinesProbability;
+window.inspectPlinkoProbability = inspectPlinkoProbability;
+window.loadUserGameLogs = loadUserGameLogs;
+
+// ==========================================
+// BLACKJACK ENGINE FUNCTIONS
+// ==========================================
+state.blackjack_maintenance = false;
+
+async function loadBlackjackEngineData() {
+    try {
+        // 1. Load Stats
+        const statsRes = await fetch(`${API_BASE}/admin/blackjack/stats`);
+        if (statsRes.ok) {
+            const stats = await statsRes.json();
+            document.getElementById('blackjack-stat-bets').innerText = `₹${stats.total_bet_amount.toFixed(2)}`;
+            document.getElementById('blackjack-stat-winnings').innerText = `₹${stats.total_winnings_paid.toFixed(2)}`;
+            document.getElementById('blackjack-stat-profit').innerText = `₹${stats.platform_net_profit.toFixed(2)}`;
+            document.getElementById('blackjack-stat-rtp').innerText = `${stats.payout_ratio.toFixed(2)}%`;
+
+            const profitEl = document.getElementById('blackjack-stat-profit');
+            if (stats.platform_net_profit < 0) {
+                profitEl.style.color = 'var(--error)';
+            } else {
+                profitEl.style.color = 'var(--success)';
+            }
+        }
+
+        // 2. Load Settings & Maintenance
+        const settingsRes = await fetch(`${API_BASE}/admin/blackjack/settings`);
+        if (settingsRes.ok) {
+            const settings = await settingsRes.json();
+            state.blackjack_maintenance = settings.maintenance_mode;
+
+            document.getElementById('blackjack-win-percentage').value = settings.winning_percentage;
+            document.getElementById('blackjack-min-bet').value = settings.min_bet;
+            document.getElementById('blackjack-max-bet').value = settings.max_bet;
+
+            const btn = document.getElementById('btn-blackjack-maintenance');
+            if (btn) {
+                btn.innerText = state.blackjack_maintenance ? "Unlock Game Access" : "Lock Game Access";
+                btn.style.backgroundColor = state.blackjack_maintenance ? 'var(--success)' : 'var(--error)';
+                btn.style.color = '#fff';
+            }
+        }
+
+        // 3. Load Logs
+        await loadBlackjackLogs();
+
+    } catch (err) {
+        console.error(err);
+        showToast("Error updating Blackjack Engine: " + err.message, true);
+    }
+}
+
+async function loadBlackjackLogs() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/blackjack/logs`);
+        if (!res.ok) throw new Error("Failed to load Blackjack logs.");
+        const logs = await res.json();
+
+        const tbody = document.getElementById('blackjack-logs-table-body');
+        if (!tbody) return;
+
+        if (logs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="table-placeholder">No game logs found.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = logs.map(l => {
+            const probStr = l.win_probability !== null && l.win_probability !== undefined
+                ? `${l.win_probability.toFixed(0)}%`
+                : '-';
+            return `
+                <tr>
+                    <td>${l.id}</td>
+                    <td>
+                        <strong style="cursor: pointer; color: var(--primary);" onclick="viewUserDetails(${l.user_id})">${l.user_name || 'Anonymous'}</strong>
+                        <span class="text-muted" style="display:block; font-size:10px;">${l.user_phone}</span>
+                    </td>
+                    <td>₹${l.bet_amount.toFixed(2)}</td>
+                    <td>₹${l.win_amount.toFixed(2)}</td>
+                    <td><span class="badge badge-info">${probStr}</span></td>
+                    <td>
+                        <span class="badge ${l.status.includes('WON') || l.status.includes('BLACKJACK') ? 'badge-success' : l.status.includes('LOST') || l.status.includes('BUST') ? 'badge-error' : 'badge-info'}">
+                            ${l.status}
+                        </span>
+                    </td>
+                    <td>${new Date(l.created_at).toLocaleString()}</td>
+                </tr>
+            `;
+        }).join('');
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+function setupBlackjackHandlers() {
+    // Maintenance Lock Button
+    const btnMaintenance = document.getElementById('btn-blackjack-maintenance');
+    if (btnMaintenance) {
+        btnMaintenance.addEventListener('click', async () => {
+            const nextState = !state.blackjack_maintenance;
+            btnMaintenance.disabled = true;
+            try {
+                const res = await fetch(`${API_BASE}/admin/blackjack/maintenance?enabled=${nextState}`, { method: 'POST' });
+                if (!res.ok) throw new Error("Failed to update maintenance mode.");
+                const data = await res.json();
+                state.blackjack_maintenance = data.maintenance_mode;
+                btnMaintenance.innerText = state.blackjack_maintenance ? "Unlock Game Access" : "Lock Game Access";
+                btnMaintenance.style.backgroundColor = state.blackjack_maintenance ? 'var(--success)' : 'var(--error)';
+                showToast(state.blackjack_maintenance ? "Blackjack game LOCKED for maintenance!" : "Blackjack game unlocked!");
+            } catch (err) {
+                showToast("Error: " + err.message, true);
+            } finally {
+                btnMaintenance.disabled = false;
+            }
+        });
+    }
+
+    // General Settings Form
+    const settingsForm = document.getElementById('blackjack-settings-form');
+    if (settingsForm) {
+        settingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const winPercentage = parseFloat(document.getElementById('blackjack-win-percentage').value);
+            const minBet = parseFloat(document.getElementById('blackjack-min-bet').value);
+            const maxBet = parseFloat(document.getElementById('blackjack-max-bet').value);
+
+            const btn = settingsForm.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            try {
+                const res = await fetch(`${API_BASE}/admin/blackjack/settings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        min_bet: minBet,
+                        max_bet: maxBet,
+                        winning_percentage: winPercentage,
+                        maintenance_mode: !!state.blackjack_maintenance
+                    })
+                });
+                if (!res.ok) throw new Error(await res.text());
+                showToast("Blackjack settings updated successfully!");
+                await loadBlackjackEngineData();
+            } catch (err) {
+                showToast("Error: " + err.message, true);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    }
+}
+
+window.loadBlackjackEngineData = loadBlackjackEngineData;
+window.setupBlackjackHandlers = setupBlackjackHandlers;
 window.inspectMinesProbability = inspectMinesProbability;
 window.inspectPlinkoProbability = inspectPlinkoProbability;
 window.loadUserGameLogs = loadUserGameLogs;

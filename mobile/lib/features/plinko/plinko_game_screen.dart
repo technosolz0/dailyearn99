@@ -932,10 +932,7 @@ class _PlinkoGameScreenState extends State<PlinkoGameScreen>
                     const Text(
                       'Plinko game is currently down for maintenance. Please check back later.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
                     ),
                   ],
                 ),
@@ -1065,14 +1062,6 @@ class _PlinkoGameScreenState extends State<PlinkoGameScreen>
                           right: 10,
                           child: Row(
                             children: [
-                              // Provably Fair Info Button
-                              _circleIconButton(
-                                icon: Icons.security,
-                                color: const Color(0xFF00E676),
-                                tooltip: 'Provably Fair',
-                                onPressed: _showProvablyFairDialog,
-                              ),
-                              const SizedBox(width: 8),
                               // Turbo Mode Toggle
                               _circleIconButton(
                                 icon: Icons.flash_on,

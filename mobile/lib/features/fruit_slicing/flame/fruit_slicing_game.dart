@@ -113,15 +113,32 @@ class FruitSlicingGame extends FlameGame with DragCallbacks {
         Color splashColor;
         switch (item.itemType) {
           case 'watermelon':
+          case 'apple':
+          case 'tomato':
+          case 'pepper':
+          case 'strawberry':
             splashColor = Colors.redAccent;
             break;
           case 'orange':
+          case 'carrot':
+          case 'peach':
             splashColor = Colors.orangeAccent;
             break;
           case 'banana':
+          case 'pineapple':
+          case 'corn':
             splashColor = Colors.yellowAccent;
             break;
+          case 'blueberry':
+          case 'grape':
+          case 'onion':
+            splashColor = Colors.purpleAccent;
+            break;
+          case 'broccoli':
+            splashColor = Colors.greenAccent;
+            break;
           case 'coconut':
+          case 'potato':
             splashColor = Colors.white;
             break;
           default:
@@ -135,25 +152,16 @@ class FruitSlicingGame extends FlameGame with DragCallbacks {
               color: splashColor,
             ),
           );
+          // Dispatch individual slice event to BLoC
+          gameBloc.add(RegisterSliceEvent(item.itemType));
         }
       }
 
-      // Dispatch events to BLoC
-      gameBloc.add(
-        RecordSwipeEvent(
-          points: List.from(bladeTrail.points),
-          slicedItems: slicedThisFrame
-              .map(
-                (e) => LocalSlicedItem(
-                  id: e.itemId,
-                  type: e.itemType,
-                  angle: angle,
-                ),
-              )
-              .toList(),
-          isBombHit: hitBomb,
-        ),
-      );
+      if (hitBomb) {
+        // Stop spawning and dispatch bomb explosion
+        spawner.removeFromParent();
+        gameBloc.add(TriggerBombExplodeEvent());
+      }
     }
   }
 

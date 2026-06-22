@@ -9,7 +9,7 @@ import os
 from app.core.config import settings
 from app.core.database import engine, Base, get_db
 from app.models import Contest
-from app.api import auth, contests, wallet, referral, admin, spin, puzzle_game, admin_puzzle, word_game, admin_word, fruit_game, admin_fruit, notifications, arrow_game, admin_arrow, portfolio, lottery, admin_lottery, mines_game, admin_mines, plinko_game, admin_plinko
+from app.api import auth, contests, wallet, referral, admin, spin, puzzle_game, admin_puzzle, word_game, admin_word, fruit_game, admin_fruit, notifications, arrow_game, admin_arrow, portfolio, lottery, admin_lottery, mines_game, admin_mines, plinko_game, admin_plinko, blackjack_game, admin_blackjack
 from app.websocket import manager, puzzle_ws_manager, word_ws_manager, fruit_ws_manager, arrow_ws_manager
 
 # Create database tables
@@ -20,9 +20,11 @@ from app.models import (
     FruitContest, FruitMatch, FruitEvent, FruitScore, FruitLeaderboard,
     ArrowContest, ArrowGame, ArrowAttempt, ArrowLeaderboard, ArrowPuzzleSeed,
     PortfolioConfig, PortfolioContactMessage, AdminBankDetail, LotteryDraw, LotteryTicket, AdminFCMToken,
-    MinesGame, MinesSetting, PlinkoGame, PlinkoSetting, PlinkoMultiplier, PlinkoRTP
+    MinesGame, MinesSetting, PlinkoGame, PlinkoSetting, PlinkoMultiplier, PlinkoRTP,
+    FruitSetting, FruitGame, BlackjackSetting, BlackjackGame
 )  # Explicitly import to register on Base
 Base.metadata.create_all(bind=engine)
+
 
 
 def migrate_database():
@@ -149,7 +151,75 @@ def migrate_database():
             # Ignore error (column already exists)
             pass
 
+    # Ensure fruit tables exist
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS fruit_settings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    min_bet FLOAT,
+                    max_bet FLOAT,
+                    maintenance_mode BOOLEAN,
+                    winning_percentage FLOAT,
+                    multipliers_json TEXT,
+                    updated_at TIMESTAMP
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS fruit_games (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER,
+                    bet_amount FLOAT,
+                    status VARCHAR,
+                    current_multiplier FLOAT,
+                    win_amount FLOAT,
+                    created_at TIMESTAMP,
+                    updated_at TIMESTAMP
+                )
+            """))
+        print("Schema Migration: Verified fruit_settings and fruit_games tables exist.")
+    except Exception as e:
+        print(f"Schema Migration Error: Failed to verify fruit tables: {e}")
+
+    # Ensure blackjack tables exist
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS blackjack_settings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    min_bet FLOAT,
+                    max_bet FLOAT,
+                    winning_percentage FLOAT,
+                    maintenance_mode BOOLEAN,
+                    updated_at TIMESTAMP
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS blackjack_games (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER,
+                    bet_amount FLOAT,
+                    is_split BOOLEAN,
+                    split_bet_amount FLOAT,
+                    player_hand_1 TEXT,
+                    player_hand_2 TEXT,
+                    dealer_hand TEXT,
+                    current_hand_index INTEGER,
+                    hand_1_status VARCHAR,
+                    hand_2_status VARCHAR,
+                    status VARCHAR,
+                    win_amount FLOAT,
+                    target_outcome VARCHAR,
+                    created_at TIMESTAMP,
+                    updated_at TIMESTAMP
+                )
+            """))
+        print("Schema Migration: Verified blackjack_settings and blackjack_games tables exist.")
+    except Exception as e:
+        print(f"Schema Migration Error: Failed to verify blackjack tables: {e}")
+
 migrate_database()
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -178,9 +248,12 @@ async def startup_event():
         # Seed test users
         seed_test_users(db)
         seed_rtp_settings(db)
-        from app.core.seeds import seed_mines_settings, seed_plinko_settings
+        from app.core.seeds import seed_mines_settings, seed_plinko_settings, seed_fruit_settings, seed_blackjack_settings
         seed_mines_settings(db)
         seed_plinko_settings(db)
+        seed_fruit_settings(db)
+        seed_blackjack_settings(db)
+
         
         # Seed central questions pool
         if db.query(Question).count() == 0:
@@ -564,6 +637,8 @@ app.include_router(mines_game.router, prefix=settings.API_V1_STR)
 app.include_router(admin_mines.router, prefix=settings.API_V1_STR)
 app.include_router(plinko_game.router, prefix=settings.API_V1_STR)
 app.include_router(admin_plinko.router, prefix=settings.API_V1_STR)
+app.include_router(blackjack_game.router, prefix=settings.API_V1_STR)
+app.include_router(admin_blackjack.router, prefix=settings.API_V1_STR)
 
 # Realtime Leaderboard WebSocket endpoint
 @app.websocket("/ws/leaderboard/{contest_id}")
