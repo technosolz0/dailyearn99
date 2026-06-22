@@ -166,4 +166,14 @@ class ApiConstants {
   static const String lotteryDraws = '/lottery/draws';
   static const String lotteryBuy = '/lottery/buy';
   static const String lotteryMyTickets = '/lottery/my-tickets';
+
+  // Blackjack APIs
+  static const String blackjackStart = '/blackjack/start';
+  static const String blackjackHit = '/blackjack/hit';
+  static const String blackjackStand = '/blackjack/stand';
+  static const String blackjackDouble = '/blackjack/double';
+  static const String blackjackSplit = '/blackjack/split';
+  static const String blackjackActive = '/blackjack/active';
+  static const String blackjackHistory = '/blackjack/history';
+  static const String blackjackSettings = '/blackjack/settings';
 }
