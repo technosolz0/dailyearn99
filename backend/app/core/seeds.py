@@ -407,7 +407,7 @@ def seed_blackjack_settings(db: Session):
         settings = BlackjackSetting(
             min_bet=10.0,
             max_bet=50000.0,
-            winning_percentage=50.0,
+            winning_percentage=15.0,
             maintenance_mode=False
         )
         db.add(settings)

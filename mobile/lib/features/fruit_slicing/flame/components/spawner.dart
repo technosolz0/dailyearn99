@@ -60,13 +60,26 @@ class Spawner extends Component with HasGameRef {
 
     // 3. Determine if bomb or fruit
     final bool spawnBomb =
-        seededRandom.nextDouble() < 0.15; // 15% bomb spawn rate
+        seededRandom.nextDouble() < 0.30; // 30% bomb spawn rate
 
     final List<String> types = [
-      'apple', 'orange', 'banana', 'coconut', 'watermelon',
-      'tomato', 'carrot', 'broccoli', 'pepper', 'pineapple',
-      'strawberry', 'blueberry', 'grape', 'peach', 'potato',
-      'corn', 'onion'
+      'apple',
+      'orange',
+      'banana',
+      'coconut',
+      'watermelon',
+      'tomato',
+      'carrot',
+      'broccoli',
+      'pepper',
+      'pineapple',
+      'strawberry',
+      'blueberry',
+      'grape',
+      'peach',
+      'potato',
+      'corn',
+      'onion',
     ];
     final String chosenType = types[seededRandom.nextInt(types.length)];
 
