@@ -68,7 +68,7 @@ def get_blackjack_logs(db: Session = Depends(get_db)):
 def get_blackjack_settings(db: Session = Depends(get_db)):
     settings = db.query(BlackjackSetting).first()
     if not settings:
-        settings = BlackjackSetting(min_bet=10.0, max_bet=50000.0, winning_percentage=50.0, maintenance_mode=False)
+        settings = BlackjackSetting(min_bet=10.0, max_bet=50000.0, winning_percentage=15.0, maintenance_mode=False)
         db.add(settings)
         db.commit()
         db.refresh(settings)

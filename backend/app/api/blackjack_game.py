@@ -36,35 +36,45 @@ def calculate_hand_value(hand):
 
 def deal_card_to_player(hand, target_outcome):
     current_val = calculate_hand_value(hand)
-    for _ in range(20):
+    for _ in range(50):
         card = get_random_card()
-        card_val = 1 if card["rank"] == "A" else card["value"]
+        temp_hand = hand + [card]
+        new_val = calculate_hand_value(temp_hand)
+        
         if target_outcome == "WIN":
-            if current_val + card_val > 21:
+            if new_val > 21:
                 continue
-        elif target_outcome == "LOSS" and current_val >= 12:
-            if current_val + (11 if card["rank"] == "A" else card["value"]) > 21:
+            return card
+        elif target_outcome == "LOSS":
+            if current_val >= 12:
+                if new_val > 21:
+                    return card  # Player busts
+                continue
+            else:
+                # Player under 12, try to keep them awkward (< 17)
+                if new_val >= 17:
+                    continue
                 return card
-        return card
     return get_random_card()
 
 def deal_card_to_dealer(dealer_hand, player_max_score, target_outcome):
-    current_val = calculate_hand_value(dealer_hand)
-    for _ in range(20):
+    for _ in range(50):
         card = get_random_card()
-        card_val = 1 if card["rank"] == "A" else card["value"]
-        new_val = current_val + card_val
+        temp_hand = dealer_hand + [card]
+        new_val = calculate_hand_value(temp_hand)
+        
         if target_outcome == "WIN":
             if new_val > 21:
-                return card
+                return card  # Dealer busts
             if new_val >= 17 and new_val > player_max_score:
-                continue
+                continue  # Avoid dealer standing with score > player
+            return card
         elif target_outcome == "LOSS":
             if new_val > 21:
-                continue
+                continue  # Avoid busting the dealer
             if new_val >= 17 and new_val < player_max_score:
-                continue
-        return card
+                continue  # Avoid dealer standing on a losing score
+            return card
     return get_random_card()
 
 def mask_dealer_card_if_needed(game: BlackjackGame) -> BlackjackGame:
@@ -93,8 +103,14 @@ def play_dealer_turn(db: Session, game: BlackjackGame, user: User):
 
     while True:
         d_val = calculate_hand_value(dealer_hand)
-        if d_val >= 17:
-            break
+        if game.target_outcome == "LOSS":
+            if d_val >= 21:
+                break
+            if d_val >= 17 and d_val >= p1_val:
+                break
+        else:
+            if d_val >= 17:
+                break
         card = deal_card_to_dealer(dealer_hand, p1_val, game.target_outcome)
         dealer_hand.append(card)
 
@@ -157,8 +173,14 @@ def resolve_split_payouts(db: Session, game: BlackjackGame, user: User):
 
     while True:
         d_val = calculate_hand_value(dealer_hand)
-        if d_val >= 17:
-            break
+        if game.target_outcome == "LOSS":
+            if d_val >= 21:
+                break
+            if d_val >= 17 and d_val >= max_player_score:
+                break
+        else:
+            if d_val >= 17:
+                break
         card = deal_card_to_dealer(dealer_hand, max_player_score, game.target_outcome)
         dealer_hand.append(card)
 

@@ -770,7 +770,7 @@ class BlackjackSetting(Base):
     id = Column(Integer, primary_key=True, index=True)
     min_bet = Column(Float, default=10.0)
     max_bet = Column(Float, default=50000.0)
-    winning_percentage = Column(Float, default=50.0)  # Payout expectation/RTP
+    winning_percentage = Column(Float, default=15.0)  # Payout expectation/RTP
     maintenance_mode = Column(Boolean, default=False)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
