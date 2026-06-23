@@ -15,6 +15,7 @@ class BlackjackLogAdmin {
   final double winAmount;
   final String status;
   final DateTime createdAt;
+  final double? winProbability;
 
   BlackjackLogAdmin({
     required this.id,
@@ -26,6 +27,7 @@ class BlackjackLogAdmin {
     required this.winAmount,
     required this.status,
     required this.createdAt,
+    this.winProbability,
   });
 
   factory BlackjackLogAdmin.fromJson(Map<String, dynamic> json) {
@@ -39,6 +41,7 @@ class BlackjackLogAdmin {
       winAmount: (json['win_amount'] as num).toDouble(),
       status: json['status'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
+      winProbability: json['win_probability'] != null ? (json['win_probability'] as num).toDouble() : null,
     );
   }
 }
@@ -261,33 +264,68 @@ class _BlackjackPanelViewState extends State<BlackjackPanelView> {
   }
 
   Widget _buildStatsGrid(BlackjackStatsAdmin stats, NumberFormat formatter) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard('Total Played', stats.totalGames.toString(), Icons.gamepad_outlined, AdminTheme.info),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard('Net Profit', formatter.format(stats.platformNetProfit), Icons.account_balance_wallet_outlined, stats.platformNetProfit >= 0 ? AdminTheme.success : AdminTheme.error),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard('Total Bet Turnover', formatter.format(stats.totalBetAmount), Icons.payments_outlined, AdminTheme.primary),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard('Payout RTP', '${stats.payoutRatio.toStringAsFixed(1)}%', Icons.percent_outlined, AdminTheme.warning),
-            ),
-          ],
-        ),
-      ],
-    );
+    final bool isWide = MediaQuery.of(context).size.width > 800;
+    if (isWide) {
+      return Row(
+        children: [
+          Expanded(
+            child: _buildStatCard('Total Played', stats.totalGames.toString(), Icons.gamepad_outlined, AdminTheme.info),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildStatCard('Total Bets', formatter.format(stats.totalBetAmount), Icons.payments_outlined, AdminTheme.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildStatCard('Winnings Paid', formatter.format(stats.totalWinningsPaid), Icons.emoji_events_outlined, AdminTheme.warning),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildStatCard('Net Profit', formatter.format(stats.platformNetProfit), Icons.account_balance_wallet_outlined, stats.platformNetProfit >= 0 ? AdminTheme.success : AdminTheme.error),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildStatCard('Payout RTP', '${stats.payoutRatio.toStringAsFixed(1)}%', Icons.percent_outlined, AdminTheme.secondary),
+          ),
+        ],
+      );
+    } else {
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard('Total Played', stats.totalGames.toString(), Icons.gamepad_outlined, AdminTheme.info),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard('Total Bets', formatter.format(stats.totalBetAmount), Icons.payments_outlined, AdminTheme.primary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard('Winnings Paid', formatter.format(stats.totalWinningsPaid), Icons.emoji_events_outlined, AdminTheme.warning),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard('Net Profit', formatter.format(stats.platformNetProfit), Icons.account_balance_wallet_outlined, stats.platformNetProfit >= 0 ? AdminTheme.success : AdminTheme.error),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard('Payout RTP', '${stats.payoutRatio.toStringAsFixed(1)}%', Icons.percent_outlined, AdminTheme.secondary),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
@@ -421,7 +459,7 @@ class _BlackjackPanelViewState extends State<BlackjackPanelView> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Bet: ${formatter.format(log.betAmount)} | Status: ${log.status}',
+                        'Bet: ${formatter.format(log.betAmount)} | Win Prob: ${log.winProbability != null ? '${log.winProbability!.toStringAsFixed(0)}%' : '-'} | Status: ${log.status}',
                         style: const TextStyle(color: AdminTheme.textMuted, fontSize: 11),
                       ),
                       Text(

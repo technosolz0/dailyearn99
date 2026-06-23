@@ -4014,6 +4014,7 @@ async function loadMinesEngineData() {
         const statsRes = await fetch(`${API_BASE}/admin/mines/stats`);
         if (statsRes.ok) {
             const stats = await statsRes.json();
+            document.getElementById('mines-stat-games').innerText = stats.total_games;
             document.getElementById('mines-stat-bets').innerText = `₹${stats.total_bet_amount.toFixed(2)}`;
             document.getElementById('mines-stat-winnings').innerText = `₹${stats.total_winnings_paid.toFixed(2)}`;
             document.getElementById('mines-stat-profit').innerText = `₹${stats.platform_net_profit.toFixed(2)}`;
@@ -4254,6 +4255,7 @@ async function loadPlinkoEngineData() {
         const statsRes = await fetch(`${API_BASE}/admin/plinko/stats`);
         if (statsRes.ok) {
             const stats = await statsRes.json();
+            document.getElementById('plinko-stat-games').innerText = stats.total_games;
             document.getElementById('plinko-stat-bets').innerText = `₹${stats.total_bet_amount.toFixed(2)}`;
             document.getElementById('plinko-stat-winnings').innerText = `₹${stats.total_winnings_paid.toFixed(2)}`;
             document.getElementById('plinko-stat-profit').innerText = `₹${stats.platform_net_profit.toFixed(2)}`;
@@ -4703,6 +4705,7 @@ async function loadBlackjackEngineData() {
         const statsRes = await fetch(`${API_BASE}/admin/blackjack/stats`);
         if (statsRes.ok) {
             const stats = await statsRes.json();
+            document.getElementById('blackjack-stat-games').innerText = stats.total_games;
             document.getElementById('blackjack-stat-bets').innerText = `₹${stats.total_bet_amount.toFixed(2)}`;
             document.getElementById('blackjack-stat-winnings').innerText = `₹${stats.total_winnings_paid.toFixed(2)}`;
             document.getElementById('blackjack-stat-profit').innerText = `₹${stats.platform_net_profit.toFixed(2)}`;

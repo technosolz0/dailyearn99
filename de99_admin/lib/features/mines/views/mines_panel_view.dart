@@ -16,6 +16,7 @@ class MinesLogAdmin {
   final double winAmount;
   final String resultType;
   final DateTime createdAt;
+  final double? winProbability;
 
   MinesLogAdmin({
     required this.id,
@@ -28,6 +29,7 @@ class MinesLogAdmin {
     required this.winAmount,
     required this.resultType,
     required this.createdAt,
+    this.winProbability,
   });
 
   factory MinesLogAdmin.fromJson(Map<String, dynamic> json) {
@@ -42,6 +44,7 @@ class MinesLogAdmin {
       winAmount: (json['win_amount'] as num).toDouble(),
       resultType: json['result_type'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
+      winProbability: json['win_probability'] != null ? (json['win_probability'] as num).toDouble() : null,
     );
   }
 }
@@ -384,53 +387,118 @@ class _MinesPanelViewState extends State<MinesPanelView> {
   }
 
   Widget _buildStatsCardGrid(MinesStatsAdmin stats, NumberFormat currencyFormatter) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                title: 'Total Games Played',
-                value: stats.totalGames.toString(),
-                icon: Icons.gamepad_outlined,
-                color: AdminTheme.info,
-              ),
+    final bool isWide = MediaQuery.of(context).size.width > 800;
+    if (isWide) {
+      return Row(
+        children: [
+          Expanded(
+            child: _buildStatCard(
+              title: 'Total Games Played',
+              value: stats.totalGames.toString(),
+              icon: Icons.gamepad_outlined,
+              color: AdminTheme.info,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                title: 'Platform Profit',
-                value: currencyFormatter.format(stats.platformNetProfit),
-                icon: Icons.account_balance_wallet_outlined,
-                color: stats.platformNetProfit >= 0 ? AdminTheme.success : AdminTheme.error,
-              ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildStatCard(
+              title: 'Total Bet Turnover',
+              value: currencyFormatter.format(stats.totalBetAmount),
+              icon: Icons.payments_outlined,
+              color: AdminTheme.primary,
             ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                title: 'Total Bet Turnover',
-                value: currencyFormatter.format(stats.totalBetAmount),
-                icon: Icons.payments_outlined,
-                color: AdminTheme.primary,
-              ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildStatCard(
+              title: 'Winnings Distributed',
+              value: currencyFormatter.format(stats.totalWinningsPaid),
+              icon: Icons.emoji_events_outlined,
+              color: AdminTheme.warning,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                title: 'Payout RTP Ratio',
-                value: '${stats.payoutRatio.toStringAsFixed(1)}%',
-                icon: Icons.percent_outlined,
-                color: AdminTheme.warning,
-              ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildStatCard(
+              title: 'Platform Profit',
+              value: currencyFormatter.format(stats.platformNetProfit),
+              icon: Icons.account_balance_wallet_outlined,
+              color: stats.platformNetProfit >= 0 ? AdminTheme.success : AdminTheme.error,
             ),
-          ],
-        )
-      ],
-    );
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildStatCard(
+              title: 'Payout RTP Ratio',
+              value: '${stats.payoutRatio.toStringAsFixed(1)}%',
+              icon: Icons.percent_outlined,
+              color: AdminTheme.secondary,
+            ),
+          ),
+        ],
+      );
+    } else {
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Total Games Played',
+                  value: stats.totalGames.toString(),
+                  icon: Icons.gamepad_outlined,
+                  color: AdminTheme.info,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Total Bet Turnover',
+                  value: currencyFormatter.format(stats.totalBetAmount),
+                  icon: Icons.payments_outlined,
+                  color: AdminTheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Winnings Distributed',
+                  value: currencyFormatter.format(stats.totalWinningsPaid),
+                  icon: Icons.emoji_events_outlined,
+                  color: AdminTheme.warning,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Platform Profit',
+                  value: currencyFormatter.format(stats.platformNetProfit),
+                  icon: Icons.account_balance_wallet_outlined,
+                  color: stats.platformNetProfit >= 0 ? AdminTheme.success : AdminTheme.error,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Payout RTP Ratio',
+                  value: '${stats.payoutRatio.toStringAsFixed(1)}%',
+                  icon: Icons.percent_outlined,
+                  color: AdminTheme.secondary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
   }
 
   Widget _buildStatCard({
@@ -683,7 +751,7 @@ class _MinesPanelViewState extends State<MinesPanelView> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Bet: ${currencyFormatter.format(log.betAmount)} | ${log.minesCount} Mines',
+                        'Bet: ${currencyFormatter.format(log.betAmount)} | ${log.minesCount} Mines | Win Prob: ${log.winProbability != null ? '${(log.winProbability! * 100).toStringAsFixed(0)}%' : '-'}',
                         style: const TextStyle(color: AdminTheme.textMuted, fontSize: 11),
                       ),
                       Text(
