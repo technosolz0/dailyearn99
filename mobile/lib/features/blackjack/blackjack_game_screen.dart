@@ -286,13 +286,13 @@ class _BlackjackGameScreenState extends State<BlackjackGameScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildHeaderIconButton(
-          icon: Icons.menu,
-          onTap: () {
-            // Fallback back navigation
-            Navigator.pop(context);
-          },
-        ),
+        // _buildHeaderIconButton(
+        //   icon: Icons.menu,
+        //   onTap: () {
+        //     // Fallback back navigation
+        //     Navigator.pop(context);
+        //   },
+        // ),
         GestureDetector(
           onTap: () => DepositBottomSheet.show(context),
           child: Container(
@@ -338,38 +338,38 @@ class _BlackjackGameScreenState extends State<BlackjackGameScreen> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                _buildHeaderIconButton(
-                  icon: Icons.card_giftcard,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Rewards coming soon!')),
-                    );
-                  },
-                ),
-                Positioned(
-                  right: -2,
-                  top: -2,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFEF4444),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Text(
-                      '3',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            // Stack(
+            //   clipBehavior: Clip.none,
+            //   children: [
+            //     _buildHeaderIconButton(
+            //       icon: Icons.card_giftcard,
+            //       onTap: () {
+            //         ScaffoldMessenger.of(context).showSnackBar(
+            //           const SnackBar(content: Text('Rewards coming soon!')),
+            //         );
+            //       },
+            //     ),
+            //     Positioned(
+            //       right: -2,
+            //       top: -2,
+            //       child: Container(
+            //         padding: const EdgeInsets.all(4),
+            //         decoration: const BoxDecoration(
+            //           color: Color(0xFFEF4444),
+            //           shape: BoxShape.circle,
+            //         ),
+            //         child: const Text(
+            //           '3',
+            //           style: TextStyle(
+            //             color: Colors.white,
+            //             fontSize: 8,
+            //             fontWeight: FontWeight.bold,
+            //           ),
+            //         ),
+            //       ),
+            //     ),
+            //   ],
+            // ),
             const SizedBox(width: 8),
             _buildHeaderIconButton(
               icon: Icons.settings,

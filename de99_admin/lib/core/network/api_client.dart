@@ -4,7 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class ApiClient {
   final Dio _dio = Dio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  
+
   static const String _baseUrlKey = 'admin_api_base_url';
   static const String _tokenKey = 'admin_auth_token';
 
@@ -15,7 +15,7 @@ class ApiClient {
           // Dynamically fetch and set Base URL
           final baseUrl = await getBaseUrl();
           options.baseUrl = baseUrl;
-          
+
           // Attach auth token if available
           final token = await getToken();
           if (token != null) {
@@ -23,7 +23,37 @@ class ApiClient {
           }
           return handler.next(options);
         },
-        onError: (DioException e, handler) {
+        onError: (DioException e, handler) async {
+          if (e.response?.statusCode == 401 &&
+              e.requestOptions.path != '/admin/login') {
+            final username = await getUsername();
+            final password = await getPassword();
+            if (username != null && password != null) {
+              try {
+                // Spawn a clean temporary Dio instance to avoid interceptor recursion
+                final dioForLogin = Dio();
+                final baseUrl = await getBaseUrl();
+                final loginResponse = await dioForLogin.post(
+                  '$baseUrl/admin/login',
+                  data: {'username': username, 'password': password},
+                );
+
+                final newToken = loginResponse.data['access_token'] as String;
+                await setToken(newToken);
+
+                // Clone the original request options and set the new auth header
+                final options = e.requestOptions;
+                options.headers['Authorization'] = 'Bearer $newToken';
+
+                // Retry the request
+                final cloneReq = await _dio.fetch(options);
+                return handler.resolve(cloneReq);
+              } catch (retryError) {
+                // If silent authentication fails, forward the original error
+                return handler.next(e);
+              }
+            }
+          }
           return handler.next(e);
         },
       ),
