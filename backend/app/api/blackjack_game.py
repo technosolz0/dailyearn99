@@ -472,7 +472,7 @@ def blackjack_double(payload: dict, db: Session = Depends(get_db), current_user:
         game.bet_amount *= 2
         hand = json.loads(game.player_hand_1)
     else:
-        game.split_bet_amount = game.bet_amount
+        game.split_bet_amount = game.bet_amount * 2
         hand = json.loads(game.player_hand_2)
 
     card = deal_card_to_player(hand, game.target_outcome)

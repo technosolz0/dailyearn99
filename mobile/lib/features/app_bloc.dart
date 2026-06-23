@@ -246,8 +246,11 @@ class AppState {
           ? null
           : (activeBlackjackGame ?? this.activeBlackjackGame),
       blackjackHistory: blackjackHistory ?? this.blackjackHistory,
-      blackjackError:
-          clearBlackjackError ? null : (blackjackError ?? this.blackjackError),
+
+      blackjackError: clearBlackjackError
+          ? null
+          : (blackjackError ?? this.blackjackError),
+
       blackjackSettings: blackjackSettings ?? this.blackjackSettings,
       updateRequired: updateRequired ?? this.updateRequired,
       updateOptional: updateOptional ?? this.updateOptional,
@@ -1419,10 +1422,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     try {
       final response = await _apiClient.post(
         ApiConstants.minesStart,
-        data: {
-          'bet_amount': event.betAmount,
-          'mines_count': event.minesCount,
-        },
+        data: {'bet_amount': event.betAmount, 'mines_count': event.minesCount},
       );
       final game = MinesGameModel.fromJson(response.data);
       emit(state.copyWith(isMinesLoading: false, activeMinesGame: game));
@@ -1445,10 +1445,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     try {
       final response = await _apiClient.post(
         ApiConstants.minesReveal,
-        data: {
-          'game_id': event.gameId,
-          'position': event.position,
-        },
+        data: {'game_id': event.gameId, 'position': event.position},
       );
       final game = MinesGameModel.fromJson(response.data);
       emit(state.copyWith(isMinesLoading: false, activeMinesGame: game));
@@ -1473,9 +1470,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     try {
       final response = await _apiClient.post(
         ApiConstants.minesCashout,
-        data: {
-          'game_id': event.gameId,
-        },
+        data: {'game_id': event.gameId},
       );
       final game = MinesGameModel.fromJson(response.data);
       emit(state.copyWith(isMinesLoading: false, activeMinesGame: game));
@@ -1535,12 +1530,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   }
 
   void _onResetMines(ResetMinesEvent event, Emitter<AppState> emit) {
-    emit(
-      state.copyWith(
-        clearMinesError: true,
-        clearActiveMinesGame: true,
-      ),
-    );
+    emit(state.copyWith(clearMinesError: true, clearActiveMinesGame: true));
   }
 
   Future<void> _onFetchMinesSettings(
@@ -1566,7 +1556,13 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     PlayPlinkoEvent event,
     Emitter<AppState> emit,
   ) async {
-    emit(state.copyWith(isPlinkoLoading: true, clearPlinkoError: true, clearLatestPlinkoResult: true));
+    emit(
+      state.copyWith(
+        isPlinkoLoading: true,
+        clearPlinkoError: true,
+        clearLatestPlinkoResult: true,
+      ),
+    );
     try {
       final response = await _apiClient.post(
         ApiConstants.plinkoPlay,
@@ -1630,12 +1626,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   }
 
   void _onResetPlinko(ResetPlinkoEvent event, Emitter<AppState> emit) {
-    emit(
-      state.copyWith(
-        clearPlinkoError: true,
-        clearLatestPlinkoResult: true,
-      ),
-    );
+    emit(state.copyWith(clearPlinkoError: true, clearLatestPlinkoResult: true));
   }
 
   // --- BLACKJACK GAME EVENT HANDLERS ---
@@ -1657,7 +1648,9 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         data: {'bet_amount': event.betAmount},
       );
       final game = BlackjackGameModel.fromJson(response.data);
-      emit(state.copyWith(isBlackjackLoading: false, activeBlackjackGame: game));
+      emit(
+        state.copyWith(isBlackjackLoading: false, activeBlackjackGame: game),
+      );
       add(LoadProfileEvent());
     } catch (e, stackTrace) {
       emit(
@@ -1680,7 +1673,9 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         data: {'game_id': event.gameId},
       );
       final game = BlackjackGameModel.fromJson(response.data);
-      emit(state.copyWith(isBlackjackLoading: false, activeBlackjackGame: game));
+      emit(
+        state.copyWith(isBlackjackLoading: false, activeBlackjackGame: game),
+      );
       if (!game.isInProgress) {
         add(LoadProfileEvent());
       }
@@ -1705,7 +1700,9 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         data: {'game_id': event.gameId},
       );
       final game = BlackjackGameModel.fromJson(response.data);
-      emit(state.copyWith(isBlackjackLoading: false, activeBlackjackGame: game));
+      emit(
+        state.copyWith(isBlackjackLoading: false, activeBlackjackGame: game),
+      );
       add(LoadProfileEvent());
     } catch (e, stackTrace) {
       emit(
@@ -1728,7 +1725,9 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         data: {'game_id': event.gameId},
       );
       final game = BlackjackGameModel.fromJson(response.data);
-      emit(state.copyWith(isBlackjackLoading: false, activeBlackjackGame: game));
+      emit(
+        state.copyWith(isBlackjackLoading: false, activeBlackjackGame: game),
+      );
       add(LoadProfileEvent());
     } catch (e, stackTrace) {
       emit(
@@ -1751,7 +1750,9 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         data: {'game_id': event.gameId},
       );
       final game = BlackjackGameModel.fromJson(response.data);
-      emit(state.copyWith(isBlackjackLoading: false, activeBlackjackGame: game));
+      emit(
+        state.copyWith(isBlackjackLoading: false, activeBlackjackGame: game),
+      );
       add(LoadProfileEvent());
     } catch (e, stackTrace) {
       emit(
@@ -1773,10 +1774,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       if (response.data != null) {
         final game = BlackjackGameModel.fromJson(response.data);
         emit(
-          state.copyWith(
-            isBlackjackLoading: false,
-            activeBlackjackGame: game,
-          ),
+          state.copyWith(isBlackjackLoading: false, activeBlackjackGame: game),
         );
       } else {
         emit(
@@ -1826,10 +1824,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       final response = await _apiClient.get(ApiConstants.blackjackSettings);
       final settings = BlackjackSettingsModel.fromJson(response.data);
       emit(
-        state.copyWith(
-          isBlackjackLoading: false,
-          blackjackSettings: settings,
-        ),
+        state.copyWith(isBlackjackLoading: false, blackjackSettings: settings),
       );
     } catch (e, stackTrace) {
       emit(
@@ -1843,13 +1838,9 @@ class AppBloc extends Bloc<AppEvent, AppState> {
 
   void _onResetBlackjack(ResetBlackjackEvent event, Emitter<AppState> emit) {
     emit(
-      state.copyWith(
-        clearBlackjackError: true,
-        clearActiveBlackjackGame: true,
-      ),
+      state.copyWith(clearBlackjackError: true, clearActiveBlackjackGame: true),
     );
   }
-
   @override
   Future<void> close() {
     _wsSubscription?.cancel();

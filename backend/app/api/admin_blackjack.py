@@ -17,7 +17,7 @@ router = APIRouter(prefix="/admin/blackjack", tags=["Admin Blackjack"], dependen
 @router.get("/stats", response_model=BlackjackStatsResponse)
 def get_blackjack_stats(db: Session = Depends(get_db)):
     total_games = db.query(BlackjackGame).count()
-    total_bet = db.query(func.sum(BlackjackGame.bet_amount)).scalar() or 0.0
+    total_bet = db.query(func.sum(BlackjackGame.bet_amount + BlackjackGame.split_bet_amount)).scalar() or 0.0
     total_win = db.query(func.sum(BlackjackGame.win_amount)).scalar() or 0.0
 
     profit = total_bet - total_win

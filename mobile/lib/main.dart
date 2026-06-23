@@ -448,7 +448,7 @@ class _MainNavigationLayoutState extends State<MainNavigationLayout> {
             BottomNavigationBarItem(
               icon: Icon(Icons.sports_esports_outlined),
               activeIcon: Icon(Icons.sports_esports),
-              label: 'Lobbies',
+              label: 'Games',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.account_balance_wallet_outlined),

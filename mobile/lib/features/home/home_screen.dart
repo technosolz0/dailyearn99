@@ -21,6 +21,7 @@ import 'package:dailyearn99/core/utils/dependency_injection.dart';
 import 'package:dailyearn99/core/network/api_client.dart';
 import 'package:dailyearn99/features/mines/mines_game_screen.dart';
 import 'package:dailyearn99/features/plinko/plinko_game_screen.dart';
+import 'package:dailyearn99/features/blackjack/blackjack_game_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -136,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const Text(
-                                'DailyEarn99 Lobbies',
+                                'DailyEarn99',
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
@@ -339,7 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         // Lucky Draw Arena full-width featured card (moved in front)
                         _buildFeaturedGameCard(
                           context: context,
-                          title: 'Lucky Draw Arena',
+                          title: 'Lottery Lucky Draw',
                           emoji: '🎟️',
                           desc:
                               'Join daily draws with massive cash prizes. Buy tickets now!',
@@ -364,7 +365,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 12),
                         _buildFeaturedGameCard(
                           context: context,
-                          title: 'Mines Originals',
+                          title: 'Mines',
                           emoji: '💣',
                           desc:
                               'Stake style provably fair Mines. Select tiles & Cash Out instantly!',
@@ -378,8 +379,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    const MinesGameScreen(),
+                                builder: (context) => const MinesGameScreen(),
                               ),
                             ).then((_) {
                               if (context.mounted) {
@@ -391,7 +391,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 12),
                         _buildFeaturedGameCard(
                           context: context,
-                          title: 'Plinko Originals',
+                          title: 'Plinko',
                           emoji: '🔴',
                           desc:
                               'Drop balls down the peg pyramid, hit multipliers & multiply your stake!',
@@ -405,8 +405,34 @@ class _HomeScreenState extends State<HomeScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
+                                builder: (context) => const PlinkoGameScreen(),
+                              ),
+                            ).then((_) {
+                              if (context.mounted) {
+                                context.read<AppBloc>().add(LoadProfileEvent());
+                              }
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _buildFeaturedGameCard(
+                          context: context,
+                          title: 'Blackjack',
+                          emoji: '🃏',
+                          desc:
+                              'Play classic 21. Hit, stand, double down, or split to beat the dealer!',
+                          badge: 'LIVE CLASSIC',
+                          colors: [
+                            const Color(0xFF0F2027),
+                            const Color(0xFF203A43),
+                          ],
+                          borderColor: AppTheme.accentTeal,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
                                 builder: (context) =>
-                                    const PlinkoGameScreen(),
+                                    const BlackjackGameScreen(),
                               ),
                             ).then((_) {
                               if (context.mounted) {

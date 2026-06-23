@@ -120,7 +120,8 @@ def delete_user(id: int, db: Session = Depends(get_db)):
         ContestParticipant, WalletTransaction, Referral, Spin, SpinAuditLog, 
         UserQuestionHistory, ImagePuzzleAttempt, ImagePuzzleLeaderboard, 
         WordAttempt, WordAnswer, WordLeaderboard, FruitMatch, FruitEvent, FruitScore, 
-        FruitLeaderboard, ArrowAttempt, ArrowLeaderboard, ArrowPuzzleSeed, Notification
+        FruitLeaderboard, ArrowAttempt, ArrowLeaderboard, ArrowPuzzleSeed, Notification,
+        BlackjackGame
     )
     
     db.query(ContestParticipant).filter(ContestParticipant.user_id == id).delete()
@@ -157,6 +158,7 @@ def delete_user(id: int, db: Session = Depends(get_db)):
     db.query(ArrowPuzzleSeed).filter(ArrowPuzzleSeed.user_id == id).delete()
     
     db.query(Notification).filter(Notification.user_id == id).delete()
+    db.query(BlackjackGame).filter(BlackjackGame.user_id == id).delete()
     
     db.delete(user)
     db.commit()
@@ -222,7 +224,7 @@ def get_user_game_logs(id: int, db: Session = Depends(get_db)):
         Spin, MinesGame, PlinkoGame, ContestParticipant, Contest,
         ImagePuzzleAttempt, ImagePuzzleContest, WordAttempt, WordContest,
         FruitMatch, FruitContest, ArrowAttempt, ArrowContest,
-        LotteryTicket, LotteryDraw
+        LotteryTicket, LotteryDraw, BlackjackGame
     )
     import json
 
@@ -435,6 +437,23 @@ def get_user_game_logs(id: int, db: Session = Depends(get_db)):
                 status="WON" if ticket.is_winner else "LOST" if ticket.reward_amount == 0 else "PENDING",
                 details=f"Ticket: {ticket.ticket_number}",
                 created_at=ticket.purchase_time
+            )
+        )
+
+    # 10. Blackjack
+    blackjack_games = db.query(BlackjackGame).filter(BlackjackGame.user_id == id).all()
+    for bg in blackjack_games:
+        logs.append(
+            UserGameLogItem(
+                game_type="BLACKJACK",
+                game_id=bg.id,
+                title="Blackjack",
+                bet_amount=bg.bet_amount + bg.split_bet_amount,
+                win_amount=bg.win_amount,
+                multiplier=bg.win_amount / (bg.bet_amount + bg.split_bet_amount) if (bg.bet_amount + bg.split_bet_amount) > 0 else 0.0,
+                status=bg.status if bg.status == "IN_PROGRESS" else bg.hand_1_status + (f" / {bg.hand_2_status}" if bg.is_split else ""),
+                details=f"Split: {bg.is_split} | Target: {bg.target_outcome}",
+                created_at=bg.created_at
             )
         )
 
