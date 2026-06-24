@@ -103,6 +103,8 @@ def play_dealer_turn(db: Session, game: BlackjackGame, user: User):
 
     while True:
         d_val = calculate_hand_value(dealer_hand)
+        if d_val > 21:
+            break
         if game.target_outcome == "LOSS":
             if d_val >= 21:
                 break
@@ -173,6 +175,8 @@ def resolve_split_payouts(db: Session, game: BlackjackGame, user: User):
 
     while True:
         d_val = calculate_hand_value(dealer_hand)
+        if d_val > 21:
+            break
         if game.target_outcome == "LOSS":
             if d_val >= 21:
                 break
