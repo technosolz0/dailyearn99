@@ -298,17 +298,34 @@ def start_blackjack(payload: BlackjackStartRequest, db: Session = Depends(get_db
 
     # Dealer hand
     if target_outcome == "LOSS":
-        # Dealer hand close to 21 (>= 19), but not exactly 21 to prevent instant completion
-        for _ in range(10):
+        player_val = calculate_hand_value(player_hand)
+        # Find a dealer starting hand that is better than or equal to the player's starting hand,
+        # but not a natural 21 to avoid instant completion.
+        for _ in range(50):
             d_hand = [get_random_card(), get_random_card()]
             d_val = calculate_hand_value(d_hand)
-            if 19 <= d_val <= 20:
-                dealer_hand = d_hand
-                break
+            if d_val == 21:
+                continue
+            if player_val >= 12:
+                if player_val == 20:
+                    if d_val == 20:
+                        dealer_hand = d_hand
+                        break
+                else:
+                    if player_val < d_val <= 20:
+                        dealer_hand = d_hand
+                        break
+            else:
+                # Player has a low starting score; give the dealer a sensible moderate-to-high starting score (15 to 20)
+                if 15 <= d_val <= 20:
+                    dealer_hand = d_hand
+                    break
         if not dealer_hand:
-            for _ in range(10):
+            # Fallback: find any starting hand that is not 21 and is at least equal to player_val if possible
+            for _ in range(20):
                 d_hand = [get_random_card(), get_random_card()]
-                if calculate_hand_value(d_hand) != 21:
+                d_val = calculate_hand_value(d_hand)
+                if d_val != 21 and d_val >= player_val:
                     dealer_hand = d_hand
                     break
             if not dealer_hand:

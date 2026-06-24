@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:dailyearn99/core/models/blackjack_model.dart';
@@ -29,6 +30,8 @@ class _PlayingCardState extends State<PlayingCard>
   late Animation<double> _dealCurve;
   late AnimationController _flipController;
   bool _isFaceUp = false;
+  Timer? _delayTimer;
+  Timer? _flipTimer;
 
   @override
   void initState() {
@@ -37,27 +40,43 @@ class _PlayingCardState extends State<PlayingCard>
 
     _dealController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 650),
+      duration: const Duration(milliseconds: 600),
     );
     _dealCurve = CurvedAnimation(
       parent: _dealController,
       curve: Curves.easeOutBack,
     );
 
+    // Initial deal animation flips halfway through
     _flipController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
-      value: _isFaceUp ? 1.0 : 0.0,
+      value: 0.0, // Start face down to support deal-then-flip
     );
 
-    if (widget.delayMillis > 0) {
-      Future.delayed(Duration(milliseconds: widget.delayMillis), () {
+    final int dealDelay = widget.delayMillis;
+    if (dealDelay > 0) {
+      _delayTimer = Timer(Duration(milliseconds: dealDelay), () {
         if (mounted) {
           _dealController.forward();
+          if (widget.isFaceUp) {
+            _flipTimer = Timer(const Duration(milliseconds: 250), () {
+              if (mounted) {
+                _flipController.forward();
+              }
+            });
+          }
         }
       });
     } else {
       _dealController.forward();
+      if (widget.isFaceUp) {
+        _flipTimer = Timer(const Duration(milliseconds: 250), () {
+          if (mounted) {
+            _flipController.forward();
+          }
+        });
+      }
     }
   }
 
@@ -76,6 +95,8 @@ class _PlayingCardState extends State<PlayingCard>
 
   @override
   void dispose() {
+    _delayTimer?.cancel();
+    _flipTimer?.cancel();
     _dealController.dispose();
     _flipController.dispose();
     super.dispose();
@@ -134,6 +155,7 @@ class CardStack extends StatelessWidget {
   final String? scoreLabel;
   final Offset cardStartOffset;
   final bool isSplit;
+  final int? gameId;
 
   const CardStack({
     super.key,
@@ -146,6 +168,7 @@ class CardStack extends StatelessWidget {
     this.scoreLabel,
     this.cardStartOffset = const Offset(160, -220),
     this.isSplit = false,
+    this.gameId,
   });
 
   @override
@@ -157,32 +180,48 @@ class CardStack extends StatelessWidget {
       displayCount = cards.length + 1;
     }
 
-    final totalWidth = cardWidth + (displayCount - 1) * overlapOffset;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double containerWidth = constraints.maxWidth;
+        final double cardsWidth = cardWidth + (displayCount - 1) * overlapOffset;
+        final double startX = (containerWidth - cardsWidth) / 2;
 
-    return SizedBox(
-      width: totalWidth,
-      height: cardHeight,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          for (int i = 0; i < displayCount; i++)
-            Positioned(
-              left: i * overlapOffset,
-              top: 0,
-              child: _buildCardItem(i, displayCount),
-            ),
-          if (scoreLabel != null)
-            Positioned(
-              right: -10,
-              bottom: -10,
-              child: PokerChipWidget(
-                label: scoreLabel!,
-                color: const Color(0xFF15803D),
-                size: 32.0,
-              ),
-            ),
-        ],
-      ),
+        return SizedBox(
+          width: containerWidth,
+          height: cardHeight,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              for (int i = 0; i < displayCount; i++)
+                AnimatedPositioned(
+                  key: ValueKey(
+                    'animated_pos_${isDealerHand ? "dealer" : "player"}_$i',
+                  ),
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeOutCubic,
+                  left: startX + i * overlapOffset,
+                  top: 0,
+                  child: _buildCardItem(i, displayCount),
+                ),
+              if (scoreLabel != null)
+                AnimatedPositioned(
+                  key: ValueKey(
+                    'animated_score_${isDealerHand ? "dealer" : "player"}',
+                  ),
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeOutCubic,
+                  left: startX + cardsWidth - 16,
+                  bottom: -10,
+                  child: PokerChipWidget(
+                    label: scoreLabel!,
+                    color: const Color(0xFF15803D),
+                    size: 32.0,
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -202,17 +241,29 @@ class CardStack extends StatelessWidget {
     final backWidget = _buildCardBackWidget(cardWidth, cardHeight);
 
     int delayMillis = 0;
-    if (!isSplit && index < 2) {
-      if (isDealerHand) {
-        delayMillis = index == 0 ? 250 : 750;
+    if (isDealerHand) {
+      if (index == 0) {
+        delayMillis = 250;
+      } else if (index == 1) {
+        delayMillis = 750;
       } else {
-        delayMillis = index == 0 ? 0 : 500;
+        // Sequentially space out dealer's extra cards (flip takes ~400ms, each card takes ~600ms flight)
+        delayMillis = 500 + (index - 2) * 700;
+      }
+    } else {
+      if (index == 0) {
+        delayMillis = 0;
+      } else if (index == 1) {
+        delayMillis = 500;
+      } else {
+        // Player interactive hit actions are instant
+        delayMillis = 0;
       }
     }
 
     return PlayingCard(
       key: ValueKey(
-        'playing_card_${isDealerHand ? "dealer" : "player"}_$index',
+        'playing_card_${gameId ?? 0}_${isDealerHand ? "dealer" : "player"}_$index',
       ),
       isFaceUp: isFaceUp,
       front: frontWidget,
@@ -341,7 +392,7 @@ class CardStack extends StatelessWidget {
             color: const Color(0xFF1E3A8A),
             borderRadius: BorderRadius.circular(5),
           ),
-          child: CustomPaint(painter: CardBackPatternPainter()),
+          child: const CustomPaint(painter: CardBackPatternPainter()),
         ),
       ),
     );
@@ -349,6 +400,8 @@ class CardStack extends StatelessWidget {
 }
 
 class CardBackPatternPainter extends CustomPainter {
+  const CardBackPatternPainter();
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()

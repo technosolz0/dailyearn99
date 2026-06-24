@@ -524,7 +524,7 @@ class _BlackjackGameScreenState extends State<BlackjackGameScreen> {
             // Curved table lines and gold markings
             Positioned.fill(
               child: RepaintBoundary(
-                child: CustomPaint(painter: TableLinesPainter()),
+                child: CustomPaint(painter: const TableLinesPainter()),
               ),
             ),
 
@@ -564,6 +564,7 @@ class _BlackjackGameScreenState extends State<BlackjackGameScreen> {
                       isDealerHand: true,
                       isGameInProgress: game.isInProgress,
                       cardStartOffset: const Offset(160, -30),
+                      gameId: game.id,
                     ),
 
                   // Center vertical spacing to preserve curved text visibility
@@ -594,6 +595,7 @@ class _BlackjackGameScreenState extends State<BlackjackGameScreen> {
                       cards: game.playerHand1,
                       scoreLabel: '$pVal',
                       cardStartOffset: const Offset(160, -220),
+                      gameId: game.id,
                     ),
                     const SizedBox(height: 12),
                     _buildHandHeader(
@@ -731,6 +733,7 @@ class _BlackjackGameScreenState extends State<BlackjackGameScreen> {
                   overlapOffset: 16.0,
                   cardStartOffset: const Offset(200, -220),
                   isSplit: true,
+                  gameId: game.id,
                 ),
                 const SizedBox(height: 10),
                 _buildHandHeader(
@@ -771,6 +774,7 @@ class _BlackjackGameScreenState extends State<BlackjackGameScreen> {
                   overlapOffset: 16.0,
                   cardStartOffset: const Offset(100, -220),
                   isSplit: true,
+                  gameId: game.id,
                 ),
                 const SizedBox(height: 10),
                 _buildHandHeader(

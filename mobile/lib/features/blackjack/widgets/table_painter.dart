@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class TableLinesPainter extends CustomPainter {
+  const TableLinesPainter();
+
   @override
   void paint(Canvas canvas, Size size) {
     final centerX = size.width / 2;
@@ -11,7 +13,6 @@ class TableLinesPainter extends CustomPainter {
     final double rOuterBorder = 320.0;
     final double rText1 = 345.0; // BLACKJACK PAYS 3 TO 2
     final double rText2 = 375.0; // Dealer must hit soft 17
-    final double rText3 = 405.0; // INSURANCE PAYS 2 TO 1
     final double rInnerBorder = 430.0;
 
     final goldLinePaint = Paint()
@@ -113,7 +114,7 @@ class TableLinesPainter extends CustomPainter {
     // Render Curved Texts along the concentric arcs
     _drawTextOnCurve(
       canvas,
-      "BLACKJACK PAYS 3 TO 2",
+      "BLACKJACK PAYS 1 TO 2",
       center,
       rText1,
       math.pi / 2,
@@ -138,21 +139,6 @@ class TableLinesPainter extends CustomPainter {
         fontStyle: FontStyle.italic,
         fontWeight: FontWeight.w500,
         letterSpacing: 1.0,
-      ),
-    );
-
-    _drawTextOnCurve(
-      canvas,
-      "INSURANCE PAYS 2 TO 1",
-      center,
-      rText3,
-      math.pi / 2,
-      const TextStyle(
-        color: Color(0xFFFDE047),
-        fontSize: 9,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 1.5,
-        fontFamily: 'serif',
       ),
     );
   }
