@@ -46,23 +46,31 @@ class ChipsSelectorRow extends StatelessWidget {
               }
             },
           ),
-          ...chips.map((c) {
-            final val = c['val'] as double;
-            final label = c['label'] as String;
-            final color = c['color'] as Color;
-            final isSelected = selectedBet == val;
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: chips.map((c) {
+                  final val = c['val'] as double;
+                  final label = c['label'] as String;
+                  final color = c['color'] as Color;
+                  final isSelected = selectedBet == val;
 
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4.0),
-              child: PokerChipWidget(
-                label: label,
-                color: color,
-                size: 42.0,
-                isSelected: isSelected,
-                onTap: () => onBetSelected(val),
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                    child: PokerChipWidget(
+                      label: label,
+                      color: color,
+                      size: 42.0,
+                      isSelected: isSelected,
+                      onTap: () => onBetSelected(val),
+                    ),
+                  );
+                }).toList(),
               ),
-            );
-          }),
+            ),
+          ),
           IconButton(
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),

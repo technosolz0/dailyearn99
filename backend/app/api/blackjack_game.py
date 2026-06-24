@@ -109,7 +109,7 @@ def play_dealer_turn(db: Session, game: BlackjackGame, user: User):
             if d_val >= 17 and d_val >= p1_val:
                 break
         else:
-            if d_val >= 17:
+            if d_val >= 17 and d_val <= p1_val:
                 break
         card = deal_card_to_dealer(dealer_hand, p1_val, game.target_outcome)
         dealer_hand.append(card)
@@ -179,7 +179,7 @@ def resolve_split_payouts(db: Session, game: BlackjackGame, user: User):
             if d_val >= 17 and d_val >= max_player_score:
                 break
         else:
-            if d_val >= 17:
+            if d_val >= 17 and d_val <= max_player_score:
                 break
         card = deal_card_to_dealer(dealer_hand, max_player_score, game.target_outcome)
         dealer_hand.append(card)
@@ -282,42 +282,46 @@ def start_blackjack(payload: BlackjackStartRequest, db: Session = Depends(get_db
     player_hand = []
     dealer_hand = []
 
-    if target_outcome == "WIN":
-        for _ in range(10):
-            p1 = get_random_card()
-            p2 = get_random_card()
-            if calculate_hand_value([p1, p2]) >= 18:
-                player_hand = [p1, p2]
-                break
-        if not player_hand:
-            player_hand = [get_random_card(), get_random_card()]
+    # Player hand is always completely random, except we exclude a natural blackjack (21)
+    for _ in range(10):
+        p_hand = [get_random_card(), get_random_card()]
+        if calculate_hand_value(p_hand) == 21:
+            continue
+        player_hand = p_hand
+        break
+    if not player_hand:
+        player_hand = [get_random_card(), get_random_card()]
 
+    # Dealer hand
+    if target_outcome == "LOSS":
+        # Dealer hand close to 21 (>= 19), but not exactly 21 to prevent instant completion
         for _ in range(10):
-            d1 = get_random_card()
-            d2 = get_random_card()
-            d_val = calculate_hand_value([d1, d2])
-            if 12 <= d_val <= 16:
-                dealer_hand = [d1, d2]
+            d_hand = [get_random_card(), get_random_card()]
+            d_val = calculate_hand_value(d_hand)
+            if 19 <= d_val <= 20:
+                dealer_hand = d_hand
                 break
         if not dealer_hand:
-            dealer_hand = [get_random_card(), get_random_card()]
+            for _ in range(10):
+                d_hand = [get_random_card(), get_random_card()]
+                if calculate_hand_value(d_hand) != 21:
+                    dealer_hand = d_hand
+                    break
+            if not dealer_hand:
+                dealer_hand = [get_random_card(), get_random_card()]
     else:
-        for _ in range(10):
-            p1 = get_random_card()
-            p2 = get_random_card()
-            p_val = calculate_hand_value([p1, p2])
-            if 12 <= p_val <= 16:
-                player_hand = [p1, p2]
-                break
-        if not player_hand:
-            player_hand = [get_random_card(), get_random_card()]
-
-        for _ in range(10):
-            d1 = get_random_card()
-            d2 = get_random_card()
-            if calculate_hand_value([d1, d2]) >= 19:
-                dealer_hand = [d1, d2]
-                break
+        # Dealer hand is completely random, except we exclude a natural blackjack (21)
+        # and ensure the dealer does not start with a winning hand >= 17 to guarantee player wins.
+        player_val = calculate_hand_value(player_hand)
+        for _ in range(50):
+            d_hand = [get_random_card(), get_random_card()]
+            d_val = calculate_hand_value(d_hand)
+            if d_val == 21:
+                continue
+            if d_val >= 17 and d_val > player_val:
+                continue
+            dealer_hand = d_hand
+            break
         if not dealer_hand:
             dealer_hand = [get_random_card(), get_random_card()]
 

@@ -235,20 +235,7 @@ class _BlackjackGameScreenState extends State<BlackjackGameScreen> {
                           const SizedBox(height: 16),
 
                           // 2. Stats Boxes (Left: Min/Max Bet, Right: Session stats)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: _buildMinMaxPanel(minBet, maxBet),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildSessionPanel(
-                                  state.blackjackHistory,
-                                ),
-                              ),
-                            ],
-                          ),
+                        
                           const SizedBox(height: 16),
 
                           // 3. Radial Gradient Felt Table
@@ -402,60 +389,6 @@ class _BlackjackGameScreenState extends State<BlackjackGameScreen> {
   }
 
   // --- STATS BOXES ---
-  Widget _buildMinMaxPanel(double minBet, double maxBet) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withOpacity(0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'MIN BET',
-            style: TextStyle(
-              color: Colors.white54,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '₹ ${minBet.toStringAsFixed(0)}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(height: 1, color: Colors.white12),
-          const SizedBox(height: 8),
-          const Text(
-            'MAX BET',
-            style: TextStyle(
-              color: Colors.white54,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '₹ ${maxBet.toStringAsFixed(0)}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildSessionPanel(List<BlackjackGameModel> history) {
     int wins = 0;
@@ -914,12 +847,15 @@ class _BlackjackGameScreenState extends State<BlackjackGameScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.casino_outlined,
-                      color: Colors.white38,
-                      size: 20,
+                    const Text(
+                      '₹',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: TextFormField(
                         controller: _betController,
@@ -943,14 +879,6 @@ class _BlackjackGameScreenState extends State<BlackjackGameScreen> {
                         onChanged: (val) {
                           setState(() {});
                         },
-                      ),
-                    ),
-                    const Text(
-                      'INR',
-                      style: TextStyle(
-                        color: Colors.white38,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
                       ),
                     ),
                   ],
@@ -1008,6 +936,39 @@ class _BlackjackGameScreenState extends State<BlackjackGameScreen> {
                     letterSpacing: 1.0,
                   ),
                 ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'MIN: ₹${minBet.toStringAsFixed(0)}',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.35),
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 10),
+              width: 4,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+            ),
+            Text(
+              'MAX: ₹${maxBet.toStringAsFixed(0)}',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.35),
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ),
       ],
     );
