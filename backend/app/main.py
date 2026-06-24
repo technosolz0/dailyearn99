@@ -153,10 +153,12 @@ def migrate_database():
 
     # Ensure fruit tables exist
     try:
+        is_sqlite = engine.dialect.name == "sqlite"
+        id_type = "INTEGER PRIMARY KEY AUTOINCREMENT" if is_sqlite else "SERIAL PRIMARY KEY"
         with engine.begin() as conn:
-            conn.execute(text("""
+            conn.execute(text(f"""
                 CREATE TABLE IF NOT EXISTS fruit_settings (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id {id_type},
                     min_bet FLOAT,
                     max_bet FLOAT,
                     maintenance_mode BOOLEAN,
@@ -165,9 +167,9 @@ def migrate_database():
                     updated_at TIMESTAMP
                 )
             """))
-            conn.execute(text("""
+            conn.execute(text(f"""
                 CREATE TABLE IF NOT EXISTS fruit_games (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id {id_type},
                     user_id INTEGER,
                     bet_amount FLOAT,
                     status VARCHAR,
@@ -183,10 +185,12 @@ def migrate_database():
 
     # Ensure blackjack tables exist
     try:
+        is_sqlite = engine.dialect.name == "sqlite"
+        id_type = "INTEGER PRIMARY KEY AUTOINCREMENT" if is_sqlite else "SERIAL PRIMARY KEY"
         with engine.begin() as conn:
-            conn.execute(text("""
+            conn.execute(text(f"""
                 CREATE TABLE IF NOT EXISTS blackjack_settings (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id {id_type},
                     min_bet FLOAT,
                     max_bet FLOAT,
                     winning_percentage FLOAT,
@@ -194,9 +198,9 @@ def migrate_database():
                     updated_at TIMESTAMP
                 )
             """))
-            conn.execute(text("""
+            conn.execute(text(f"""
                 CREATE TABLE IF NOT EXISTS blackjack_games (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id {id_type},
                     user_id INTEGER,
                     bet_amount FLOAT,
                     is_split BOOLEAN,
