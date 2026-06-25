@@ -38,7 +38,12 @@ export default async function RootLayout({ children }) {
               <li><a href="/#games" className="nav-link">Games</a></li>
               <li><a href="/#referral" className="nav-link">Refer & Earn</a></li>
               <li><a href="/contact" className="nav-link">Contact Us</a></li>
-              <li><a href="/#download" className="btn-primary nav-btn">Download APK</a></li>
+              <li>
+                <a href={config.web_app_link || "https://web.dailyearn99.in/"} target="_blank" rel="noopener noreferrer" className="btn-secondary nav-btn" style={{ marginRight: "10px" }}>
+                  Play on Website
+                </a>
+              </li>
+              <li><a href={config.apk_link} className="btn-primary nav-btn">Download APK</a></li>
             </ul>
           </div>
         </header>
@@ -52,7 +57,7 @@ export default async function RootLayout({ children }) {
                 <img src="/app_logo.png" alt="DailyEarn 99 Logo" style={{ height: "36px", width: "auto", borderRadius: "6px" }} />
                 <h4 className="gradient-text" style={{ margin: 0 }}>DailyEarn 99</h4>
               </div>
-              <p>DailyEarn 99 is India's premier skill-based mobile gaming platform where you can play fun puzzles, test your reflexes, and compete with real players to earn cash prizes.</p>
+              <p>DailyEarn 99 is India's premier skill-based mobile and web gaming platform where you can play fun puzzles, test your reflexes, and compete with real players to earn cash prizes.</p>
             </div>
             <div className="footer-col">
               <h4>Quick Links</h4>

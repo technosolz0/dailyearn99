@@ -770,6 +770,7 @@ class PortfolioConfigResponse(BaseModel):
     contact_address: Optional[str] = None
     office_hours: Optional[str] = None
     apk_link: Optional[str] = None
+    web_app_link: Optional[str] = None
     telegram_link: Optional[str] = None
     instagram_link: Optional[str] = None
     referral_code: Optional[str] = None
@@ -791,6 +792,7 @@ class PortfolioConfigUpdate(BaseModel):
     contact_address: str
     office_hours: str
     apk_link: str
+    web_app_link: Optional[str] = None
     telegram_link: Optional[str] = None
     instagram_link: Optional[str] = None
     referral_code: str

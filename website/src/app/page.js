@@ -14,6 +14,7 @@ export default function Home() {
 
   const [config, setConfig] = useState({
     apk_link: "https://play.google.com/store/apps/details?id=com.dailyearn99.dailyearn99",
+    web_app_link: "https://web.dailyearn99.in/",
     referral_code: "DAILYEARN99"
   });
 
@@ -139,14 +140,17 @@ export default function Home() {
             <span className="gradient-text">Win Real Cash Daily.</span>
           </h1>
           <p>
-            Put your puzzle-solving skills, vocabulary, and reflexes to the test. Join cash contests, beat the live leaderboards, and withdraw winnings instantly.
+            Looking for a <strong>real earning money app</strong>? Put your puzzle-solving skills, vocabulary, and reflexes to the test on DailyEarn 99. Join online cash contests, defeat live opponents, and withdraw your real cash earnings instantly.
           </p>
 
           <div className="hero-ctas" id="download">
             <a href={config.apk_link} className="btn-primary" download>
               <span>📥</span> Download Android APK
             </a>
-            <a href="#games" className="btn-secondary">
+            <a href={config.web_app_link || "https://web.dailyearn99.in/"} className="btn-secondary" target="_blank" rel="noopener noreferrer">
+              <span>🌐</span> Play on Website
+            </a>
+            <a href="#games" className="btn-secondary" style={{ background: "transparent", borderColor: "rgba(255, 255, 255, 0.1)" }}>
               Explore Games
             </a>
           </div>
@@ -216,17 +220,17 @@ export default function Home() {
       <section id="games" style={{ background: '#0D111D', padding: '80px 0', borderTop: '1px solid var(--border-col)', borderBottom: '1px solid var(--border-col)' }}>
         <div className="container">
           <div className="section-title-wrap">
-            <span className="section-tag">Skill Based Arcade & Puzzles</span>
-            <h2 className="section-title">Explore Our Games</h2>
+            <span className="section-tag">Play & Earn Real Money</span>
+            <h2 className="section-title">Best Online Real Earning Games</h2>
           </div>
 
           <div className="games-grid">
             {/* Image Puzzle */}
             <div className="glass-card">
               <span className="game-icon">🧩</span>
-              <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>Image Puzzle</h3>
+              <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>Image Puzzle Earning Game</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: '1.6', marginBottom: '16px' }}>
-                Re-arrange scrambled picture tiles to solve the puzzle before the timer runs out. Fast thinking and spatial awareness are key!
+                Re-arrange scrambled picture tiles to solve the puzzle before the timer runs out. Fast thinking and spatial awareness are key to win real money!
               </p>
               <span style={{ color: 'var(--accent-cyan)', fontSize: '12px', fontWeight: 'bold' }}>🎮 PLAY & WIN CASH →</span>
             </div>
@@ -234,9 +238,9 @@ export default function Home() {
             {/* Word Puzzle */}
             <div className="glass-card">
               <span className="game-icon">🔤</span>
-              <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>Word Puzzle</h3>
+              <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>Word Puzzle Earning Game</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: '1.6', marginBottom: '16px' }}>
-                Unscramble mixed-up letters and fill in the missing blanks. Test your vocabulary speed to top the contest leaderboard.
+                Unscramble mixed-up letters and fill in the missing blanks. Test your vocabulary speed to top the contest leaderboard and win cash.
               </p>
               <span style={{ color: 'var(--accent-purple)', fontSize: '12px', fontWeight: 'bold' }}>🎮 PLAY & WIN CASH →</span>
             </div>
@@ -244,9 +248,9 @@ export default function Home() {
             {/* Fruit Slicing */}
             <div className="glass-card">
               <span className="game-icon">🍎</span>
-              <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>Fruit Slicer</h3>
+              <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>Fruit Slicer Cash Game</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: '1.6', marginBottom: '16px' }}>
-                Swipe to slice high-scoring fruits, create multiplier combos, and avoid the explosive bombs. Keep your reflexes sharp!
+                Swipe to slice high-scoring fruits, create multiplier combos, and avoid the explosive bombs. Keep your reflexes sharp to earn real cash!
               </p>
               <span style={{ color: 'var(--accent-emerald)', fontSize: '12px', fontWeight: 'bold' }}>🎮 PLAY & WIN CASH →</span>
             </div>
@@ -254,9 +258,9 @@ export default function Home() {
             {/* Go Arrows */}
             <div className="glass-card">
               <span className="game-icon">🏹</span>
-              <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>Go Arrows</h3>
+              <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>Go Arrows Money Game</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: '1.6', marginBottom: '16px' }}>
-                Tap blocks in the direction of their arrows to make them fly off-screen. Evade obstacles and resolve alignments to win.
+                Tap blocks in the direction of their arrows to make them fly off-screen. Evade obstacles and resolve alignments to win cash prizes.
               </p>
               <span style={{ color: 'var(--accent-pink)', fontSize: '12px', fontWeight: 'bold' }}>🎮 PLAY & WIN CASH →</span>
             </div>
@@ -345,7 +349,7 @@ export default function Home() {
               <span className="lottery-modal-tag">🔥 LIVE JACKPOT DRAW</span>
               <h2>{activeDraw.title}</h2>
             </div>
-            
+
             <div className="lottery-modal-timer-box">
               <span className="timer-label">DRAW STARTS IN</span>
               <div className="timer-clock">{timeLeft}</div>
@@ -378,14 +382,14 @@ export default function Home() {
             </div>
 
             <a
-              href={config.apk_link}
+              href={config.web_app_link}
               className="btn-primary lottery-modal-cta"
               onClick={() => {
                 setShowLotteryModal(false);
                 sessionStorage.setItem("lottery_modal_dismissed", "true");
               }}
             >
-              📥 Buy Ticket in the App
+              📥 Buy Ticket in the website
             </a>
           </div>
         </div>

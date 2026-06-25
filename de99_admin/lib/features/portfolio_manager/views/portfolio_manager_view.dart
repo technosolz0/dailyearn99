@@ -11,6 +11,7 @@ class PortfolioConfig {
   String contactAddress;
   String officeHours;
   String apkLink;
+  String webAppLink;
   String telegramLink;
   String instagramLink;
   String referralCode;
@@ -27,6 +28,7 @@ class PortfolioConfig {
     required this.contactAddress,
     required this.officeHours,
     required this.apkLink,
+    required this.webAppLink,
     required this.telegramLink,
     required this.instagramLink,
     required this.referralCode,
@@ -45,6 +47,7 @@ class PortfolioConfig {
       contactAddress: json['contact_address'] ?? '',
       officeHours: json['office_hours'] ?? '',
       apkLink: json['apk_link'] ?? '',
+      webAppLink: json['web_app_link'] ?? '',
       telegramLink: json['telegram_link'] ?? '',
       instagramLink: json['instagram_link'] ?? '',
       referralCode: json['referral_code'] ?? '',
@@ -63,6 +66,7 @@ class PortfolioConfig {
         'contact_address': contactAddress,
         'office_hours': officeHours,
         'apk_link': apkLink,
+        'web_app_link': webAppLink,
         'telegram_link': telegramLink,
         'instagram_link': instagramLink,
         'referral_code': referralCode,
@@ -179,6 +183,7 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
   final _addressController = TextEditingController();
   final _hoursController = TextEditingController();
   final _apkController = TextEditingController();
+  final _webAppController = TextEditingController();
   final _tgController = TextEditingController();
   final _igController = TextEditingController();
   final _refController = TextEditingController();
@@ -205,6 +210,7 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
     _addressController.dispose();
     _hoursController.dispose();
     _apkController.dispose();
+    _webAppController.dispose();
     _tgController.dispose();
     _igController.dispose();
     _refController.dispose();
@@ -243,6 +249,7 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
         _addressController.text = config.contactAddress;
         _hoursController.text = config.officeHours;
         _apkController.text = config.apkLink;
+        _webAppController.text = config.webAppLink;
         _tgController.text = config.telegramLink;
         _igController.text = config.instagramLink;
         _refController.text = config.referralCode;
@@ -279,6 +286,7 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
       contactAddress: _addressController.text.trim(),
       officeHours: _hoursController.text.trim(),
       apkLink: _apkController.text.trim(),
+      webAppLink: _webAppController.text.trim(),
       telegramLink: _tgController.text.trim(),
       instagramLink: _igController.text.trim(),
       referralCode: _refController.text.trim().toUpperCase(),
@@ -380,6 +388,11 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
             TextFormField(
               controller: _apkController,
               decoration: const InputDecoration(labelText: 'Client Application APK Link', prefixIcon: Icon(Icons.android)),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _webAppController,
+              decoration: const InputDecoration(labelText: 'Web Application Link', prefixIcon: Icon(Icons.language)),
             ),
             const SizedBox(height: 12),
             Row(

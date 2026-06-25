@@ -1,3 +1,8 @@
+export const metadata = {
+  title: "Terms & Conditions - DailyEarn 99",
+  description: "Read the Terms and Conditions of DailyEarn 99 to understand the rules and guidelines for playing skill-based games and winning real cash.",
+};
+
 export default function TermsAndConditions() {
   return (
     <main style={{ minHeight: "80vh" }}>

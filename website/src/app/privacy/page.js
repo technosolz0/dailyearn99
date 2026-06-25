@@ -1,3 +1,8 @@
+export const metadata = {
+  title: "Privacy Policy - DailyEarn 99",
+  description: "Read the Privacy Policy of DailyEarn 99 to understand how we collect, process, and protect your personal information.",
+};
+
 export default function PrivacyPolicy() {
   return (
     <main style={{ minHeight: "80vh" }}>

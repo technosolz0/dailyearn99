@@ -1043,6 +1043,7 @@ function setupEventHandlers() {
             const contact_address = document.getElementById('port-address').value.trim();
             const office_hours = document.getElementById('port-hours').value.trim();
             const apk_link = document.getElementById('port-apk').value.trim();
+            const web_app_link = document.getElementById('port-web-app').value.trim();
             const telegram_link = document.getElementById('port-telegram').value.trim();
             const instagram_link = document.getElementById('port-instagram').value.trim();
             const referral_code = document.getElementById('port-ref-code').value.trim().toUpperCase();
@@ -1060,6 +1061,7 @@ function setupEventHandlers() {
                 contact_address,
                 office_hours,
                 apk_link,
+                web_app_link,
                 telegram_link,
                 instagram_link,
                 referral_code,
@@ -3552,6 +3554,7 @@ async function loadPortfolioManager() {
             document.getElementById('port-address').value = config.contact_address || '';
             document.getElementById('port-hours').value = config.office_hours || '';
             document.getElementById('port-apk').value = config.apk_link || '';
+            document.getElementById('port-web-app').value = config.web_app_link || '';
             document.getElementById('port-telegram').value = config.telegram_link || '';
             document.getElementById('port-instagram').value = config.instagram_link || '';
             document.getElementById('port-ref-code').value = config.referral_code || '';

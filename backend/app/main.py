@@ -141,6 +141,7 @@ def migrate_database():
         ("admin_bank_name", "VARCHAR"),
         ("admin_bank_account", "VARCHAR"),
         ("admin_bank_ifsc", "VARCHAR"),
+        ("web_app_link", "VARCHAR"),
     ]
     for col_name, col_type in columns_portfolio:
         try:

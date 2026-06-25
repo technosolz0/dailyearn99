@@ -22,6 +22,7 @@ def get_or_create_config(db: Session) -> PortfolioConfig:
             contact_address="DailyEarn 99 Tech Labs Pvt Ltd, Connaught Place, New Delhi, India - 110001",
             office_hours="Monday - Sunday, 24 Hours Active Online Support",
             apk_link="https://api.dailyearn99.in/static/dailyearn99.apk",
+            web_app_link="https://web.dailyearn99.in/",
             telegram_link="https://t.me/dailyearn99",
             instagram_link="https://instagram.com/dailyearn99",
             referral_code="DAILYEARN99",
@@ -55,6 +56,9 @@ def get_or_create_config(db: Session) -> PortfolioConfig:
             updated = True
         if not config.admin_bank_ifsc:
             config.admin_bank_ifsc = "HDFC0000123"
+            updated = True
+        if not config.web_app_link:
+            config.web_app_link = "https://web.dailyearn99.in/"
             updated = True
         if updated:
             db.commit()
@@ -99,6 +103,7 @@ def update_portfolio_config(request: PortfolioConfigUpdate, db: Session = Depend
     config.contact_address = request.contact_address
     config.office_hours = request.office_hours
     config.apk_link = request.apk_link
+    config.web_app_link = request.web_app_link
     config.telegram_link = request.telegram_link
     config.instagram_link = request.instagram_link
     config.referral_code = request.referral_code

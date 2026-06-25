@@ -578,6 +578,7 @@ class PortfolioConfig(Base):
     contact_address = Column(String, nullable=True)
     office_hours = Column(String, nullable=True)
     apk_link = Column(String, nullable=True)
+    web_app_link = Column(String, nullable=True)
     telegram_link = Column(String, nullable=True)
     instagram_link = Column(String, nullable=True)
     referral_code = Column(String, nullable=True)
