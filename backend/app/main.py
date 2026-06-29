@@ -248,6 +248,8 @@ import json
 async def startup_event():
     from app.core.redis import init_redis
     init_redis()
+    from app.core.scheduler import start_lottery_scheduler
+    start_lottery_scheduler()
     db = next(get_db())
     try:
         # Seed test users
