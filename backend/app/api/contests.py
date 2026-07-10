@@ -19,7 +19,7 @@ def get_contests(db: Session = Depends(get_db)):
     if ContestService.is_maintenance_mode():
         return []
     # Auto start/complete contests based on time if we want to simulate state transitions
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     contests = db.query(Contest).all()
     
     response_contests = []
@@ -106,7 +106,7 @@ def join_contest(
         user_id=current_user.id,
         score=0,
         rank=0,
-        joined_at=datetime.utcnow()
+        joined_at=datetime.now(timezone.utc)
     )
     db.add(participant)
     
@@ -189,7 +189,7 @@ def get_contest_questions(
 
     # 3. Choose a random cutoff threshold between 40 and 60 days
     cutoff_days = random.randint(40, 60)
-    cutoff_date = datetime.utcnow() - timedelta(days=cutoff_days)
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=cutoff_days)
 
     # 4. Find question IDs seen by the user inside the cutoff window
     seen_question_ids = [

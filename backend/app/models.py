@@ -1,7 +1,35 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
+from enum import StrEnum
 from app.core.database import Base
+
+class ContestStatus(StrEnum):
+    UPCOMING = "UPCOMING"
+    ACTIVE = "ACTIVE"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+
+class GameStatus(StrEnum):
+    IN_PROGRESS = "IN_PROGRESS"
+    WON = "WON"
+    LOST = "LOST"
+    BUST = "BUST"
+    PUSH = "PUSH"
+    STAND = "STAND"
+    BLACKJACK = "BLACKJACK"
+    SUBMITTED = "SUBMITTED"
+    VERIFIED = "VERIFIED"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+
+class BaseAttemptMixin:
+    session_id = Column(String, unique=True, index=True, nullable=False)
+    device_fingerprint = Column(String, nullable=False)
+    ip_address = Column(String, nullable=False)
+    status = Column(String, default="JOINED")
+    started_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    submitted_at = Column(DateTime, nullable=True)
 
 class User(Base):
     __tablename__ = "users"
@@ -42,77 +70,55 @@ class User(Base):
     def completed_contest_ids(self):
         return [p.contest_id for p in self.participants if p.completed]
 
-    @property
-    def joined_word_contest_ids(self):
-        from app.models import WordAttempt
+    def _get_contest_ids(self, model_cls, status_list: list = None):
         from sqlalchemy.orm import object_session
         session = object_session(self)
         if session:
-            return [a.contest_id for a in session.query(WordAttempt).filter(WordAttempt.user_id == self.id).all()]
+            query = session.query(model_cls).filter(model_cls.user_id == self.id)
+            if status_list:
+                query = query.filter(model_cls.status.in_(status_list))
+            return [a.contest_id for a in query.all()]
         return []
+
+    @property
+    def joined_word_contest_ids(self):
+        from app.models import WordAttempt
+        return self._get_contest_ids(WordAttempt)
 
     @property
     def completed_word_contest_ids(self):
         from app.models import WordAttempt
-        from sqlalchemy.orm import object_session
-        session = object_session(self)
-        if session:
-            return [a.contest_id for a in session.query(WordAttempt).filter(WordAttempt.user_id == self.id, WordAttempt.status.in_(["SUBMITTED", "VERIFIED"])).all()]
-        return []
+        return self._get_contest_ids(WordAttempt, ["SUBMITTED", "VERIFIED"])
 
     @property
     def joined_puzzle_contest_ids(self):
         from app.models import ImagePuzzleAttempt
-        from sqlalchemy.orm import object_session
-        session = object_session(self)
-        if session:
-            return [a.contest_id for a in session.query(ImagePuzzleAttempt).filter(ImagePuzzleAttempt.user_id == self.id).all()]
-        return []
+        return self._get_contest_ids(ImagePuzzleAttempt)
 
     @property
     def completed_puzzle_contest_ids(self):
         from app.models import ImagePuzzleAttempt
-        from sqlalchemy.orm import object_session
-        session = object_session(self)
-        if session:
-            return [a.contest_id for a in session.query(ImagePuzzleAttempt).filter(ImagePuzzleAttempt.user_id == self.id, ImagePuzzleAttempt.status.in_(["SUBMITTED", "VERIFIED"])).all()]
-        return []
+        return self._get_contest_ids(ImagePuzzleAttempt, ["SUBMITTED", "VERIFIED"])
 
     @property
     def joined_fruit_contest_ids(self):
         from app.models import FruitMatch
-        from sqlalchemy.orm import object_session
-        session = object_session(self)
-        if session:
-            return [m.contest_id for m in session.query(FruitMatch).filter(FruitMatch.user_id == self.id).all()]
-        return []
+        return self._get_contest_ids(FruitMatch)
 
     @property
     def completed_fruit_contest_ids(self):
         from app.models import FruitMatch
-        from sqlalchemy.orm import object_session
-        session = object_session(self)
-        if session:
-            return [m.contest_id for m in session.query(FruitMatch).filter(FruitMatch.user_id == self.id, FruitMatch.status.in_(["SUBMITTED", "VERIFIED"])).all()]
-        return []
+        return self._get_contest_ids(FruitMatch, ["SUBMITTED", "VERIFIED"])
 
     @property
     def joined_arrow_contest_ids(self):
         from app.models import ArrowAttempt
-        from sqlalchemy.orm import object_session
-        session = object_session(self)
-        if session:
-            return [a.contest_id for a in session.query(ArrowAttempt).filter(ArrowAttempt.user_id == self.id).all()]
-        return []
+        return self._get_contest_ids(ArrowAttempt)
 
     @property
     def completed_arrow_contest_ids(self):
         from app.models import ArrowAttempt
-        from sqlalchemy.orm import object_session
-        session = object_session(self)
-        if session:
-            return [a.contest_id for a in session.query(ArrowAttempt).filter(ArrowAttempt.user_id == self.id, ArrowAttempt.status.in_(["SUBMITTED", "VERIFIED"])).all()]
-        return []
+        return self._get_contest_ids(ArrowAttempt, ["SUBMITTED", "VERIFIED"])
 
 class Contest(Base):
     __tablename__ = "contests"
@@ -256,7 +262,7 @@ class ImagePuzzleGame(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
-class ImagePuzzleAttempt(Base):
+class ImagePuzzleAttempt(BaseAttemptMixin, Base):
     __tablename__ = "image_puzzle_attempts"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -268,12 +274,6 @@ class ImagePuzzleAttempt(Base):
     hints_used = Column(Integer, default=0)
     move_sequence = Column(String, nullable=False)  # JSON-serialized MoveTelemetry list
     is_verified = Column(Boolean, default=False)
-    device_fingerprint = Column(String, nullable=False)
-    session_id = Column(String, unique=True, nullable=False)
-    ip_address = Column(String, nullable=False)
-    started_at = Column(DateTime, nullable=False)
-    submitted_at = Column(DateTime, nullable=False)
-    status = Column(String, default="IN_PROGRESS")  # IN_PROGRESS, SUBMITTED, VERIFIED, SUSPICIOUS
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User")
@@ -326,22 +326,16 @@ class WordQuestion(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
-class WordAttempt(Base):
+class WordAttempt(BaseAttemptMixin, Base):
     __tablename__ = "word_attempts"
 
     id = Column(Integer, primary_key=True, index=True)
     contest_id = Column(Integer, ForeignKey("word_contests.id", ondelete="RESTRICT"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    session_id = Column(String, unique=True, index=True, nullable=False)
     total_score = Column(Integer, default=0)
     completion_time_seconds = Column(Float, nullable=True)
     hints_used = Column(Integer, default=0)
     wrong_attempts = Column(Integer, default=0)
-    device_fingerprint = Column(String, nullable=False)
-    ip_address = Column(String, nullable=False)
-    status = Column(String, default="IN_PROGRESS") # 'IN_PROGRESS', 'SUBMITTED', 'VERIFIED', 'DISQUALIFIED'
-    started_at = Column(DateTime, nullable=False)
-    submitted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User")
@@ -399,18 +393,12 @@ class FruitContest(Base):
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
-class FruitMatch(Base):
+class FruitMatch(BaseAttemptMixin, Base):
     __tablename__ = "fruit_matches"
 
     id = Column(Integer, primary_key=True, index=True)
     contest_id = Column(Integer, ForeignKey("fruit_contests.id", ondelete="RESTRICT"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    session_id = Column(String, unique=True, index=True, nullable=False)
-    status = Column(String, default="JOINED")  # JOINED, IN_PROGRESS, SUBMITTED, VERIFIED, SUSPICIOUS
-    device_fingerprint = Column(String, nullable=False)
-    ip_address = Column(String, nullable=False)
-    started_at = Column(DateTime, nullable=False)
-    submitted_at = Column(DateTime, nullable=True)
     signature = Column(String, nullable=False)  # Cryptographic validation hash
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
@@ -509,23 +497,17 @@ class ArrowGame(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
-class ArrowAttempt(Base):
+class ArrowAttempt(BaseAttemptMixin, Base):
     __tablename__ = "arrow_attempts"
 
     id = Column(Integer, primary_key=True, index=True)
     contest_id = Column(Integer, ForeignKey("arrow_contests.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    session_id = Column(String, unique=True, index=True, nullable=False)
     score = Column(Integer, default=0)
     completion_seconds = Column(Float, nullable=False, default=0.0)
     moves = Column(Integer, default=0)  # total taps
     taps_sequence = Column(String, nullable=False, default="[]")  # JSON telemetry
     is_verified = Column(Boolean, default=False)
-    device_fingerprint = Column(String, nullable=False)
-    ip_address = Column(String, nullable=False)
-    status = Column(String, default="IN_PROGRESS")  # IN_PROGRESS, SUBMITTED, VERIFIED, SUSPICIOUS
-    started_at = Column(DateTime, nullable=False)
-    submitted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User")

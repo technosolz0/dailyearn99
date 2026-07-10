@@ -34,7 +34,7 @@ from app.models import ImagePuzzleGame
 from app.models import ImagePuzzleLeaderboard
 from app.models import RTPSettings
 from app.models import Spin as SpinModel, SpinAuditLog as AuditLogModel
-from app.models import User, Contest, ContestParticipant, WalletTransaction, Referral, Spin, WordContest, WordQuestion, WordAttempt, WordAnswer, WordLeaderboard, LotteryDraw, LotteryTicket, MinesGame, MinesSetting, PlinkoGame, PlinkoSetting, PlinkoMultiplier, PlinkoRTP
+from app.models import User, Contest, ContestParticipant, WalletTransaction, Referral, Spin, WordContest, WordQuestion, WordAttempt, WordAnswer, WordLeaderboard, LotteryDraw, LotteryTicket, MinesGame, MinesSetting, PlinkoGame, PlinkoSetting, PlinkoMultiplier, PlinkoRTP, BlackjackGame
 from app.websocket import arrow_leaderboard_manager, arrow_ws_manager
 from app.websocket import fruit_leaderboard_manager, fruit_ws_manager
 from app.websocket import puzzle_leaderboard_manager
@@ -94,14 +94,14 @@ leaderboard_manager = LeaderboardManager()
 
 class WalletService:
     @staticmethod
-    def deduct_entry_fee(db: Session, user: User, entry_fee: float, description: str = None) -> WalletTransaction:
+    def deduct_entry_fee(db: Session, user: User, entry_fee: float, bonus_cap_pct: float = 0.10, description: str = None) -> WalletTransaction:
         """
         Deduction Rules:
-        - Max 10% of entry fee can be paid using Bonus Wallet.
+        - Max bonus_cap_pct of entry fee can be paid using Bonus Wallet.
         - Rest is paid by Deposit Wallet.
         - If Deposit Wallet is insufficient, remainder is paid by Winnings Wallet.
         """
-        bonus_limit = entry_fee * 0.10
+        bonus_limit = entry_fee * bonus_cap_pct
         bonus_to_deduct = min(user.bonus_balance, bonus_limit)
         remaining_fee = entry_fee - bonus_to_deduct
         
@@ -109,7 +109,7 @@ class WalletService:
         winnings_to_deduct = remaining_fee - deposit_to_deduct
         
         if winnings_to_deduct > user.winning_balance:
-            raise ValueError("Insufficient balance to join contest.")
+            raise ValueError("Insufficient wallet balance for this bet.")
             
         # Perform deductions
         user.bonus_balance -= bonus_to_deduct
@@ -133,7 +133,7 @@ class WalletService:
         return transaction
 
     @staticmethod
-    def credit_prize(db: Session, user: User, amount: float, description: str = None) -> WalletTransaction:
+    def credit_prize(db: Session, user: User, amount: float, description: str = None, send_push: bool = True) -> WalletTransaction:
         user.winning_balance += amount
         transaction = WalletTransaction(
             user_id=user.id,
@@ -145,12 +145,16 @@ class WalletService:
         db.add(transaction)
         
         # Send push notification
-        send_push_to_user(
-            db,
-            user.id,
-            title="🏆 Contest Prize Credited!",
-            body=f"Congratulations! A prize of ₹{amount:.2f} has been credited to your Winnings wallet."
-        )
+        if send_push:
+            try:
+                send_push_to_user(
+                    db,
+                    user.id,
+                    title="🏆 Contest Prize Credited!",
+                    body=f"Congratulations! A prize of ₹{amount:.2f} has been credited to your Winnings wallet."
+                )
+            except Exception:
+                pass
         
         return transaction
 
@@ -380,7 +384,7 @@ class SpinGameService:
             raise ValueError("KYC has been rejected. Game access restricted.")
 
         # Check daily responsible gaming limits (Max ₹5000 bet per day)
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         daily_bet_sum = (
             db.query(func.sum(SpinModel.bet_amount))
             .filter(SpinModel.user_id == user_id, SpinModel.created_at >= today_start)
@@ -391,7 +395,7 @@ class SpinGameService:
 
         # 1. Thread-safe duplicate check using idempotency key
         with cls._idempotency_lock:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             if idempotency_key in cls._processed_idempotency_keys:
                 last_time = cls._processed_idempotency_keys[idempotency_key]
                 if (now - last_time).total_seconds() < 5:
@@ -416,30 +420,7 @@ class SpinGameService:
         )
 
         # Wallet Deduction: Max 20% bonus balance, rest from Deposit -> Winnings
-        bonus_limit = bet_amount * 0.20
-        bonus_to_deduct = min(locked_user.bonus_balance, bonus_limit)
-        remaining_fee = bet_amount - bonus_to_deduct
-
-        deposit_to_deduct = min(locked_user.deposit_balance, remaining_fee)
-        winnings_to_deduct = remaining_fee - deposit_to_deduct
-
-        if winnings_to_deduct > locked_user.winning_balance:
-            raise ValueError("Insufficient wallet balance for this bet.")
-
-        # Deduct wallet
-        locked_user.bonus_balance -= bonus_to_deduct
-        locked_user.deposit_balance -= deposit_to_deduct
-        locked_user.winning_balance -= winnings_to_deduct
-
-        # Record spin charge transaction
-        tx_deduct = WalletTransaction(
-            user_id=user_id,
-            type="ENTRY_FEE",
-            amount=bet_amount,
-            status="SUCCESS",
-            description="Entry Fee: Spin Wheel"
-        )
-        db.add(tx_deduct)
+        WalletService.deduct_entry_fee(db, locked_user, bet_amount, bonus_cap_pct=0.20, description="Entry Fee: Spin Wheel")
 
         # 3. First-time play check or dynamic weighted random result selection
         first_spin = db.query(SpinModel).filter(SpinModel.user_id == user_id).first() is None
@@ -524,15 +505,7 @@ class SpinGameService:
 
         # 4. Auto-credit winnings on positive multipliers
         if win_amount > 0:
-            locked_user.winning_balance += win_amount
-            tx_win = WalletTransaction(
-                user_id=user_id,
-                type="PRIZE_WIN",
-                amount=win_amount,
-                status="SUCCESS",
-                description="Prize Win: Spin Wheel"
-            )
-            db.add(tx_win)
+            WalletService.credit_prize(db, locked_user, win_amount, description="Prize Win: Spin Wheel", send_push=False)
 
         # 5. Save Spin details
         spin = SpinModel(
@@ -679,7 +652,7 @@ class PlinkoGameService:
             raise ValueError("KYC has been rejected. Game access restricted.")
 
         # Check daily limits
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         daily_bet_sum = (
             db.query(func.sum(PlinkoGame.bet_amount))
             .filter(PlinkoGame.user_id == user_id, PlinkoGame.created_at >= today_start)
@@ -697,30 +670,7 @@ class PlinkoGameService:
         )
 
         # Deduct wallet: Max 20% bonus balance, rest from Deposit -> Winnings
-        bonus_limit = bet_amount * 0.20
-        bonus_to_deduct = min(locked_user.bonus_balance, bonus_limit)
-        remaining_fee = bet_amount - bonus_to_deduct
-
-        deposit_to_deduct = min(locked_user.deposit_balance, remaining_fee)
-        winnings_to_deduct = remaining_fee - deposit_to_deduct
-
-        if winnings_to_deduct > locked_user.winning_balance:
-            raise ValueError("Insufficient wallet balance for this bet.")
-
-        # Deduct wallet
-        locked_user.bonus_balance -= bonus_to_deduct
-        locked_user.deposit_balance -= deposit_to_deduct
-        locked_user.winning_balance -= winnings_to_deduct
-
-        # Record plinko charge transaction
-        tx_deduct = WalletTransaction(
-            user_id=user_id,
-            type="ENTRY_FEE",
-            amount=bet_amount,
-            status="SUCCESS",
-            description="Entry Fee: Plinko Game"
-        )
-        db.add(tx_deduct)
+        WalletService.deduct_entry_fee(db, locked_user, bet_amount, bonus_cap_pct=0.20, description="Entry Fee: Plinko Game")
 
         # ─── Fetch multiplier table (needed for both seeded & normal paths) ───
         multiplier_record = (
@@ -804,15 +754,7 @@ class PlinkoGameService:
 
         # Credit winnings if any
         if win_amount > 0:
-            locked_user.winning_balance += win_amount
-            tx_win = WalletTransaction(
-                user_id=user_id,
-                type="PRIZE_WIN",
-                amount=win_amount,
-                status="SUCCESS",
-                description="Prize Win: Plinko Game"
-            )
-            db.add(tx_win)
+            WalletService.credit_prize(db, locked_user, win_amount, description="Prize Win: Plinko Game", send_push=False)
 
         # Save game
         game = PlinkoGame(
@@ -956,7 +898,7 @@ class PuzzleAntiCheatService:
         started_at: datetime
     ) -> bool:
         # Check overall duration mismatch against actual wall clock
-        actual_elapsed = (datetime.utcnow() - started_at).total_seconds()
+        actual_elapsed = (datetime.now(timezone.utc) - started_at).total_seconds()
         if reported_time > actual_elapsed + 3.0:
             return False
             
@@ -1022,7 +964,7 @@ class PuzzleGameService:
         contest.joined_slots += 1
 
         session_id = str(uuid.uuid4())
-        started_at = datetime.utcnow()
+        started_at = datetime.now(timezone.utc)
 
         attempt = ImagePuzzleAttempt(
             contest_id=contest_id,
@@ -1085,7 +1027,7 @@ class PuzzleGameService:
 
         if attempt.status == "JOINED":
             attempt.status = "IN_PROGRESS"
-            attempt.started_at = datetime.utcnow()
+            attempt.started_at = datetime.now(timezone.utc)
             attempt.device_fingerprint = device_fingerprint
             attempt.ip_address = ip_address
             db.commit()
@@ -1152,7 +1094,7 @@ class PuzzleGameService:
         attempt.move_sequence = json.dumps(telemetry_dicts)
         attempt.is_verified = True
         attempt.status = "VERIFIED"
-        attempt.submitted_at = datetime.utcnow()
+        attempt.submitted_at = datetime.now(timezone.utc)
         db.commit()
 
         leaderboard_entry = db.query(ImagePuzzleLeaderboard).filter(
@@ -1310,7 +1252,7 @@ class WordGameService:
         contest.joined_slots += 1
 
         session_id = str(uuid.uuid4())
-        started_at = datetime.utcnow()
+        started_at = datetime.now(timezone.utc)
 
         attempt = WordAttempt(
             contest_id=contest_id,
@@ -1379,7 +1321,7 @@ class WordGameService:
             })
 
         attempt.status = "IN_PROGRESS"
-        attempt.started_at = datetime.utcnow()
+        attempt.started_at = datetime.now(timezone.utc)
         db.commit()
 
         signature = WordAntiCheatService.generate_signature(session_id, user.id)
@@ -1410,7 +1352,7 @@ class WordGameService:
             raise ValueError("Session integrity verification failed. Disqualified.")
 
         # Time drift validation
-        actual_elapsed = (datetime.utcnow() - attempt.started_at).total_seconds()
+        actual_elapsed = (datetime.now(timezone.utc) - attempt.started_at).total_seconds()
         if abs(actual_elapsed - data.elapsed_time_seconds) > 5.0: # Allow max 5s network latency buffer
             attempt.status = "DISQUALIFIED"
             db.commit()
@@ -1466,7 +1408,7 @@ class WordGameService:
 
         if answered_questions >= total_questions:
             attempt.status = "SUBMITTED"
-            attempt.submitted_at = datetime.utcnow()
+            attempt.submitted_at = datetime.now(timezone.utc)
 
         db.commit()
 
@@ -1521,7 +1463,7 @@ class WordRewardService:
             if att.completion_time_seconds is None:
                 att.completion_time_seconds = float(contest.duration_seconds or 300)
             if att.submitted_at is None:
-                att.submitted_at = datetime.utcnow()
+                att.submitted_at = datetime.now(timezone.utc)
         if in_progress_attempts:
             db.commit()
 
@@ -1571,14 +1513,14 @@ class WordRewardService:
                     rank=rank_idx,
                     prize_amount=payout_amount,
                     is_paid=payout_amount > 0.0,
-                    paid_at=datetime.utcnow() if payout_amount > 0.0 else None
+                    paid_at=datetime.now(timezone.utc) if payout_amount > 0.0 else None
                 )
                 db.add(leaderboard_entry)
             else:
                 leaderboard_entry.rank = rank_idx
                 leaderboard_entry.prize_amount = payout_amount
                 leaderboard_entry.is_paid = payout_amount > 0.0
-                leaderboard_entry.paid_at = datetime.utcnow() if payout_amount > 0.0 else None
+                leaderboard_entry.paid_at = datetime.now(timezone.utc) if payout_amount > 0.0 else None
 
             user = db.query(User).filter(User.id == att.user_id).first()
             if not user:
@@ -1626,7 +1568,7 @@ class FruitAntiCheatService:
         Validates physics velocity sweeps, chronological swipes, score maths, and timing limitations.
         """
         # Rule 1: Overall timing check
-        actual_elapsed = (datetime.utcnow() - started_at).total_seconds()
+        actual_elapsed = (datetime.now(timezone.utc) - started_at).total_seconds()
         if actual_elapsed > 68.0:  # 60s match duration + 8s network/grace buffer
             return False
 
@@ -1738,7 +1680,7 @@ class FruitGameService:
         contest.joined_slots += 1
 
         session_id = str(uuid.uuid4())
-        started_at = datetime.utcnow()
+        started_at = datetime.now(timezone.utc)
 
         match_record = FruitMatch(
             contest_id=contest_id,
@@ -1781,7 +1723,7 @@ class FruitGameService:
 
         if match_record.status == "JOINED":
             match_record.status = "IN_PROGRESS"
-            match_record.started_at = datetime.utcnow()
+            match_record.started_at = datetime.now(timezone.utc)
             match_record.device_fingerprint = device_fingerprint
             match_record.ip_address = ip_address
             db.commit()
@@ -1876,7 +1818,7 @@ class FruitGameService:
             db.add(db_event)
 
         match_record.status = "SUBMITTED"
-        match_record.submitted_at = datetime.utcnow()
+        match_record.submitted_at = datetime.now(timezone.utc)
         db.commit()
 
         # Update in-memory WebSocket leaderboard Standings
@@ -1961,7 +1903,7 @@ class FruitRewardService:
                 rank=rank_idx,
                 prize_amount=payout_amount,
                 is_paid=payout_amount > 0.0,
-                paid_at=datetime.utcnow() if payout_amount > 0.0 else None
+                paid_at=datetime.now(timezone.utc) if payout_amount > 0.0 else None
             )
             db.add(leaderboard_entry)
 
@@ -2005,7 +1947,7 @@ class ArrowAntiCheatService:
         reported_moves: int,
         started_at: datetime
     ) -> bool:
-        actual_elapsed = (datetime.utcnow() - started_at).total_seconds()
+        actual_elapsed = (datetime.now(timezone.utc) - started_at).total_seconds()
         # Max grace buffer is 10 seconds
         if actual_elapsed > reported_time + 10.0:
             return False
@@ -2178,7 +2120,7 @@ class ArrowGameService:
         contest.joined_slots += 1
 
         session_id = str(uuid.uuid4())
-        started_at = datetime.utcnow()
+        started_at = datetime.now(timezone.utc)
 
         attempt = ArrowAttempt(
             contest_id=contest_id,
@@ -2246,7 +2188,7 @@ class ArrowGameService:
 
         if attempt.status == "JOINED":
             attempt.status = "IN_PROGRESS"
-            attempt.started_at = datetime.utcnow()
+            attempt.started_at = datetime.now(timezone.utc)
             attempt.device_fingerprint = device_fingerprint
             attempt.ip_address = ip_address
             db.commit()
@@ -2338,7 +2280,7 @@ class ArrowGameService:
         attempt.taps_sequence = json.dumps(telemetry_dicts)
         attempt.is_verified = True
         attempt.status = "VERIFIED"
-        attempt.submitted_at = datetime.utcnow()
+        attempt.submitted_at = datetime.now(timezone.utc)
         db.commit()
 
         leaderboard_entry = db.query(ArrowLeaderboard).filter(
@@ -2440,7 +2382,7 @@ class ArrowRewardService:
                 if db_leaderboard:
                     db_leaderboard.prize_amount = payout_amount
                     db_leaderboard.is_paid = True
-                    db_leaderboard.paid_at = datetime.utcnow()
+                    db_leaderboard.paid_at = datetime.now(timezone.utc)
                 payouts_made += 1
             else:
                 send_push_to_user(
@@ -2661,6 +2603,142 @@ class LotteryService:
         db.commit()
         return {"message": f"Draw cancelled. Refunded {refund_count} tickets successfully."}
 
+    @staticmethod
+    def get_simulated_winners(db: Session) -> list:
+        # Get real winners
+        real_winners = (
+            db.query(LotteryTicket)
+            .join(User)
+            .join(LotteryDraw)
+            .filter(LotteryTicket.is_winner == True)
+            .order_by(LotteryTicket.purchase_time.desc())
+            .limit(50)
+            .all()
+        )
+        
+        winners_list = []
+        for t in real_winners:
+            phone = t.user.phone or ""
+            masked_phone = phone
+            if len(phone) >= 10:
+                masked_phone = phone[:3] + "******" + phone[-2:]
+            elif len(phone) >= 4:
+                masked_phone = phone[:2] + "****" + phone[-2:]
+            
+            name = t.user.name or "User"
+            if len(name) > 3 and "@" not in name:
+                parts = name.split()
+                if len(parts) > 1:
+                    name = parts[0] + " " + parts[1][0] + "."
+            
+            winners_list.append({
+                "name": name,
+                "phone": masked_phone,
+                "ticket_number": t.ticket_number,
+                "draw_title": t.draw.title,
+                "reward_amount": t.reward_amount,
+                "win_time": t.draw.draw_time
+            })
+            
+        from datetime import datetime, timezone, timedelta
+        ist_tz = timezone(timedelta(hours=5, minutes=30))
+        now_ist = datetime.now(ist_tz)
+        
+        date_seed_str = now_ist.strftime("%Y-%m-%d")
+        import hashlib
+        seed_int = int(hashlib.sha256(date_seed_str.encode('utf-8')).hexdigest(), 16) % 10**8
+        
+        import random
+        rng = random.Random(seed_int)
+        
+        num_simulated = rng.randint(120, 180)
+        
+        first_names = [
+            "Ramesh", "Suresh", "Rahul", "Amit", "Pooja", "Priya", "Ankit", "Sunita", "Deepak", "Vijay", 
+            "Rajesh", "Karan", "Nisha", "Neha", "Vikram", "Ajay", "Pradeep", "Sanjay", "Anil", "Sunil", 
+            "Ravi", "Manoj", "Jitendra", "Dinesh", "Arjun", "Sachin", "Vijay", "Rohit", "Mohit", "Ashok", 
+            "Prem", "Harish", "Gopal", "Krishna", "Shiva", "Vishal", "Vivek", "Alok", "Abhishek", "Aditya", 
+            "Rohan", "Siddharth", "Varun", "Neeraj", "Pankaj", "Sandip", "Kiran", "Geeta", "Jyoti", "Kavita", 
+            "Lata", "Meena", "Rekha", "Seema", "Shashi", "Usha", "Arti", "Divya", "Komal", "Mamta", 
+            "Preeti", "Ritu", "Sarita", "Suman", "Anita", "Babita", "Chitra", "Deepa", "Kriti", "Madhu", 
+            "Payal", "Radha", "Rani", "Sapna", "Tanya", "Akash", "Bikram", "Chandan", "Gaurav", "Hemant", 
+            "Ishwar", "Kamal", "Lalit", "Manish", "Nitin", "Pranav", "Rajiv", "Sandeep", "Tarun", "Umesh", 
+            "Vinay", "Yash", "Kusum", "Maya", "Poonam", "Rupa", "Sneha", "Uma", "Vandana", "Yogita"
+        ]
+        last_names = [
+            "Kumar", "Sharma", "Singh", "Verma", "Patel", "Yadav", "Gupta", "Joshi", "Mishra", "Pandey", 
+            "Choudhary", "Reddy", "Nair", "Iyer", "Mehta", "Shah", "Sen", "Roy", "Dutta", "Das", 
+            "Saxena", "Trivedi", "Pathak", "Rao", "Pillai", "Bose", "Chatterjee", "Banerjee", "Mukherjee", "Gill", 
+            "Sodhi", "Kapoor", "Khanna", "Malhotra", "Kapil", "Dubey", "Dwivedi", "Tripathi", "Shukla", "Agrawal", 
+            "Bansal", "Goel", "Garg", "Tayal", "Singhal", "Mittal", "Prasad", "Nath", "Sarkar", "Rana"
+        ]
+        
+        draw_titles = [d.title for d in db.query(LotteryDraw).order_by(LotteryDraw.draw_time.desc()).limit(10).all()]
+        if not draw_titles:
+            draw_titles = [
+                "🎟️ Daily Bumper ₹50K (₹50)",
+                "💥 Daily Bumper ₹100K (₹100)",
+                "💎 Daily Bumper ₹200K (₹200)",
+                "🔥 Daily Bumper ₹500K (₹500)",
+                "👑 Daily Bumper ₹1M (₹1000)"
+            ]
+            
+        start_of_today = now_ist.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        for i in range(num_simulated):
+            fn = rng.choice(first_names)
+            ln = rng.choice(last_names)
+            name = f"{fn} {ln[0]}."
+            
+            prefix = rng.choice(["98", "99", "97", "96", "88", "87", "70", "79", "81", "95"])
+            suffix = f"{rng.randint(1000, 9999)}"
+            masked_phone = f"+91 {prefix}*** **{suffix}"
+            
+            ticket_num = f"{rng.randint(100000, 999999)}"
+            draw_title = rng.choice(draw_titles)
+            
+            prize_pool = 1000.0
+            if "50K" in draw_title:
+                prize_pool = 50000.0
+            elif "100K" in draw_title:
+                prize_pool = 100000.0
+            elif "200K" in draw_title:
+                prize_pool = 200000.0
+            elif "500K" in draw_title:
+                prize_pool = 500000.0
+            elif "1M" in draw_title:
+                prize_pool = 1000000.0
+                
+            tier_roll = rng.random()
+            if tier_roll < 0.02:
+                reward = rng.choice([prize_pool * 0.1, prize_pool * 0.05])
+            elif tier_roll < 0.15:
+                reward = rng.choice([1000.0, 2000.0, 5000.0])
+            else:
+                reward = rng.choice([100.0, 200.0, 500.0])
+                
+            offset_seconds = rng.randint(-86400, 43200)
+            win_time = start_of_today + timedelta(seconds=offset_seconds)
+            
+            if win_time > now_ist:
+                win_time = now_ist - timedelta(minutes=rng.randint(5, 60))
+                
+            win_time_utc = win_time.astimezone(timezone.utc).replace(tzinfo=None)
+            
+            winners_list.append({
+                "name": name,
+                "phone": masked_phone,
+                "ticket_number": ticket_num,
+                "draw_title": draw_title,
+                "reward_amount": float(reward),
+                "win_time": win_time_utc
+            })
+            
+        winners_list.sort(key=lambda x: x["win_time"], reverse=True)
+        return winners_list
+
+
+
 
 class MinesGameService:
     @staticmethod
@@ -2726,29 +2804,7 @@ class MinesGameService:
         locked_user = db.query(User).filter(User.id == user_id).with_for_update().first()
         
         # Deduct wallet: Max 20% bonus balance, rest from Deposit -> Winnings
-        bonus_limit = bet_amount * 0.20
-        bonus_to_deduct = min(locked_user.bonus_balance, bonus_limit)
-        remaining_fee = bet_amount - bonus_to_deduct
-
-        deposit_to_deduct = min(locked_user.deposit_balance, remaining_fee)
-        winnings_to_deduct = remaining_fee - deposit_to_deduct
-
-        if winnings_to_deduct > locked_user.winning_balance:
-            raise ValueError("Insufficient wallet balance for this bet.")
-
-        locked_user.bonus_balance -= bonus_to_deduct
-        locked_user.deposit_balance -= deposit_to_deduct
-        locked_user.winning_balance -= winnings_to_deduct
-
-        # Record transaction
-        tx_deduct = WalletTransaction(
-            user_id=user_id,
-            type="ENTRY_FEE",
-            amount=bet_amount,
-            status="SUCCESS",
-            description="Entry Fee: Mines Game"
-        )
-        db.add(tx_deduct)
+        WalletService.deduct_entry_fee(db, locked_user, bet_amount, bonus_cap_pct=0.20, description="Entry Fee: Mines Game")
 
         # 5. Generate mine positions [0-24]
         mines_positions = random.sample(range(25), mines_count)
@@ -2855,17 +2911,7 @@ class MinesGameService:
             
             # Lock and update wallet
             locked_user = db.query(User).filter(User.id == user_id).with_for_update().first()
-            locked_user.winning_balance += game.current_win
-
-            # Record win transaction
-            tx_win = WalletTransaction(
-                user_id=user_id,
-                type="PRIZE_WIN",
-                amount=game.current_win,
-                status="SUCCESS",
-                description="Prize Win: Mines Game (Clean Sweep)"
-            )
-            db.add(tx_win)
+            WalletService.credit_prize(db, locked_user, game.current_win, description="Prize Win: Mines Game (Clean Sweep)", send_push=False)
             db.commit()
 
             game.updated_balance = locked_user.winning_balance + locked_user.deposit_balance + locked_user.bonus_balance
@@ -2914,17 +2960,7 @@ class MinesGameService:
 
         # Lock user wallet and credit winnings
         locked_user = db.query(User).filter(User.id == user_id).with_for_update().first()
-        locked_user.winning_balance += win_amount
-
-        # Record win transaction
-        tx_win = WalletTransaction(
-            user_id=user_id,
-            type="PRIZE_WIN",
-            amount=win_amount,
-            status="SUCCESS",
-            description="Prize Win: Mines Cashout"
-        )
-        db.add(tx_win)
+        WalletService.credit_prize(db, locked_user, win_amount, description="Prize Win: Mines Cashout", send_push=False)
         db.commit()
 
         game.updated_balance = locked_user.winning_balance + locked_user.deposit_balance + locked_user.bonus_balance
@@ -3005,30 +3041,7 @@ class FruitSlicingService:
         locked_user = db.query(User).filter(User.id == user.id).with_for_update().first()
 
         # Deduct wallet: Max 20% bonus balance, rest from Deposit -> Winnings
-        bonus_limit = bet_amount * 0.20
-        bonus_to_deduct = min(locked_user.bonus_balance, bonus_limit)
-        remaining_fee = bet_amount - bonus_to_deduct
-
-        deposit_to_deduct = min(locked_user.deposit_balance, remaining_fee)
-        winnings_to_deduct = remaining_fee - deposit_to_deduct
-
-        if winnings_to_deduct > locked_user.winning_balance:
-            raise ValueError("Insufficient wallet balance for this bet.")
-
-        # Deduct balances
-        locked_user.bonus_balance -= bonus_to_deduct
-        locked_user.deposit_balance -= deposit_to_deduct
-        locked_user.winning_balance -= winnings_to_deduct
-
-        # Log entry fee transaction
-        tx_deduct = WalletTransaction(
-            user_id=user.id,
-            type="ENTRY_FEE",
-            amount=bet_amount,
-            status="SUCCESS",
-            description="Entry Fee: Fruit Slicing Game"
-        )
-        db.add(tx_deduct)
+        WalletService.deduct_entry_fee(db, locked_user, bet_amount, bonus_cap_pct=0.20, description="Entry Fee: Fruit Slicing Game")
 
         # Create game session
         game = FruitGame(
@@ -3077,17 +3090,7 @@ class FruitSlicingService:
 
         # Credit winnings
         locked_user = db.query(User).filter(User.id == user.id).with_for_update().first()
-        locked_user.winning_balance += win_amount
-
-        # Record prize win transaction
-        tx_win = WalletTransaction(
-            user_id=user.id,
-            type="PRIZE_WIN",
-            amount=win_amount,
-            status="SUCCESS",
-            description="Prize Win: Fruit Slicing Game"
-        )
-        db.add(tx_win)
+        WalletService.credit_prize(db, locked_user, win_amount, description="Prize Win: Fruit Slicing Game", send_push=False)
         db.commit()
 
         game.updated_balance = locked_user.winning_balance + locked_user.deposit_balance + locked_user.bonus_balance
@@ -3116,6 +3119,529 @@ class FruitSlicingService:
         locked_user = db.query(User).filter(User.id == user.id).first()
         game.updated_balance = locked_user.winning_balance + locked_user.deposit_balance + locked_user.bonus_balance
         return game
+
+
+class BlackjackGameService:
+    SUITS = ["♠", "♥", "♦", "♣"]
+    RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
+
+    @classmethod
+    def get_random_card(cls):
+        rank = random.choice(cls.RANKS)
+        suit = random.choice(cls.SUITS)
+        if rank in ["J", "Q", "K"]:
+            val = 10
+        elif rank == "A":
+            val = 11
+        else:
+            val = int(rank)
+        return {"suit": suit, "rank": rank, "value": val}
+
+    @classmethod
+    def calculate_hand_value(cls, hand):
+        val = sum(c["value"] for c in hand)
+        aces = sum(1 for c in hand if c["rank"] == "A")
+        while val > 21 and aces > 0:
+            val -= 10
+            aces -= 1
+        return val
+
+    @classmethod
+    def deal_card_to_player(cls, hand, target_outcome):
+        current_val = cls.calculate_hand_value(hand)
+        for _ in range(50):
+            card = cls.get_random_card()
+            temp_hand = hand + [card]
+            new_val = cls.calculate_hand_value(temp_hand)
+            
+            if target_outcome == "WIN":
+                if new_val > 21:
+                    continue
+                return card
+            elif target_outcome == "LOSS":
+                if current_val >= 12:
+                    if new_val > 21:
+                        return card  # Player busts
+                    continue
+                else:
+                    # Player under 12, try to keep them awkward (< 17)
+                    if new_val >= 17:
+                        continue
+                    return card
+        return cls.get_random_card()
+
+    @classmethod
+    def deal_card_to_dealer(cls, dealer_hand, player_max_score, target_outcome):
+        for _ in range(50):
+            card = cls.get_random_card()
+            temp_hand = dealer_hand + [card]
+            new_val = cls.calculate_hand_value(temp_hand)
+            
+            if target_outcome == "WIN":
+                if new_val > 21:
+                    return card  # Dealer busts
+                if new_val >= 17 and new_val > player_max_score:
+                    continue  # Avoid dealer standing with score > player
+                return card
+            elif target_outcome == "LOSS":
+                if new_val > 21:
+                    continue  # Avoid busting the dealer
+                if new_val >= 17 and new_val < player_max_score:
+                    continue  # Avoid dealer standing on a losing score
+                return card
+        return cls.get_random_card()
+
+    @classmethod
+    def mask_dealer_card_if_needed(cls, game: BlackjackGame) -> BlackjackGame:
+        if game.status == "COMPLETED":
+            return game
+        try:
+            cards = json.loads(game.dealer_hand)
+            if len(cards) > 0:
+                masked = [cards[0]]
+                game_copy = copy.copy(game)
+                game_copy.dealer_hand = json.dumps(masked)
+                return game_copy
+        except Exception:
+            pass
+        return game
+
+    @classmethod
+    def play_dealer_turn(cls, db: Session, game: BlackjackGame, user: User):
+        dealer_hand = json.loads(game.dealer_hand)
+        player_hand_1 = json.loads(game.player_hand_1)
+        p1_val = cls.calculate_hand_value(player_hand_1)
+
+        if game.hand_1_status == "BUST":
+            game.status = "COMPLETED"
+            game.win_amount = 0.0
+            return
+
+        while True:
+            d_val = cls.calculate_hand_value(dealer_hand)
+            if d_val > 21:
+                break
+            if game.target_outcome == "LOSS":
+                if d_val >= 21:
+                    break
+                if d_val >= 17 and d_val >= p1_val:
+                    break
+            else:
+                if d_val >= 17 and d_val <= p1_val:
+                    break
+            card = cls.deal_card_to_dealer(dealer_hand, p1_val, game.target_outcome)
+            dealer_hand.append(card)
+
+        game.dealer_hand = json.dumps(dealer_hand)
+        d_final_val = cls.calculate_hand_value(dealer_hand)
+
+        win_amount = 0.0
+        payout_desc = ""
+        if d_final_val > 21:
+            game.hand_1_status = "WON"
+            win_amount = game.bet_amount * 2
+            payout_desc = "Dealer Bust"
+        else:
+            if p1_val > d_final_val:
+                game.hand_1_status = "WON"
+                win_amount = game.bet_amount * 2
+                payout_desc = "Player Higher Score"
+            elif p1_val < d_final_val:
+                game.hand_1_status = "LOST"
+                win_amount = 0.0
+            else:
+                game.hand_1_status = "PUSH"
+                win_amount = game.bet_amount
+                payout_desc = "Push"
+
+        game.status = "COMPLETED"
+        game.win_amount = win_amount
+
+        if win_amount > 0:
+            locked_user = db.query(User).filter(User.id == user.id).with_for_update().first()
+            WalletService.credit_prize(db, locked_user, win_amount, description=f"Prize Win: Blackjack ({payout_desc})", send_push=False)
+
+    @classmethod
+    def resolve_split_payouts(cls, db: Session, game: BlackjackGame, user: User):
+        player_hand_1 = json.loads(game.player_hand_1)
+        player_hand_2 = json.loads(game.player_hand_2)
+        dealer_hand = json.loads(game.dealer_hand)
+
+        p1_val = cls.calculate_hand_value(player_hand_1)
+        p2_val = cls.calculate_hand_value(player_hand_2)
+
+        if game.hand_1_status == "BUST" and game.hand_2_status == "BUST":
+            game.status = "COMPLETED"
+            game.win_amount = 0.0
+            return
+
+        valid_scores = []
+        if game.hand_1_status != "BUST":
+            valid_scores.append(p1_val)
+        if game.hand_2_status != "BUST":
+            valid_scores.append(p2_val)
+        max_player_score = max(valid_scores) if valid_scores else 0
+
+        while True:
+            d_val = cls.calculate_hand_value(dealer_hand)
+            if d_val > 21:
+                break
+            if game.target_outcome == "LOSS":
+                if d_val >= 21:
+                    break
+                if d_val >= 17 and d_val >= max_player_score:
+                    break
+            else:
+                if d_val >= 17 and d_val <= max_player_score:
+                    break
+            card = cls.deal_card_to_dealer(dealer_hand, max_player_score, game.target_outcome)
+            dealer_hand.append(card)
+
+        game.dealer_hand = json.dumps(dealer_hand)
+        d_final_val = cls.calculate_hand_value(dealer_hand)
+
+        win_1 = 0.0
+        if game.hand_1_status != "BUST":
+            if d_final_val > 21:
+                game.hand_1_status = "WON"
+                win_1 = game.bet_amount * 2
+            elif p1_val > d_final_val:
+                game.hand_1_status = "WON"
+                win_1 = game.bet_amount * 2
+            elif p1_val < d_final_val:
+                game.hand_1_status = "LOST"
+                win_1 = 0.0
+            else:
+                game.hand_1_status = "PUSH"
+                win_1 = game.bet_amount
+
+        win_2 = 0.0
+        if game.hand_2_status != "BUST":
+            if d_final_val > 21:
+                game.hand_2_status = "WON"
+                win_2 = game.split_bet_amount * 2
+            elif p2_val > d_final_val:
+                game.hand_2_status = "WON"
+                win_2 = game.split_bet_amount * 2
+            elif p2_val < d_final_val:
+                game.hand_2_status = "LOST"
+                win_2 = 0.0
+            else:
+                game.hand_2_status = "PUSH"
+                win_2 = game.split_bet_amount
+
+        game.status = "COMPLETED"
+        total_win = win_1 + win_2
+        game.win_amount = total_win
+
+        if total_win > 0:
+            locked_user = db.query(User).filter(User.id == user.id).with_for_update().first()
+            WalletService.credit_prize(
+                db,
+                locked_user,
+                total_win,
+                description=f"Prize Win: Blackjack Split (H1: {game.hand_1_status}, H2: {game.hand_2_status})",
+                send_push=False
+            )
+
+    @classmethod
+    def start_game(cls, db: Session, user_id: int, bet_amount: float) -> BlackjackGame:
+        from app.models import BlackjackSetting, BlackjackGame, User
+        settings = db.query(BlackjackSetting).first()
+        if not settings:
+            settings = BlackjackSetting()
+            db.add(settings)
+            db.commit()
+            db.refresh(settings)
+
+        if settings.maintenance_mode:
+            raise ValueError("Blackjack is currently under maintenance.")
+
+        if bet_amount < settings.min_bet or bet_amount > settings.max_bet:
+            raise ValueError(f"Bet amount must be between ₹{settings.min_bet} and ₹{settings.max_bet}")
+
+        active = db.query(BlackjackGame).filter(BlackjackGame.user_id == user_id, BlackjackGame.status == "IN_PROGRESS").first()
+        if active:
+            raise ValueError("You already have an active game in progress.")
+
+        locked_user = db.query(User).filter(User.id == user_id).with_for_update().first()
+        WalletService.deduct_entry_fee(db, locked_user, bet_amount, bonus_cap_pct=0.20, description="Entry Fee: Blackjack Game")
+
+        roll = random.uniform(0.0, 100.0)
+        target_outcome = "WIN" if roll < settings.winning_percentage else "LOSS"
+
+        player_hand = []
+        dealer_hand = []
+
+        # Player hand is always completely random, except we exclude a natural blackjack (21)
+        for _ in range(10):
+            p_hand = [cls.get_random_card(), cls.get_random_card()]
+            if cls.calculate_hand_value(p_hand) == 21:
+                continue
+            player_hand = p_hand
+            break
+        if not player_hand:
+            player_hand = [cls.get_random_card(), cls.get_random_card()]
+
+        # Dealer hand
+        if target_outcome == "LOSS":
+            player_val = cls.calculate_hand_value(player_hand)
+            for _ in range(50):
+                d_hand = [cls.get_random_card(), cls.get_random_card()]
+                d_val = cls.calculate_hand_value(d_hand)
+                if d_val == 21:
+                    continue
+                if player_val >= 12:
+                    if player_val == 20:
+                        if d_val == 20:
+                            dealer_hand = d_hand
+                            break
+                    else:
+                        if player_val < d_val <= 20:
+                            dealer_hand = d_hand
+                            break
+                else:
+                    if 15 <= d_val <= 20:
+                        dealer_hand = d_hand
+                        break
+            if not dealer_hand:
+                for _ in range(20):
+                    d_hand = [cls.get_random_card(), cls.get_random_card()]
+                    d_val = cls.calculate_hand_value(d_hand)
+                    if d_val != 21 and d_val >= player_val:
+                        dealer_hand = d_hand
+                        break
+                if not dealer_hand:
+                    dealer_hand = [cls.get_random_card(), cls.get_random_card()]
+        else:
+            player_val = cls.calculate_hand_value(player_hand)
+            for _ in range(50):
+                d_hand = [cls.get_random_card(), cls.get_random_card()]
+                d_val = cls.calculate_hand_value(d_hand)
+                if d_val == 21:
+                    continue
+                if d_val >= 17 and d_val > player_val:
+                    continue
+                dealer_hand = d_hand
+                break
+            if not dealer_hand:
+                dealer_hand = [cls.get_random_card(), cls.get_random_card()]
+
+        player_val = cls.calculate_hand_value(player_hand)
+        dealer_val = cls.calculate_hand_value(dealer_hand)
+
+        hand_1_status = "IN_PROGRESS"
+        status_str = "IN_PROGRESS"
+        win_amount = 0.0
+
+        if player_val == 21:
+            if dealer_val == 21:
+                hand_1_status = "PUSH"
+                status_str = "COMPLETED"
+                win_amount = bet_amount
+            else:
+                hand_1_status = "BLACKJACK"
+                status_str = "COMPLETED"
+                win_amount = bet_amount * 2.5
+        elif dealer_val == 21:
+            hand_1_status = "LOST"
+            status_str = "COMPLETED"
+            win_amount = 0.0
+
+        game = BlackjackGame(
+            user_id=user_id,
+            bet_amount=bet_amount,
+            is_split=False,
+            split_bet_amount=0.0,
+            player_hand_1=json.dumps(player_hand),
+            player_hand_2=json.dumps([]),
+            dealer_hand=json.dumps(dealer_hand),
+            current_hand_index=0,
+            hand_1_status=hand_1_status,
+            hand_2_status="IN_PROGRESS",
+            status=status_str,
+            win_amount=win_amount,
+            target_outcome=target_outcome
+        )
+        db.add(game)
+        db.commit()
+        db.refresh(game)
+
+        if status_str == "COMPLETED" and win_amount > 0:
+            WalletService.credit_prize(db, locked_user, win_amount, description=f"Prize Win: Blackjack ({hand_1_status})", send_push=False)
+            db.commit()
+
+        res_game = cls.mask_dealer_card_if_needed(game)
+        res_game.updated_balance = locked_user.winning_balance + locked_user.deposit_balance + locked_user.bonus_balance
+        return res_game
+
+    @classmethod
+    def hit(cls, db: Session, user_id: int, game_id: int) -> BlackjackGame:
+        from app.models import BlackjackGame, User
+        game = db.query(BlackjackGame).filter(BlackjackGame.id == game_id, BlackjackGame.user_id == user_id).with_for_update().first()
+        if not game:
+            raise ValueError("Game session not found.")
+        if game.status != "IN_PROGRESS":
+            raise ValueError("Game already completed.")
+
+        if game.current_hand_index == 0:
+            hand = json.loads(game.player_hand_1)
+        else:
+            hand = json.loads(game.player_hand_2)
+
+        card = cls.deal_card_to_player(hand, game.target_outcome)
+        hand.append(card)
+        val = cls.calculate_hand_value(hand)
+
+        if game.current_hand_index == 0:
+            game.player_hand_1 = json.dumps(hand)
+            if val > 21:
+                game.hand_1_status = "BUST"
+                if not game.is_split:
+                    game.status = "COMPLETED"
+                    game.win_amount = 0.0
+                else:
+                    game.current_hand_index = 1
+        else:
+            game.player_hand_2 = json.dumps(hand)
+            if val > 21:
+                game.hand_2_status = "BUST"
+                game.status = "COMPLETED"
+                cls.resolve_split_payouts(db, game, game.user)
+
+        db.commit()
+        db.refresh(game)
+
+        locked_user = db.query(User).filter(User.id == user_id).first()
+        res_game = cls.mask_dealer_card_if_needed(game)
+        res_game.updated_balance = locked_user.winning_balance + locked_user.deposit_balance + locked_user.bonus_balance
+        return res_game
+
+    @classmethod
+    def stand(cls, db: Session, user_id: int, game_id: int) -> BlackjackGame:
+        from app.models import BlackjackGame, User
+        game = db.query(BlackjackGame).filter(BlackjackGame.id == game_id, BlackjackGame.user_id == user_id).with_for_update().first()
+        if not game:
+            raise ValueError("Game session not found.")
+        if game.status != "IN_PROGRESS":
+            raise ValueError("Game already completed.")
+
+        if game.current_hand_index == 0:
+            game.hand_1_status = "STAND"
+            if game.is_split:
+                game.current_hand_index = 1
+            else:
+                cls.play_dealer_turn(db, game, game.user)
+        else:
+            game.hand_2_status = "STAND"
+            cls.resolve_split_payouts(db, game, game.user)
+
+        db.commit()
+        db.refresh(game)
+
+        locked_user = db.query(User).filter(User.id == user_id).first()
+        res_game = cls.mask_dealer_card_if_needed(game)
+        res_game.updated_balance = locked_user.winning_balance + locked_user.deposit_balance + locked_user.bonus_balance
+        return res_game
+
+    @classmethod
+    def double(cls, db: Session, user_id: int, game_id: int) -> BlackjackGame:
+        from app.models import BlackjackGame, User
+        game = db.query(BlackjackGame).filter(BlackjackGame.id == game_id, BlackjackGame.user_id == user_id).with_for_update().first()
+        if not game:
+            raise ValueError("Game session not found.")
+        if game.status != "IN_PROGRESS":
+            raise ValueError("Game already completed.")
+
+        bet_to_deduct = game.bet_amount
+        locked_user = db.query(User).filter(User.id == user_id).with_for_update().first()
+        WalletService.deduct_entry_fee(db, locked_user, bet_to_deduct, bonus_cap_pct=0.20, description="Entry Fee: Blackjack Double Down")
+
+        if game.current_hand_index == 0:
+            game.bet_amount *= 2
+            hand = json.loads(game.player_hand_1)
+        else:
+            game.split_bet_amount = game.bet_amount * 2
+            hand = json.loads(game.player_hand_2)
+
+        card = cls.deal_card_to_player(hand, game.target_outcome)
+        hand.append(card)
+        val = cls.calculate_hand_value(hand)
+
+        if game.current_hand_index == 0:
+            game.player_hand_1 = json.dumps(hand)
+            if val > 21:
+                game.hand_1_status = "BUST"
+                if not game.is_split:
+                    game.status = "COMPLETED"
+                    game.win_amount = 0.0
+                else:
+                    game.current_hand_index = 1
+            else:
+                game.hand_1_status = "STAND"
+                if game.is_split:
+                    game.current_hand_index = 1
+                else:
+                    cls.play_dealer_turn(db, game, locked_user)
+        else:
+            game.player_hand_2 = json.dumps(hand)
+            if val > 21:
+                game.hand_2_status = "BUST"
+            else:
+                game.hand_2_status = "STAND"
+            game.status = "COMPLETED"
+            cls.resolve_split_payouts(db, game, locked_user)
+
+        db.commit()
+        db.refresh(game)
+
+        res_game = cls.mask_dealer_card_if_needed(game)
+        res_game.updated_balance = locked_user.winning_balance + locked_user.deposit_balance + locked_user.bonus_balance
+        return res_game
+
+    @classmethod
+    def split(cls, db: Session, user_id: int, game_id: int) -> BlackjackGame:
+        from app.models import BlackjackGame, User
+        game = db.query(BlackjackGame).filter(BlackjackGame.id == game_id, BlackjackGame.user_id == user_id).with_for_update().first()
+        if not game:
+            raise ValueError("Game session not found.")
+        if game.status != "IN_PROGRESS":
+            raise ValueError("Game already completed.")
+        if game.is_split:
+            raise ValueError("Hand is already split.")
+
+        player_hand = json.loads(game.player_hand_1)
+        if len(player_hand) != 2:
+            raise ValueError("Can only split on first two cards.")
+
+        c1 = player_hand[0]
+        c2 = player_hand[1]
+        if c1["value"] != c2["value"] and c1["rank"] != c2["rank"]:
+            raise ValueError("Cards must be of equal value or rank to split.")
+
+        bet_to_deduct = game.bet_amount
+        locked_user = db.query(User).filter(User.id == user_id).with_for_update().first()
+        WalletService.deduct_entry_fee(db, locked_user, bet_to_deduct, bonus_cap_pct=0.20, description="Entry Fee: Blackjack Split")
+
+        hand1 = [c1]
+        hand2 = [c2]
+
+        hand1.append(cls.deal_card_to_player(hand1, game.target_outcome))
+        hand2.append(cls.deal_card_to_player(hand2, game.target_outcome))
+
+        game.is_split = True
+        game.split_bet_amount = game.bet_amount
+        game.player_hand_1 = json.dumps(hand1)
+        game.player_hand_2 = json.dumps(hand2)
+        game.current_hand_index = 0
+
+        db.commit()
+        db.refresh(game)
+
+        res_game = cls.mask_dealer_card_if_needed(game)
+        res_game.updated_balance = locked_user.winning_balance + locked_user.deposit_balance + locked_user.bonus_balance
+        return res_game
+
 
 
 

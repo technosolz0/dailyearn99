@@ -86,12 +86,12 @@ def get_fruit_maintenance(db: Session = Depends(get_db)):
 
 
 @router.get("/history", response_model=List[FruitLogAdminResponse])
-def get_fruit_games_history(db: Session = Depends(get_db)):
+def get_fruit_games_history(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """
     Returns a list of all historical play sessions of Fruit Slicing across all users.
     """
     try:
-        games = db.query(FruitGame).join(User).order_by(FruitGame.created_at.desc()).limit(100).all()
+        games = db.query(FruitGame).join(User).order_by(FruitGame.created_at.desc()).offset(skip).limit(limit).all()
         result = []
         for g in games:
             result.append(FruitLogAdminResponse(

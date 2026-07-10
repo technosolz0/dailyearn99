@@ -884,6 +884,27 @@ class LotteryTicketResponse(BaseModel):
         from_attributes = True
 
 
+class LotteryWinnerResponse(BaseModel):
+    name: str
+    phone: str
+    ticket_number: str
+    draw_title: str
+    reward_amount: float
+    win_time: datetime
+
+    @field_validator("win_time", mode="after", check_fields=False)
+    @classmethod
+    def make_utc(cls, v):
+        if v and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
+
+    class Config:
+        from_attributes = True
+
+
+
+
 class MinesStartRequest(BaseModel):
     bet_amount: float = Field(..., gt=0, description="Bet amount in INR")
     mines_count: int = Field(..., ge=1, le=24, description="Number of mines on the board")

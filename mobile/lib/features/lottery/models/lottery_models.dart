@@ -105,3 +105,44 @@ class LotteryTicketModel {
     };
   }
 }
+
+class LotteryWinnerModel {
+  final String name;
+  final String phone;
+  final String ticketNumber;
+  final String drawTitle;
+  final double rewardAmount;
+  final DateTime winTime;
+
+  LotteryWinnerModel({
+    required this.name,
+    required this.phone,
+    required this.ticketNumber,
+    required this.drawTitle,
+    required this.rewardAmount,
+    required this.winTime,
+  });
+
+  factory LotteryWinnerModel.fromJson(Map<String, dynamic> json) {
+    return LotteryWinnerModel(
+      name: json['name'] as String,
+      phone: json['phone'] as String,
+      ticketNumber: json['ticket_number'] as String,
+      drawTitle: json['draw_title'] as String,
+      rewardAmount: (json['reward_amount'] as num).toDouble(),
+      winTime: DateTime.parse(json['win_time'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'phone': phone,
+      'ticket_number': ticketNumber,
+      'draw_title': drawTitle,
+      'reward_amount': rewardAmount,
+      'win_time': winTime.toIso8601String(),
+    };
+  }
+}
+

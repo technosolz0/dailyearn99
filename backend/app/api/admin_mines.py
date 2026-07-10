@@ -35,12 +35,13 @@ def get_mines_stats(db: Session = Depends(get_db)):
 
 
 @router.get("/logs", response_model=List[MinesLogAdminResponse])
-def get_mines_logs(db: Session = Depends(get_db)):
+def get_mines_logs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     results = (
         db.query(MinesGame, User.phone, User.name)
         .join(User, MinesGame.user_id == User.id)
         .order_by(MinesGame.created_at.desc())
-        .limit(200)
+        .offset(skip)
+        .limit(limit)
         .all()
     )
     

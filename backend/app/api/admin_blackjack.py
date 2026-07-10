@@ -32,12 +32,13 @@ def get_blackjack_stats(db: Session = Depends(get_db)):
     )
 
 @router.get("/logs", response_model=List[BlackjackLogAdminResponse])
-def get_blackjack_logs(db: Session = Depends(get_db)):
+def get_blackjack_logs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     results = (
         db.query(BlackjackGame, User.phone, User.name)
         .join(User, BlackjackGame.user_id == User.id)
         .order_by(BlackjackGame.created_at.desc())
-        .limit(200)
+        .offset(skip)
+        .limit(limit)
         .all()
     )
 

@@ -8,7 +8,6 @@ import 'package:dailyearn99/core/theme/app_theme.dart';
 import 'package:dailyearn99/core/widgets/custom_button.dart';
 import '../models/lottery_models.dart';
 import '../repository/lottery_repository.dart';
-import 'package:dailyearn99/core/utils/date_formatter.dart';
 
 class LotteryLobbyScreen extends StatefulWidget {
   const LotteryLobbyScreen({super.key});
@@ -25,10 +24,13 @@ class _LotteryLobbyScreenState extends State<LotteryLobbyScreen>
 
   List<LotteryDrawModel> _draws = [];
   List<LotteryTicketModel> _myTickets = [];
+  List<LotteryWinnerModel> _winners = [];
   bool _isLoadingDraws = false;
   bool _isLoadingTickets = false;
+  bool _isLoadingWinners = false;
   String? _drawsError;
   String? _ticketsError;
+  String? _winnersError;
 
   @override
   void initState() {
@@ -53,6 +55,8 @@ class _LotteryLobbyScreenState extends State<LotteryLobbyScreen>
       _fetchDraws();
     } else if (_tabController.index == 1) {
       _fetchTickets();
+    } else if (_tabController.index == 2) {
+      _fetchWinners();
     }
   }
 
@@ -64,7 +68,31 @@ class _LotteryLobbyScreenState extends State<LotteryLobbyScreen>
   }
 
   Future<void> _refreshAll() async {
-    await Future.wait([_fetchDraws(), _fetchTickets()]);
+    await Future.wait([_fetchDraws(), _fetchTickets(), _fetchWinners()]);
+  }
+
+  Future<void> _fetchWinners() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingWinners = true;
+      _winnersError = null;
+    });
+    try {
+      final list = await _repository.fetchLotteryWinners();
+      if (mounted) {
+        setState(() {
+          _winners = list;
+          _isLoadingWinners = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _winnersError = e.toString().replaceAll('Exception: ', '');
+          _isLoadingWinners = false;
+        });
+      }
+    }
   }
 
   Future<void> _fetchDraws() async {
@@ -793,126 +821,287 @@ class _LotteryLobbyScreenState extends State<LotteryLobbyScreen>
   }
 
   Widget _buildWinnersHistoryTab() {
+    if (_isLoadingWinners && _winners.isEmpty) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppTheme.accentCyan),
+      );
+    }
+
+    if (_winnersError != null) {
+      return _buildErrorPlaceholder(_winnersError!, _fetchWinners);
+    }
+
     final completedDraws = _draws
         .where((d) => d.status == 'COMPLETED')
         .toList();
 
-    if (completedDraws.isEmpty) {
-      return const Center(
-        child: Text(
-          'No winners declared yet.\nHistory will update after draws complete!',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white54, height: 1.5),
-        ),
-      );
-    }
-
     return RefreshIndicator(
-      onRefresh: _fetchDraws,
+      onRefresh: _refreshAll,
       color: AppTheme.accentCyan,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: completedDraws.length,
-        itemBuilder: (context, index) {
-          final draw = completedDraws[index];
-          final formattedDate = formatContestDateTime(draw.drawTime);
-
-          return Card(
-            margin: const EdgeInsets.only(bottom: 16),
-            color: const Color(0xFF13102C),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: Colors.white10),
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          if (completedDraws.isNotEmpty) ...[
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  '⭐ MEGA JACKPOT DRAWS',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          draw.title,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Draw finished: $formattedDate',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.white38,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 110,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: completedDraws.length,
+                  itemBuilder: (context, index) {
+                    final draw = completedDraws[index];
+                    return Container(
+                      width: 260,
+                      margin: const EdgeInsets.only(right: 12, bottom: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF19143C),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'Prize Pool: ',
-                              style: TextStyle(
-                                color: Colors.white54,
-                                fontSize: 11,
+                            Text(
+                              draw.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
                               ),
                             ),
-                            Text(
-                              '₹${draw.prizePool.toStringAsFixed(0)}',
-                              style: const TextStyle(
-                                color: AppTheme.accentEmerald,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                              ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'PRIZE POOL',
+                                      style: TextStyle(color: Colors.white38, fontSize: 8),
+                                    ),
+                                    Text(
+                                      '₹${draw.prizePool.toStringAsFixed(0)}',
+                                      style: const TextStyle(
+                                        color: AppTheme.accentEmerald,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    const Text(
+                                      'WINNING TICKET',
+                                      style: TextStyle(color: Colors.white38, fontSize: 8),
+                                    ),
+                                    Text(
+                                      draw.winningNumber ?? '-',
+                                      style: const TextStyle(
+                                        color: AppTheme.accentCyan,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'monospace',
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text(
-                        'WINNING TICKET',
-                        style: TextStyle(
-                          fontSize: 8,
-                          color: Colors.white38,
-                          letterSpacing: 0.5,
-                        ),
                       ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppTheme.accentCyan.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: AppTheme.accentCyan.withOpacity(0.3),
-                          ),
-                        ),
-                        child: Text(
-                          draw.winningNumber ?? '-',
-                          style: const TextStyle(
-                            color: AppTheme.accentCyan,
-                            fontFamily: 'monospace',
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                    );
+                  },
+                ),
               ),
             ),
-          );
-        },
+          ],
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16, 20, 16, 8),
+              child: Text(
+                '🎉 RECENT WINNERS',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ),
+          ),
+          if (_winners.isEmpty)
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: Text(
+                    'No winners declared yet.\nHistory will update daily!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white54, height: 1.5),
+                  ),
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final winner = _winners[index];
+                    final initial = winner.name.isNotEmpty
+                        ? winner.name[0].toUpperCase()
+                        : 'W';
+                    final int colorSeed = winner.name.hashCode;
+                    final colors = [
+                      Colors.blueAccent,
+                      Colors.purpleAccent,
+                      Colors.orangeAccent,
+                      Colors.tealAccent,
+                      Colors.pinkAccent,
+                      Colors.greenAccent,
+                      Colors.amberAccent,
+                      Colors.redAccent,
+                    ];
+                    final avatarColor = colors[colorSeed % colors.length];
+
+                    final timeDiff = DateTime.now().difference(winner.winTime);
+                    String timeAgo;
+                    if (timeDiff.inMinutes < 60) {
+                      timeAgo = '${timeDiff.inMinutes}m ago';
+                    } else if (timeDiff.inHours < 24) {
+                      timeAgo = '${timeDiff.inHours}h ago';
+                    } else {
+                      timeAgo = '${timeDiff.inDays}d ago';
+                    }
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF13102C),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.05),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 18,
+                            backgroundColor: avatarColor.withOpacity(0.15),
+                            child: Text(
+                              initial,
+                              style: TextStyle(
+                                color: avatarColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      winner.name,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      winner.phone,
+                                      style: const TextStyle(
+                                        color: Colors.white30,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Won in: ${winner.drawTitle}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Ticket #${winner.ticketNumber}',
+                                  style: const TextStyle(
+                                    color: AppTheme.accentCyan,
+                                    fontFamily: 'monospace',
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '+₹${winner.rewardAmount.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  color: AppTheme.accentEmerald,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                timeAgo,
+                                style: const TextStyle(
+                                  color: Colors.white24,
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  childCount: _winners.length,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

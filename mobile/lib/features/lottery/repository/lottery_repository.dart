@@ -48,4 +48,21 @@ class LotteryRepository {
     );
     return LotteryTicketModel.fromJson(response.data as Map<String, dynamic>);
   }
+
+  Future<List<LotteryWinnerModel>> fetchLotteryWinners() async {
+    final response = await _apiClient.get(ApiConstants.lotteryWinners);
+    final raw = response.data;
+
+    final listData = raw is List
+        ? raw
+        : (raw is Map && raw.containsKey('results') && raw['results'] is List)
+            ? raw['results'] as List
+            : <dynamic>[];
+
+    return listData
+        .map(
+          (json) => LotteryWinnerModel.fromJson(json as Map<String, dynamic>),
+        )
+        .toList();
+  }
 }

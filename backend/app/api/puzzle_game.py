@@ -19,7 +19,7 @@ router = APIRouter(prefix="/puzzle", tags=["puzzle"])
 
 @router.get("/contests", response_model=List[ImagePuzzleContestResponse])
 def get_puzzle_contests(db: Session = Depends(get_db)):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     # 1. Select upcoming contests to transition and trigger notifications
     upcoming_to_active = db.query(ImagePuzzleContest).filter(

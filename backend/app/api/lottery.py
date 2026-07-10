@@ -4,7 +4,7 @@ from typing import List
 from app.core.database import get_db
 from app.models import User, LotteryDraw, LotteryTicket
 from app.schemas import (
-    LotteryDrawResponse, LotteryTicketResponse, LotteryTicketBuyRequest
+    LotteryDrawResponse, LotteryTicketResponse, LotteryTicketBuyRequest, LotteryWinnerResponse
 )
 from app.core.security import get_current_user
 from app.services import LotteryService
@@ -32,15 +32,6 @@ def get_lottery_draws(db: Session = Depends(get_db)):
                 joined_tickets=0,
                 status="OPEN"
             ),
-            LotteryDraw(
-                title="💎 Mega Sunday Jackpot Lakhs #6",
-                ticket_price=200.0,
-                prize_pool=100000.0,
-                draw_time=now + timedelta(days=6),
-                max_tickets=2000,
-                joined_tickets=0,
-                status="OPEN"
-            )
         ]
         db.bulk_save_objects(new_draws)
         db.commit()
@@ -93,3 +84,9 @@ def buy_lottery_ticket(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+
+
+@router.get("/winners", response_model=List[LotteryWinnerResponse])
+def get_lottery_winners(db: Session = Depends(get_db)):
+    return LotteryService.get_simulated_winners(db)
+

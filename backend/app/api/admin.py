@@ -93,8 +93,8 @@ def get_stats(db: Session = Depends(get_db)):
     )
 
 @router.get("/users", response_model=List[UserResponse])
-def list_users(db: Session = Depends(get_db)):
-    return db.query(User).order_by(User.id.desc()).all()
+def list_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(User).order_by(User.id.desc()).offset(skip).limit(limit).all()
 
 @router.post("/users/{id}/ban", response_model=UserResponse)
 def ban_user(id: int, ban: bool, db: Session = Depends(get_db)):
@@ -506,19 +506,23 @@ def create_contest(request: ContestCreate, db: Session = Depends(get_db)):
     return contest
 
 @router.get("/withdrawals", response_model=List[TransactionResponse])
-def get_withdrawals(db: Session = Depends(get_db)):
+def get_withdrawals(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return (
         db.query(WalletTransaction)
         .filter(WalletTransaction.type == "WITHDRAWAL")
         .order_by(WalletTransaction.created_at.desc())
+        .offset(skip)
+        .limit(limit)
         .all()
     )
 
 @router.get("/transactions", response_model=List[TransactionResponse])
-def get_transactions(db: Session = Depends(get_db)):
+def get_transactions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return (
         db.query(WalletTransaction)
         .order_by(WalletTransaction.created_at.desc())
+        .offset(skip)
+        .limit(limit)
         .all()
     )
 
@@ -686,13 +690,14 @@ def get_spin_stats(db: Session = Depends(get_db)):
     )
 
 @router.get("/spin/logs", response_model=List[SpinLogAdminResponse])
-def get_spin_logs(db: Session = Depends(get_db)):
+def get_spin_logs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     from app.models import Spin, User
     results = (
         db.query(Spin, User.phone, User.name)
         .join(User, Spin.user_id == User.id)
         .order_by(Spin.created_at.desc())
-        .limit(100)
+        .offset(skip)
+        .limit(limit)
         .all()
     )
     logs = []

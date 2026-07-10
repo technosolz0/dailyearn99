@@ -5,6 +5,13 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 import os
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+logger = logging.getLogger("app.main")
 
 from app.core.config import settings
 from app.core.database import engine, Base, get_db
@@ -27,203 +34,7 @@ Base.metadata.create_all(bind=engine)
 
 
 
-def migrate_database():
-    from sqlalchemy import text
-    columns_users = [
-        ("bank_account_number", "VARCHAR"),
-        ("bank_ifsc_code", "VARCHAR"),
-        ("bank_account_holder_name", "VARCHAR"),
-        ("bank_name", "VARCHAR"),
-        ("first_name", "VARCHAR"),
-        ("last_name", "VARCHAR"),
-        ("device_details", "VARCHAR"),
-        ("last_login", "TIMESTAMP"),
-        ("plinko_bet_count", "INTEGER DEFAULT 0"),  # New user seeded win tracking
-    ]
-    for col_name, col_type in columns_users:
-        try:
-            with engine.begin() as conn:
-                conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
-            print(f"Schema Migration: Added column '{col_name}' to users table.")
-        except Exception:
-            # Ignore error (column already exists)
-            pass
-
-    columns_contests = [
-        ("prize_rules", "TEXT"),
-        ("questions", "TEXT"),
-        ("end_time", "TIMESTAMP"),
-    ]
-    for col_name, col_type in columns_contests:
-        try:
-            with engine.begin() as conn:
-                conn.execute(text(f"ALTER TABLE contests ADD COLUMN {col_name} {col_type}"))
-            print(f"Schema Migration: Added column '{col_name}' to contests table.")
-        except Exception:
-            # Ignore error (column already exists)
-            pass
-
-    columns_participants = [
-        ("quiz_questions", "TEXT"),
-        ("completed", "BOOLEAN DEFAULT 0"),
-    ]
-    for col_name, col_type in columns_participants:
-        try:
-            with engine.begin() as conn:
-                conn.execute(text(f"ALTER TABLE contest_participants ADD COLUMN {col_name} {col_type}"))
-            print(f"Schema Migration: Added column '{col_name}' to contest_participants table.")
-        except Exception:
-            # Ignore error (column already exists)
-            pass
-
-    columns_transactions = [
-        ("utr", "VARCHAR UNIQUE"),
-        ("description", "VARCHAR"),
-    ]
-    for col_name, col_type in columns_transactions:
-        try:
-            with engine.begin() as conn:
-                conn.execute(text(f"ALTER TABLE wallet_transactions ADD COLUMN {col_name} {col_type}"))
-            print(f"Schema Migration: Added column '{col_name}' to wallet_transactions table.")
-        except Exception:
-            # Ignore error (column already exists)
-            pass
-
-    columns_questions = [
-        ("language", "VARCHAR DEFAULT 'en'"),
-    ]
-    for col_name, col_type in columns_questions:
-        try:
-            with engine.begin() as conn:
-                conn.execute(text(f"ALTER TABLE questions ADD COLUMN {col_name} {col_type}"))
-            print(f"Schema Migration: Added column '{col_name}' to questions table.")
-            try:
-                with engine.begin() as conn:
-                    conn.execute(text("CREATE INDEX idx_questions_language ON questions(language)"))
-                print("Schema Migration: Created index on questions(language).")
-            except Exception:
-                pass
-        except Exception:
-            pass
-
-    columns_arrow_contests = [
-        ("start_time", "TIMESTAMP"),
-        ("end_time", "TIMESTAMP"),
-        ("difficulty", "VARCHAR DEFAULT 'MEDIUM'"),
-        ("arrow_count", "INTEGER DEFAULT 80"),
-    ]
-    for col_name, col_type in columns_arrow_contests:
-        try:
-            with engine.begin() as conn:
-                conn.execute(text(f"ALTER TABLE arrow_contests ADD COLUMN {col_name} {col_type}"))
-            print(f"Schema Migration: Added column '{col_name}' to arrow_contests table.")
-        except Exception:
-            # Ignore error (column already exists)
-            pass
-
-    columns_lottery_draws = [
-        ("win_percentage", "FLOAT DEFAULT 100.0"),
-        ("forced_winning_number", "VARCHAR"),
-    ]
-    for col_name, col_type in columns_lottery_draws:
-        try:
-            with engine.begin() as conn:
-                conn.execute(text(f"ALTER TABLE lottery_draws ADD COLUMN {col_name} {col_type}"))
-            print(f"Schema Migration: Added column '{col_name}' to lottery_draws table.")
-        except Exception:
-            # Ignore error (column already exists)
-            pass
-
-    columns_portfolio = [
-        ("add_amount_method", "VARCHAR DEFAULT 'UPI'"),
-        ("admin_upi_id", "VARCHAR"),
-        ("admin_bank_holder", "VARCHAR"),
-        ("admin_bank_name", "VARCHAR"),
-        ("admin_bank_account", "VARCHAR"),
-        ("admin_bank_ifsc", "VARCHAR"),
-        ("web_app_link", "VARCHAR"),
-    ]
-    for col_name, col_type in columns_portfolio:
-        try:
-            with engine.begin() as conn:
-                conn.execute(text(f"ALTER TABLE portfolio_configs ADD COLUMN {col_name} {col_type}"))
-            print(f"Schema Migration: Added column '{col_name}' to portfolio_configs table.")
-        except Exception:
-            # Ignore error (column already exists)
-            pass
-
-    # Ensure fruit tables exist
-    try:
-        is_sqlite = engine.dialect.name == "sqlite"
-        id_type = "INTEGER PRIMARY KEY AUTOINCREMENT" if is_sqlite else "SERIAL PRIMARY KEY"
-        with engine.begin() as conn:
-            conn.execute(text(f"""
-                CREATE TABLE IF NOT EXISTS fruit_settings (
-                    id {id_type},
-                    min_bet FLOAT,
-                    max_bet FLOAT,
-                    maintenance_mode BOOLEAN,
-                    winning_percentage FLOAT,
-                    multipliers_json TEXT,
-                    updated_at TIMESTAMP
-                )
-            """))
-            conn.execute(text(f"""
-                CREATE TABLE IF NOT EXISTS fruit_games (
-                    id {id_type},
-                    user_id INTEGER,
-                    bet_amount FLOAT,
-                    status VARCHAR,
-                    current_multiplier FLOAT,
-                    win_amount FLOAT,
-                    created_at TIMESTAMP,
-                    updated_at TIMESTAMP
-                )
-            """))
-        print("Schema Migration: Verified fruit_settings and fruit_games tables exist.")
-    except Exception as e:
-        print(f"Schema Migration Error: Failed to verify fruit tables: {e}")
-
-    # Ensure blackjack tables exist
-    try:
-        is_sqlite = engine.dialect.name == "sqlite"
-        id_type = "INTEGER PRIMARY KEY AUTOINCREMENT" if is_sqlite else "SERIAL PRIMARY KEY"
-        with engine.begin() as conn:
-            conn.execute(text(f"""
-                CREATE TABLE IF NOT EXISTS blackjack_settings (
-                    id {id_type},
-                    min_bet FLOAT,
-                    max_bet FLOAT,
-                    winning_percentage FLOAT,
-                    maintenance_mode BOOLEAN,
-                    updated_at TIMESTAMP
-                )
-            """))
-            conn.execute(text(f"""
-                CREATE TABLE IF NOT EXISTS blackjack_games (
-                    id {id_type},
-                    user_id INTEGER,
-                    bet_amount FLOAT,
-                    is_split BOOLEAN,
-                    split_bet_amount FLOAT,
-                    player_hand_1 TEXT,
-                    player_hand_2 TEXT,
-                    dealer_hand TEXT,
-                    current_hand_index INTEGER,
-                    hand_1_status VARCHAR,
-                    hand_2_status VARCHAR,
-                    status VARCHAR,
-                    win_amount FLOAT,
-                    target_outcome VARCHAR,
-                    created_at TIMESTAMP,
-                    updated_at TIMESTAMP
-                )
-            """))
-        print("Schema Migration: Verified blackjack_settings and blackjack_games tables exist.")
-    except Exception as e:
-        print(f"Schema Migration Error: Failed to verify blackjack tables: {e}")
-
-migrate_database()
+# Database migrations are managed via Alembic
 
 
 app = FastAPI(
@@ -234,7 +45,7 @@ app = FastAPI(
 # Set up CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all for development
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -275,7 +86,7 @@ async def startup_event():
             print("Database Seeding: Populated central questions table.")
             
         if db.query(Contest).count() == 0:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             default_questions_json = json.dumps(DEFAULT_QUESTIONS)
             contests = [
                 Contest(
@@ -328,7 +139,7 @@ async def startup_event():
 
         # Seed Image Puzzle contests
         if db.query(ImagePuzzleContest).count() == 0:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             puzzle_contests = [
                 ImagePuzzleContest(
                     title="🧩 Beginner Grid Sweepstakes",
@@ -390,7 +201,7 @@ async def startup_event():
 
         # Seed Fruit contests
         if db.query(FruitContest).count() == 0:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             fruit_contests = [
                 FruitContest(
                     title="🍓 Small Fruit Slicing Tournament",
@@ -452,7 +263,7 @@ async def startup_event():
 
         # Seed Word Contests and Questions
         if db.query(WordContest).count() == 0:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             word_contest = WordContest(
                 title="🔤 Beginner Word Unscramble",
                 entry_fee=10.0,
@@ -515,7 +326,7 @@ async def startup_event():
 
         # Seed Arrow Contests
         if db.query(ArrowContest).count() == 0:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             arrow_contests = [
                 ArrowContest(
                     title="🏹 Small Arrows Sweepstakes (Easy)",
@@ -581,7 +392,7 @@ async def startup_event():
 
         # Seed Lottery draws
         if db.query(LotteryDraw).count() == 0:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             lottery_draws = [
                 LotteryDraw(
                     title="🎟️ Daily Quick Cash Draw #102",

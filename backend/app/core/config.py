@@ -45,4 +45,15 @@ class Settings:
     
     # Redis Configuration
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+    # CORS Allowed Origins
+    ALLOWED_ORIGINS_STR: str = os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:8000,https://api.dailyearn99.in/api,https://api.dailyearn99.in,https://www.dailyearn99.in,https://admin.dailyearn99.in,https://www.dailyearn99.in/api"
+    )
+
+    @property
+    def ALLOWED_ORIGINS(self) -> list[str]:
+        return [origin.strip() for origin in self.ALLOWED_ORIGINS_STR.split(",") if origin.strip()]
+
 settings = Settings()

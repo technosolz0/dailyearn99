@@ -19,7 +19,7 @@ router = APIRouter(prefix="/arrow", tags=["arrow"])
 
 @router.get("/contests", response_model=List[ArrowContestResponse])
 def get_arrow_contests(db: Session = Depends(get_db)):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     # 1. Transition UPCOMING to ACTIVE when start time is reached
     upcoming_to_active = db.query(ArrowContest).filter(
