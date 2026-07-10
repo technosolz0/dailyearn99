@@ -65,7 +65,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                           ),
                           const SizedBox(height: 6),
                           const Text(
-                            'Earn ₹50 Bonus Wallet Cash when your friend registers and plays their first contest. Your friend gets ₹20 too!',
+                            'Earn Upto ₹500 Bonus Wallet Cash when your friend registers and plays their first contest. Your friend gets Upto ₹200 too!',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 11,
@@ -146,7 +146,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
                                 : () {
                                     final link = kIsWeb
                                         ? Uri.base.origin
-                                        : getIt<RemoteConfigService>().updateUrl;
+                                        : getIt<RemoteConfigService>()
+                                              .updateUrl;
                                     final shareText =
                                         "Hey! Join me on DailyEarn99, play exciting games, and earn real cash! 🎮💰\n\n"
                                         "Use my Referral Code: ${details.referralCode} to get a ₹20 sign-up bonus instantly!\n\n"

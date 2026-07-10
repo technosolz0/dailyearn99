@@ -350,6 +350,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const Color(0xFF0F3A40),
                           ],
                           borderColor: AppTheme.accentTeal,
+                          backgroundImage: 'assets/images/lottery_bg.png',
                           onTap: () {
                             Navigator.push(
                               context,
@@ -375,6 +376,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const Color(0xFF1E3545),
                           ],
                           borderColor: const Color(0xFF00E676),
+                          backgroundImage: 'assets/images/mines_bg.png',
                           onTap: () {
                             Navigator.push(
                               context,
@@ -401,6 +403,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const Color(0xFF33152C),
                           ],
                           borderColor: const Color(0xFFFF2D55),
+                          backgroundImage: 'assets/images/plinko_bg.png',
                           onTap: () {
                             Navigator.push(
                               context,
@@ -427,6 +430,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const Color(0xFF203A43),
                           ],
                           borderColor: AppTheme.accentTeal,
+                          backgroundImage: 'assets/images/blackjack_bg.png',
                           onTap: () {
                             Navigator.push(
                               context,
@@ -748,6 +752,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required List<Color> colors,
     required Color borderColor,
     required VoidCallback onTap,
+    String? backgroundImage,
   }) {
     return Card(
       margin: EdgeInsets.zero,
@@ -768,69 +773,85 @@ class _HomeScreenState extends State<HomeScreen> {
                 end: Alignment.bottomRight,
               ),
             ),
-            padding: const EdgeInsets.all(14),
-            child: Row(
+            child: Stack(
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                if (backgroundImage != null)
+                  Positioned.fill(
+                    child: Opacity(
+                      opacity: 0.18,
+                      child: Image.asset(
+                        backgroundImage,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: borderColor.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          badge,
-                          style: TextStyle(
-                            fontSize: 8,
-                            color: borderColor,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.0,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Text(emoji, style: const TextStyle(fontSize: 18)),
-                          const SizedBox(width: 8),
-                          Text(
-                            title,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: borderColor.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                badge,
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  color: borderColor,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Text(emoji, style: const TextStyle(fontSize: 18)),
+                                const SizedBox(width: 8),
+                                Text(
+                                  title,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              desc,
+                              style: const TextStyle(
+                                fontSize: 9.5,
+                                color: AppTheme.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        desc,
-                        style: const TextStyle(
-                          fontSize: 9.5,
-                          color: AppTheme.textMuted,
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: borderColor.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.chevron_right,
+                          color: borderColor,
+                          size: 20,
                         ),
                       ),
                     ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: borderColor.withOpacity(0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.chevron_right,
-                    color: borderColor,
-                    size: 20,
                   ),
                 ),
               ],

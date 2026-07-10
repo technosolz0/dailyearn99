@@ -61,22 +61,22 @@ class PortfolioConfig {
   }
 
   Map<String, dynamic> toJson() => {
-        'contact_email': contactEmail,
-        'contact_phone': contactPhone,
-        'contact_address': contactAddress,
-        'office_hours': officeHours,
-        'apk_link': apkLink,
-        'web_app_link': webAppLink,
-        'telegram_link': telegramLink,
-        'instagram_link': instagramLink,
-        'referral_code': referralCode,
-        'add_amount_method': addAmountMethod,
-        'admin_upi_id': adminUpiId,
-        'admin_bank_holder': adminBankHolder,
-        'admin_bank_name': adminBankName,
-        'admin_bank_account': adminBankAccount,
-        'admin_bank_ifsc': adminBankIfsc,
-      };
+    'contact_email': contactEmail,
+    'contact_phone': contactPhone,
+    'contact_address': contactAddress,
+    'office_hours': officeHours,
+    'apk_link': apkLink,
+    'web_app_link': webAppLink,
+    'telegram_link': telegramLink,
+    'instagram_link': instagramLink,
+    'referral_code': referralCode,
+    'add_amount_method': addAmountMethod,
+    'admin_upi_id': adminUpiId,
+    'admin_bank_holder': adminBankHolder,
+    'admin_bank_name': adminBankName,
+    'admin_bank_account': adminBankAccount,
+    'admin_bank_ifsc': adminBankIfsc,
+  };
 }
 
 class ContactInquiry {
@@ -103,7 +103,9 @@ class ContactInquiry {
       email: json['email'] ?? '',
       subject: json['subject'] ?? '',
       message: json['message'] ?? '',
-      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.parse(
+        json['created_at'] ?? DateTime.now().toIso8601String(),
+      ),
     );
   }
 }
@@ -141,19 +143,21 @@ class AdminBankDetail {
       upiId: json['upi_id'],
       isDefault: json['is_default'] ?? false,
       targetUserIds: json['target_user_ids'],
-      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.parse(
+        json['created_at'] ?? DateTime.now().toIso8601String(),
+      ),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'bank_name': bankName,
-        'account_holder_name': accountHolderName,
-        'account_number': accountNumber,
-        'ifsc_code': ifscCode,
-        'upi_id': upiId,
-        'is_default': isDefault,
-        'target_user_ids': targetUserIds,
-      };
+    'bank_name': bankName,
+    'account_holder_name': accountHolderName,
+    'account_number': accountNumber,
+    'ifsc_code': ifscCode,
+    'upi_id': upiId,
+    'is_default': isDefault,
+    'target_user_ids': targetUserIds,
+  };
 }
 
 class PortfolioManagerView extends StatefulWidget {
@@ -163,7 +167,8 @@ class PortfolioManagerView extends StatefulWidget {
   State<PortfolioManagerView> createState() => _PortfolioManagerViewState();
 }
 
-class _PortfolioManagerViewState extends State<PortfolioManagerView> with SingleTickerProviderStateMixin {
+class _PortfolioManagerViewState extends State<PortfolioManagerView>
+    with SingleTickerProviderStateMixin {
   final ApiClient _apiClient = GetIt.instance<ApiClient>();
   late TabController _tabController;
 
@@ -230,12 +235,20 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
 
     try {
       final configRes = await _apiClient.dio.get('/portfolio/config');
-      final inquiriesRes = await _apiClient.dio.get('/admin/portfolio/contacts');
-      final bankDetailsRes = await _apiClient.dio.get('/admin/portfolio/bank-details');
+      final inquiriesRes = await _apiClient.dio.get(
+        '/admin/portfolio/contacts',
+      );
+      final bankDetailsRes = await _apiClient.dio.get(
+        '/admin/portfolio/bank-details',
+      );
 
       final config = PortfolioConfig.fromJson(configRes.data);
-      final inquiries = (inquiriesRes.data as List).map((x) => ContactInquiry.fromJson(x)).toList();
-      final bankDetails = (bankDetailsRes.data as List).map((x) => AdminBankDetail.fromJson(x)).toList();
+      final inquiries = (inquiriesRes.data as List)
+          .map((x) => ContactInquiry.fromJson(x))
+          .toList();
+      final bankDetails = (bankDetailsRes.data as List)
+          .map((x) => AdminBankDetail.fromJson(x))
+          .toList();
 
       setState(() {
         _config = config;
@@ -263,7 +276,10 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
     } on DioException catch (e) {
       setState(() {
         _isLoading = false;
-        _error = e.response?.data['detail'] ?? e.message ?? 'Failed to load portfolio configurations';
+        _error =
+            e.response?.data['detail'] ??
+            e.message ??
+            'Failed to load portfolio configurations';
       });
     } catch (e) {
       setState(() {
@@ -299,9 +315,15 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
     );
 
     try {
-      await _apiClient.dio.put('/admin/portfolio/config', data: updated.toJson());
+      await _apiClient.dio.put(
+        '/admin/portfolio/config',
+        data: updated.toJson(),
+      );
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Portfolio configurations saved successfully!'), backgroundColor: AdminTheme.success),
+        const SnackBar(
+          content: Text('Portfolio configurations saved successfully!'),
+          backgroundColor: AdminTheme.success,
+        ),
       );
       await _loadData();
       setState(() {
@@ -309,7 +331,10 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
       });
     } on DioException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.response?.data['detail'] ?? 'Failed to save config'), backgroundColor: AdminTheme.error),
+        SnackBar(
+          content: Text(e.response?.data['detail'] ?? 'Failed to save config'),
+          backgroundColor: AdminTheme.error,
+        ),
       );
       setState(() {
         _isSaving = false;
@@ -322,12 +347,20 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
       context: context,
       builder: (diagContext) => AlertDialog(
         title: const Text('Confirm Delete'),
-        content: Text('Are you sure you want to delete inquiry from "${q.name}"?'),
+        content: Text(
+          'Are you sure you want to delete inquiry from "${q.name}"?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(diagContext, false), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () => Navigator.pop(diagContext, false),
+            child: const Text('CANCEL'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(diagContext, true),
-            child: const Text('DELETE', style: TextStyle(color: AdminTheme.error)),
+            child: const Text(
+              'DELETE',
+              style: TextStyle(color: AdminTheme.error),
+            ),
           ),
         ],
       ),
@@ -342,12 +375,20 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
     try {
       await _apiClient.dio.delete('/admin/portfolio/contacts/${q.id}');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Inquiry ticket deleted.'), backgroundColor: AdminTheme.success),
+        const SnackBar(
+          content: Text('Inquiry ticket deleted.'),
+          backgroundColor: AdminTheme.success,
+        ),
       );
       await _loadData();
     } on DioException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.response?.data['detail'] ?? 'Failed to delete inquiry'), backgroundColor: AdminTheme.error),
+        SnackBar(
+          content: Text(
+            e.response?.data['detail'] ?? 'Failed to delete inquiry',
+          ),
+          backgroundColor: AdminTheme.error,
+        ),
       );
       setState(() {
         _isLoading = false;
@@ -363,36 +404,61 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Platform & Contact Info', style: TextStyle(fontWeight: FontWeight.bold, color: AdminTheme.primary, fontSize: 14)),
+            const Text(
+              'Platform & Contact Info',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AdminTheme.primary,
+                fontSize: 14,
+              ),
+            ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Contact Email', prefixIcon: Icon(Icons.email)),
+              decoration: const InputDecoration(
+                labelText: 'Contact Email',
+                prefixIcon: Icon(Icons.email),
+              ),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _phoneController,
-              decoration: const InputDecoration(labelText: 'Contact Phone', prefixIcon: Icon(Icons.phone)),
+              decoration: const InputDecoration(
+                labelText: 'Contact Phone',
+                prefixIcon: Icon(Icons.phone),
+              ),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _addressController,
-              decoration: const InputDecoration(labelText: 'Contact Office Address', prefixIcon: Icon(Icons.location_on)),
+              decoration: const InputDecoration(
+                labelText: 'Contact Office Address',
+                prefixIcon: Icon(Icons.location_on),
+              ),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _hoursController,
-              decoration: const InputDecoration(labelText: 'Office Timings / Hours', prefixIcon: Icon(Icons.access_time)),
+              decoration: const InputDecoration(
+                labelText: 'Office Timings / Hours',
+                prefixIcon: Icon(Icons.access_time),
+              ),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _apkController,
-              decoration: const InputDecoration(labelText: 'Client Application APK Link', prefixIcon: Icon(Icons.android)),
+              decoration: const InputDecoration(
+                labelText: 'Client Application APK Link',
+                prefixIcon: Icon(Icons.android),
+              ),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _webAppController,
-              decoration: const InputDecoration(labelText: 'Web Application Link', prefixIcon: Icon(Icons.language)),
+              decoration: const InputDecoration(
+                labelText: 'Web Application Link',
+                prefixIcon: Icon(Icons.language),
+              ),
             ),
             const SizedBox(height: 12),
             Row(
@@ -400,14 +466,20 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
                 Expanded(
                   child: TextFormField(
                     controller: _tgController,
-                    decoration: const InputDecoration(labelText: 'Telegram Channel', prefixIcon: Icon(Icons.send)),
+                    decoration: const InputDecoration(
+                      labelText: 'Telegram Channel',
+                      prefixIcon: Icon(Icons.send),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextFormField(
                     controller: _igController,
-                    decoration: const InputDecoration(labelText: 'Instagram Handle', prefixIcon: Icon(Icons.camera_alt)),
+                    decoration: const InputDecoration(
+                      labelText: 'Instagram Handle',
+                      prefixIcon: Icon(Icons.camera_alt),
+                    ),
                   ),
                 ),
               ],
@@ -415,19 +487,40 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
             const SizedBox(height: 12),
             TextFormField(
               controller: _refController,
-              decoration: const InputDecoration(labelText: 'Default Referral Code', prefixIcon: Icon(Icons.card_giftcard)),
+              decoration: const InputDecoration(
+                labelText: 'Default Referral Code',
+                prefixIcon: Icon(Icons.card_giftcard),
+              ),
             ),
             const Divider(color: AdminTheme.borderColor, height: 32),
-            
-            const Text('Payment Deposit Config', style: TextStyle(fontWeight: FontWeight.bold, color: AdminTheme.primary, fontSize: 14)),
+
+            const Text(
+              'Payment Deposit Config',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AdminTheme.primary,
+                fontSize: 14,
+              ),
+            ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _addAmountMethod,
-              decoration: const InputDecoration(labelText: 'Add Amount Instruction Gateway'),
+              decoration: const InputDecoration(
+                labelText: 'Add Amount Instruction Gateway',
+              ),
               items: const [
-                DropdownMenuItem(value: 'UPI', child: Text('UPI Address (Instant)')),
-                DropdownMenuItem(value: 'BANK', child: Text('Manual Bank Transfer Details')),
-                DropdownMenuItem(value: 'NONE', child: Text('Disable Payment Gateway Instructions')),
+                DropdownMenuItem(
+                  value: 'UPI',
+                  child: Text('UPI Address (Instant)'),
+                ),
+                DropdownMenuItem(
+                  value: 'BANK',
+                  child: Text('Manual Bank Transfer Details'),
+                ),
+                DropdownMenuItem(
+                  value: 'NONE',
+                  child: Text('Disable Payment Gateway Instructions'),
+                ),
               ],
               onChanged: (val) {
                 if (val != null) {
@@ -438,12 +531,15 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
               },
             ),
             const SizedBox(height: 12),
-            
+
             // Conditional UPI forms
             if (_addAmountMethod == 'UPI') ...[
               TextFormField(
                 controller: _upiController,
-                decoration: const InputDecoration(labelText: 'Admin UPI Address ID', hintText: 'e.g. merchant@upi'),
+                decoration: const InputDecoration(
+                  labelText: 'Admin UPI Address ID',
+                  hintText: 'e.g. merchant@upi',
+                ),
               ),
               const SizedBox(height: 12),
             ],
@@ -452,7 +548,9 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
             if (_addAmountMethod == 'BANK') ...[
               TextFormField(
                 controller: _bankHolderController,
-                decoration: const InputDecoration(labelText: 'Account Holder Name'),
+                decoration: const InputDecoration(
+                  labelText: 'Account Holder Name',
+                ),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -465,7 +563,9 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
                   Expanded(
                     child: TextFormField(
                       controller: _bankAccController,
-                      decoration: const InputDecoration(labelText: 'Bank Account Number'),
+                      decoration: const InputDecoration(
+                        labelText: 'Bank Account Number',
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -482,7 +582,9 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
 
             const SizedBox(height: 16),
             if (_isSaving)
-              const Center(child: CircularProgressIndicator(color: AdminTheme.primary))
+              const Center(
+                child: CircularProgressIndicator(color: AdminTheme.primary),
+              )
             else
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -491,7 +593,10 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 onPressed: _saveConfig,
-                child: const Text('SAVE SETTINGS', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'SAVE SETTINGS',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             const SizedBox(height: 40),
           ],
@@ -502,7 +607,12 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
 
   Widget _buildInquiriesTab() {
     if (_inquiries.isEmpty) {
-      return const Center(child: Text('No inquiries received yet.', style: TextStyle(color: AdminTheme.textMuted)));
+      return const Center(
+        child: Text(
+          'No inquiries received yet.',
+          style: TextStyle(color: AdminTheme.textMuted),
+        ),
+      );
     }
 
     return ListView.builder(
@@ -526,16 +636,41 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(q.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AdminTheme.textMain)),
-                          Text(q.email, style: const TextStyle(fontSize: 12, color: AdminTheme.textMuted)),
+                          Text(
+                            q.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: AdminTheme.textMain,
+                            ),
+                          ),
+                          Text(
+                            q.email,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AdminTheme.textMuted,
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    Text(timeStr, style: const TextStyle(fontSize: 11, color: AdminTheme.textMuted)),
+                    Text(
+                      timeStr,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AdminTheme.textMuted,
+                      ),
+                    ),
                   ],
                 ),
                 const Divider(color: AdminTheme.borderColor, height: 20),
-                Text('Subject: ${q.subject}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                Text(
+                  'Subject: ${q.subject}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
                 const SizedBox(height: 6),
                 Container(
                   padding: const EdgeInsets.all(10),
@@ -544,14 +679,23 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: AdminTheme.borderColor),
                   ),
-                  child: Text(q.message, style: const TextStyle(fontSize: 12, color: AdminTheme.textMain)),
+                  child: Text(
+                    q.message,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AdminTheme.textMain,
+                    ),
+                  ),
                 ),
                 const Divider(color: AdminTheme.borderColor, height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.delete_outline, color: AdminTheme.error),
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: AdminTheme.error,
+                      ),
                       onPressed: () => _deleteInquiry(q),
                     ),
                     const Spacer(),
@@ -560,7 +704,10 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AdminTheme.primary,
                         foregroundColor: AdminTheme.background,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                       ),
                       onPressed: () {
                         // Normally launches email client, we show success callback
@@ -569,7 +716,10 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
                         );
                       },
                       icon: const Icon(Icons.reply, size: 14),
-                      label: const Text('REPLY EMAIL', style: TextStyle(fontSize: 11)),
+                      label: const Text(
+                        'REPLY EMAIL',
+                        style: TextStyle(fontSize: 11),
+                      ),
                     ),
                   ],
                 ),
@@ -584,7 +734,9 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
   @override
   Widget build(BuildContext context) {
     if (_isLoading && _config == null) {
-      return const Center(child: CircularProgressIndicator(color: AdminTheme.primary));
+      return const Center(
+        child: CircularProgressIndicator(color: AdminTheme.primary),
+      );
     }
 
     if (_error != null) {
@@ -594,7 +746,11 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 50, color: AdminTheme.error),
+              const Icon(
+                Icons.error_outline,
+                size: 50,
+                color: AdminTheme.error,
+              ),
               const SizedBox(height: 12),
               Text(_error!, textAlign: TextAlign.center),
               const SizedBox(height: 12),
@@ -627,10 +783,7 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
         controller: _tabController,
         children: [
           _buildConfigTab(),
-          RefreshIndicator(
-            onRefresh: _loadData,
-            child: _buildInquiriesTab(),
-          ),
+          RefreshIndicator(onRefresh: _loadData, child: _buildInquiriesTab()),
           _buildBankAccountsTab(),
         ],
       ),
@@ -643,7 +796,10 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('No bank details configured yet.', style: TextStyle(color: AdminTheme.textMuted)),
+            const Text(
+              'No bank details configured yet.',
+              style: TextStyle(color: AdminTheme.textMuted),
+            ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
@@ -699,7 +855,10 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
                         ),
                         if (detail.isDefault)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: AdminTheme.success.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(6),
@@ -740,7 +899,11 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
                       children: [
                         TextButton.icon(
                           onPressed: () => _deleteBankDetail(detail.id),
-                          icon: const Icon(Icons.delete, color: AdminTheme.error, size: 18),
+                          icon: const Icon(
+                            Icons.delete,
+                            color: AdminTheme.error,
+                            size: 18,
+                          ),
                           label: const Text(
                             'DELETE',
                             style: TextStyle(color: AdminTheme.error),
@@ -757,7 +920,7 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
                           label: const Text('EDIT'),
                         ),
                       ],
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -788,11 +951,16 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
               ? Align(
                   alignment: Alignment.centerLeft,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: AdminTheme.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: AdminTheme.primary.withOpacity(0.5)),
+                      border: Border.all(
+                        color: AdminTheme.primary.withOpacity(0.5),
+                      ),
                     ),
                     child: Text(
                       value,
@@ -822,12 +990,20 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirm Delete'),
-        content: const Text('Are you sure you want to delete this bank account?'),
+        content: const Text(
+          'Are you sure you want to delete this bank account?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('CANCEL'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('DELETE', style: TextStyle(color: AdminTheme.error)),
+            child: const Text(
+              'DELETE',
+              style: TextStyle(color: AdminTheme.error),
+            ),
           ),
         ],
       ),
@@ -842,12 +1018,20 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
     try {
       await _apiClient.dio.delete('/admin/portfolio/bank-details/$id');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bank account deleted successfully!'), backgroundColor: AdminTheme.success),
+        const SnackBar(
+          content: Text('Bank account deleted successfully!'),
+          backgroundColor: AdminTheme.success,
+        ),
       );
       await _loadData();
     } on DioException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.response?.data['detail'] ?? 'Failed to delete bank account'), backgroundColor: AdminTheme.error),
+        SnackBar(
+          content: Text(
+            e.response?.data['detail'] ?? 'Failed to delete bank account',
+          ),
+          backgroundColor: AdminTheme.error,
+        ),
       );
       setState(() {
         _isLoading = false;
@@ -869,7 +1053,9 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (dialogCtx, setState) => AlertDialog(
-          title: Text(detail == null ? 'Add Bank Account' : 'Edit Bank Account'),
+          title: Text(
+            detail == null ? 'Add Bank Account' : 'Edit Bank Account',
+          ),
           content: SingleChildScrollView(
             child: Form(
               key: formKey,
@@ -879,31 +1065,41 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
                   TextFormField(
                     controller: nameCtrl,
                     decoration: const InputDecoration(labelText: 'Bank Name'),
-                    validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
+                    validator: (v) =>
+                        v?.trim().isEmpty == true ? 'Required' : null,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: holderCtrl,
-                    decoration: const InputDecoration(labelText: 'Account Holder Name'),
-                    validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Account Holder Name',
+                    ),
+                    validator: (v) =>
+                        v?.trim().isEmpty == true ? 'Required' : null,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: numCtrl,
-                    decoration: const InputDecoration(labelText: 'Account Number'),
-                    validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Account Number',
+                    ),
+                    validator: (v) =>
+                        v?.trim().isEmpty == true ? 'Required' : null,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: ifscCtrl,
                     decoration: const InputDecoration(labelText: 'IFSC Code'),
                     textCapitalization: TextCapitalization.characters,
-                    validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
+                    validator: (v) =>
+                        v?.trim().isEmpty == true ? 'Required' : null,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: upiCtrl,
-                    decoration: const InputDecoration(labelText: 'UPI ID (Optional)'),
+                    decoration: const InputDecoration(
+                      labelText: 'UPI ID (Optional)',
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -918,13 +1114,18 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
                           }
                         },
                       ),
-                      const Expanded(child: Text('Set as Default Bank Account')),
+                      const Expanded(
+                        child: Text('Set as Default Bank Account'),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: targetCtrl,
-                    decoration: const InputDecoration(labelText: 'Target User IDs (Optional)', hintText: 'e.g. 3,5,6,7'),
+                    decoration: const InputDecoration(
+                      labelText: 'Target User IDs (Optional)',
+                      hintText: 'e.g. 3,5,6,7',
+                    ),
                   ),
                 ],
               ),
@@ -942,35 +1143,54 @@ class _PortfolioManagerViewState extends State<PortfolioManagerView> with Single
               ),
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
-                
+
                 final payload = {
                   'bank_name': nameCtrl.text.trim(),
                   'account_holder_name': holderCtrl.text.trim(),
                   'account_number': numCtrl.text.trim(),
                   'ifsc_code': ifscCtrl.text.trim().toUpperCase(),
-                  'upi_id': upiCtrl.text.trim().isNotEmpty ? upiCtrl.text.trim() : null,
+                  'upi_id': upiCtrl.text.trim().isNotEmpty
+                      ? upiCtrl.text.trim()
+                      : null,
                   'is_default': isDefault,
-                  'target_user_ids': targetCtrl.text.trim().isNotEmpty ? targetCtrl.text.trim() : null,
+                  'target_user_ids': targetCtrl.text.trim().isNotEmpty
+                      ? targetCtrl.text.trim()
+                      : null,
                 };
-                
+
                 Navigator.pop(ctx);
                 this.setState(() {
                   _isLoading = true;
                 });
-                
+
                 try {
                   if (detail == null) {
-                    await _apiClient.dio.post('/admin/portfolio/bank-details', data: payload);
+                    await _apiClient.dio.post(
+                      '/admin/portfolio/bank-details',
+                      data: payload,
+                    );
                   } else {
-                    await _apiClient.dio.put('/admin/portfolio/bank-details/${detail.id}', data: payload);
+                    await _apiClient.dio.put(
+                      '/admin/portfolio/bank-details/${detail.id}',
+                      data: payload,
+                    );
                   }
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Bank account saved successfully!'), backgroundColor: AdminTheme.success),
+                    const SnackBar(
+                      content: Text('Bank account saved successfully!'),
+                      backgroundColor: AdminTheme.success,
+                    ),
                   );
                   await _loadData();
                 } on DioException catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(e.response?.data['detail'] ?? 'Failed to save bank account'), backgroundColor: AdminTheme.error),
+                    SnackBar(
+                      content: Text(
+                        e.response?.data['detail'] ??
+                            'Failed to save bank account',
+                      ),
+                      backgroundColor: AdminTheme.error,
+                    ),
                   );
                   this.setState(() {
                     _isLoading = false;

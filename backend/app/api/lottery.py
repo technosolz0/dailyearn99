@@ -33,15 +33,6 @@ def get_lottery_draws(db: Session = Depends(get_db)):
                 status="OPEN"
             ),
             LotteryDraw(
-                title="💥 Weekly Bumper Sweepstakes #22",
-                ticket_price=50.0,
-                prize_pool=25000.0,
-                draw_time=now + timedelta(days=2),
-                max_tickets=1000,
-                joined_tickets=0,
-                status="OPEN"
-            ),
-            LotteryDraw(
                 title="💎 Mega Sunday Jackpot Lakhs #6",
                 ticket_price=200.0,
                 prize_pool=100000.0,

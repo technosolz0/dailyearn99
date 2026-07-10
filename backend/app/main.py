@@ -592,24 +592,7 @@ async def startup_event():
                     joined_tickets=0,
                     status="OPEN"
                 ),
-                LotteryDraw(
-                    title="💥 Weekly Bumper Sweepstakes #21",
-                    ticket_price=50.0,
-                    prize_pool=25000.0,
-                    draw_time=now + timedelta(days=2),
-                    max_tickets=1000,
-                    joined_tickets=0,
-                    status="OPEN"
-                ),
-                LotteryDraw(
-                    title="💎 Mega Sunday Jackpot Lakhs #5",
-                    ticket_price=200.0,
-                    prize_pool=100000.0,
-                    draw_time=now + timedelta(days=6),
-                    max_tickets=2000,
-                    joined_tickets=0,
-                    status="OPEN"
-                )
+           
             ]
             for l in lottery_draws:
                 db.add(l)
