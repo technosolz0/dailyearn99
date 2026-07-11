@@ -153,10 +153,15 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
     }
     final double sectorStep = (2 * pi) / wheelSectors.length;
     double lastHapticAngle = currentAngle;
+    DateTime lastHapticTime = DateTime.fromMillisecondsSinceEpoch(0);
     _hapticListener = () {
       final double angle = _currentWheelAngle;
+      final now = DateTime.now();
       if ((angle - lastHapticAngle).abs() >= sectorStep * 0.8) {
-        HapticFeedback.lightImpact();
+        if (now.difference(lastHapticTime).inMilliseconds >= 90) {
+          HapticFeedback.lightImpact();
+          lastHapticTime = now;
+        }
         lastHapticAngle = angle;
       }
     };
@@ -312,21 +317,25 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
   void _executeSpinRequest() {
     final double betAmount = double.tryParse(_betController.text.trim()) ?? 0.0;
     if (betAmount < 1.0) {
-      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-        const SnackBar(
-          content: Text('Minimum bet is ₹1.00.'),
-          backgroundColor: AppTheme.accentRed,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Minimum bet is ₹1.00.'),
+            backgroundColor: AppTheme.accentRed,
+          ),
+        );
       return;
     }
     if (betAmount > 100000.0) {
-      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-        const SnackBar(
-          content: Text('Daily responsible gaming limit is ₹100000.00.'),
-          backgroundColor: AppTheme.accentRed,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Daily responsible gaming limit is ₹100000.00.'),
+            backgroundColor: AppTheme.accentRed,
+          ),
+        );
       return;
     }
 
@@ -344,12 +353,14 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
           prev.spinError != curr.spinError,
       listener: (context, state) {
         if (state.spinError != null && !_isSpinning) {
-          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-            SnackBar(
-              content: Text(state.spinError!),
-              backgroundColor: AppTheme.accentRed,
-            ),
-          );
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(state.spinError!),
+                backgroundColor: AppTheme.accentRed,
+              ),
+            );
         }
         if (state.latestSpinResult != null && !_isSpinning) {
           final result = state.latestSpinResult!;
@@ -542,7 +553,7 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
                   // Bet Amount selector
                   const Text(
@@ -555,12 +566,12 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                       letterSpacing: 1,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
 
                   // Interactive Neon Chips selector
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [10, 50, 100, 250].map((chip) {
+                    children: [10, 20, 50, 100, 250].map((chip) {
                       final isSel = _selectedChip == chip;
                       Color cColor = AppTheme.accentCyan;
                       if (chip == 50) cColor = AppTheme.accentPurple;
@@ -615,57 +626,60 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                   const SizedBox(height: 20),
 
                   // Manual bet input
-                  TextField(
-                    controller: _betController,
-                    keyboardType: TextInputType.number,
-                    enabled: !_isSpinning,
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedChip = double.tryParse(val) ?? 0.0;
-                      });
-                    },
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.money, color: AppTheme.accentCyan),
-                      hintText: 'Enter custom bet amount',
-                      labelText: 'Bet Size (₹)',
-                    ),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _betController,
+                          keyboardType: TextInputType.number,
+                          enabled: !_isSpinning,
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedChip = double.tryParse(val) ?? 0.0;
+                            });
+                          },
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(
+                              Icons.money,
+                              color: AppTheme.accentCyan,
+                            ),
+                            hintText: 'Enter custom bet amount',
+                            labelText: 'Bet Size (₹)',
+                          ),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: !hasSuffFunds && !_isSpinning
+                            ? CustomButton(
+                                text:
+                                    'ADD ₹${(betVal - totalUsable).ceil()} TO SPIN',
+                                type: CustomButtonType.primary,
+                                height: 52.0,
+                                onPressed: () {
+                                  final shortfall = betVal - totalUsable;
+                                  DepositBottomSheet.show(
+                                    context,
+                                    defaultAmount: shortfall,
+                                  );
+                                },
+                              )
+                            : CustomButton(
+                                text: 'SPIN',
+                                type: CustomButtonType.primary,
+                                height: 52.0,
+                                isLoading: _isSpinning || state.isSpinLoading,
+                                onPressed: (_isSpinning || state.isSpinLoading)
+                                    ? null
+                                    : _executeSpinRequest,
+                              ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 24),
 
-                  // Launch Spin Wheel CTA Button
-                  if (!hasSuffFunds && !_isSpinning) ...[
-                    CustomButton(
-                      text: 'ADD ₹${(betVal - totalUsable).ceil()} TO SPIN',
-                      type: CustomButtonType.primary,
-                      height: 52.0,
-                      onPressed: () {
-                        final shortfall = betVal - totalUsable;
-                        DepositBottomSheet.show(
-                          context,
-                          defaultAmount: shortfall,
-                        );
-                      },
-                    ),
-                  ] else ...[
-                    CustomButton(
-                      text: 'SPIN CASINO WHEEL',
-                      type: CustomButtonType.primary,
-                      height: 52.0,
-                      isLoading: _isSpinning || state.isSpinLoading,
-                      onPressed: (_isSpinning || state.isSpinLoading)
-                          ? null
-                          : _executeSpinRequest,
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-
-                  const Text(
-                    '🔒 Dynamic RTP Payout Guarantee. Multiplier generated securely on backend engine only.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 9, color: AppTheme.textMuted),
-                  ),
+                  // const SizedBox(height: 24),
                 ],
               ),
             ),

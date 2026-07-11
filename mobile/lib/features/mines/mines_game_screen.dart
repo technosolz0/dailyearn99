@@ -114,12 +114,6 @@ class _MinesGameScreenState extends State<MinesGameScreen> {
             fontSize: 16,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.help_outline, color: Colors.blueAccent),
-            onPressed: () => _showFairnessDialog(),
-          ),
-        ],
       ),
       body: BlocConsumer<AppBloc, AppState>(
         listener: (context, state) {
@@ -543,41 +537,146 @@ class _MinesGameScreenState extends State<MinesGameScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A2C38),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<int>(
-              value: _selectedMinesCount,
-              dropdownColor: const Color(0xFF1A2C38),
-              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFFB1C6D4)),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A2C38),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: _selectedMinesCount,
+                    dropdownColor: const Color(0xFF1A2C38),
+                    icon: const Icon(
+                      Icons.arrow_drop_down,
+                      color: Color(0xFFB1C6D4),
+                    ),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    isExpanded: true,
+                    items: [1, 2, 3, 4, 5, 8, 10, 15, 20, 24]
+                        .map(
+                          (e) => DropdownMenuItem(
+                            value: e,
+                            child: Text('$e Mines'),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: isGameActive
+                        ? null
+                        : (val) {
+                            if (val != null) {
+                              setState(() {
+                                _selectedMinesCount = val;
+                              });
+                            }
+                          },
+                  ),
+                ),
               ),
-              isExpanded: true,
-              items: [1, 2, 3, 4, 5, 8, 10, 15, 20, 24]
-                  .map(
-                    (e) => DropdownMenuItem(value: e, child: Text('$e Mines')),
-                  )
-                  .toList(),
-              onChanged: isGameActive
-                  ? null
-                  : (val) {
-                      if (val != null) {
-                        setState(() {
-                          _selectedMinesCount = val;
-                        });
-                      }
-                    },
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: isGameActive
+                  ? ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(
+                          0xFFFF9100,
+                        ), // Intense Orange
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: state.isMinesLoading
+                          ? null
+                          : () => _cashout(game),
+                      child: state.isMinesLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation(
+                                  Colors.black,
+                                ),
+                              ),
+                            )
+                          : Text(
+                              'CASH OUT (${_formatCurrency(game.currentWin)})',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                    )
+                  : (game != null && !game.isInProgress)
+                  ? ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2196F3),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: _resetGame,
+                      child: const Text(
+                        'PLAY AGAIN',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    )
+                  : ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00E676), // Lime Green
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: state.isMinesLoading
+                          ? null
+                          : () => _startGame(state),
+                      child: state.isMinesLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation(
+                                  Colors.black,
+                                ),
+                              ),
+                            )
+                          : const Text(
+                              'START CASINO BET',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                    ),
+            ),
+          ],
         ),
-        const SizedBox(height: 24),
         if (isGameActive) ...[
+          const SizedBox(height: 16),
           // Multipliers Tracker
           Container(
             padding: const EdgeInsets.all(12),
@@ -624,35 +723,8 @@ class _MinesGameScreenState extends State<MinesGameScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF9100), // Intense Orange
-              foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed: state.isMinesLoading ? null : () => _cashout(game),
-            child: state.isMinesLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation(Colors.black),
-                    ),
-                  )
-                : Text(
-                    'CASH OUT (${_formatCurrency(game.currentWin)})',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-          ),
         ] else if (game != null && !game.isInProgress) ...[
+          const SizedBox(height: 16),
           // Game Over Options
           Container(
             padding: const EdgeInsets.all(12),
@@ -676,49 +748,8 @@ class _MinesGameScreenState extends State<MinesGameScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2196F3),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed: _resetGame,
-            child: const Text(
-              'PLAY AGAIN',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-          ),
-        ] else ...[
-          // Start Game Option
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00E676), // Lime Green
-              foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed: state.isMinesLoading ? null : () => _startGame(state),
-            child: state.isMinesLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation(Colors.black),
-                    ),
-                  )
-                : const Text(
-                    'START CASINO BET',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                  ),
-          ),
         ],
+        const SizedBox(height: 24),
       ],
     );
   }

@@ -44,6 +44,7 @@ class _CustomButtonState extends State<CustomButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
+  bool _isTapped = false;
 
   @override
   void initState() {
@@ -65,19 +66,19 @@ class _CustomButtonState extends State<CustomButton>
   }
 
   void _onTapDown(TapDownDetails details) {
-    if (widget.onPressed != null && !widget.isLoading) {
+    if (widget.onPressed != null && !widget.isLoading && !_isTapped) {
       _animationController.reverse();
     }
   }
 
   void _onTapUp(TapUpDetails details) {
-    if (widget.onPressed != null && !widget.isLoading) {
+    if (widget.onPressed != null && !widget.isLoading && !_isTapped) {
       _animationController.forward();
     }
   }
 
   void _onTapCancel() {
-    if (widget.onPressed != null && !widget.isLoading) {
+    if (widget.onPressed != null && !widget.isLoading && !_isTapped) {
       _animationController.forward();
     }
   }
@@ -90,10 +91,22 @@ class _CustomButtonState extends State<CustomButton>
       onTapDown: _onTapDown,
       onTapUp: _onTapUp,
       onTapCancel: _onTapCancel,
-      onTap: isEnabled
+      onTap: isEnabled && !_isTapped
           ? () {
+              setState(() {
+                _isTapped = true;
+              });
               FocusManager.instance.primaryFocus?.unfocus();
-              widget.onPressed!();
+              Future.delayed(const Duration(milliseconds: 100), () {
+                if (mounted) {
+                  setState(() {
+                    _isTapped = false;
+                  });
+                  if (widget.onPressed != null) {
+                    widget.onPressed!();
+                  }
+                }
+              });
             }
           : null,
       child: AnimatedBuilder(

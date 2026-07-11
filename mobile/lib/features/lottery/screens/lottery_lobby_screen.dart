@@ -897,7 +897,10 @@ class _LotteryLobbyScreenState extends State<LotteryLobbyScreen>
                                   children: [
                                     const Text(
                                       'PRIZE POOL',
-                                      style: TextStyle(color: Colors.white38, fontSize: 8),
+                                      style: TextStyle(
+                                        color: Colors.white38,
+                                        fontSize: 8,
+                                      ),
                                     ),
                                     Text(
                                       '₹${draw.prizePool.toStringAsFixed(0)}',
@@ -914,7 +917,10 @@ class _LotteryLobbyScreenState extends State<LotteryLobbyScreen>
                                   children: [
                                     const Text(
                                       'WINNING TICKET',
-                                      style: TextStyle(color: Colors.white38, fontSize: 8),
+                                      style: TextStyle(
+                                        color: Colors.white38,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                     Text(
                                       draw.winningNumber ?? '-',
@@ -922,7 +928,7 @@ class _LotteryLobbyScreenState extends State<LotteryLobbyScreen>
                                         color: AppTheme.accentCyan,
                                         fontWeight: FontWeight.bold,
                                         fontFamily: 'monospace',
-                                        fontSize: 13,
+                                        fontSize: 9,
                                       ),
                                     ),
                                   ],
@@ -970,135 +976,130 @@ class _LotteryLobbyScreenState extends State<LotteryLobbyScreen>
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final winner = _winners[index];
-                    final initial = winner.name.isNotEmpty
-                        ? winner.name[0].toUpperCase()
-                        : 'W';
-                    final int colorSeed = winner.name.hashCode;
-                    final colors = [
-                      Colors.blueAccent,
-                      Colors.purpleAccent,
-                      Colors.orangeAccent,
-                      Colors.tealAccent,
-                      Colors.pinkAccent,
-                      Colors.greenAccent,
-                      Colors.amberAccent,
-                      Colors.redAccent,
-                    ];
-                    final avatarColor = colors[colorSeed % colors.length];
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final winner = _winners[index];
+                  final initial = winner.name.isNotEmpty
+                      ? winner.name[0].toUpperCase()
+                      : 'W';
+                  final int colorSeed = winner.name.hashCode;
+                  final colors = [
+                    Colors.blueAccent,
+                    Colors.purpleAccent,
+                    Colors.orangeAccent,
+                    Colors.tealAccent,
+                    Colors.pinkAccent,
+                    Colors.greenAccent,
+                    Colors.amberAccent,
+                    Colors.redAccent,
+                  ];
+                  final avatarColor = colors[colorSeed % colors.length];
 
-                    final timeDiff = DateTime.now().difference(winner.winTime);
-                    String timeAgo;
-                    if (timeDiff.inMinutes < 60) {
-                      timeAgo = '${timeDiff.inMinutes}m ago';
-                    } else if (timeDiff.inHours < 24) {
-                      timeAgo = '${timeDiff.inHours}h ago';
-                    } else {
-                      timeAgo = '${timeDiff.inDays}d ago';
-                    }
+                  final timeDiff = DateTime.now().difference(winner.winTime);
+                  String timeAgo;
+                  if (timeDiff.inMinutes < 60) {
+                    timeAgo = '${timeDiff.inMinutes}m ago';
+                  } else if (timeDiff.inHours < 24) {
+                    timeAgo = '${timeDiff.inHours}h ago';
+                  } else {
+                    timeAgo = '${timeDiff.inDays}d ago';
+                  }
 
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF13102C),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.05),
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF13102C),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: avatarColor.withOpacity(0.15),
+                          child: Text(
+                            initial,
+                            style: TextStyle(
+                              color: avatarColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 18,
-                            backgroundColor: avatarColor.withOpacity(0.15),
-                            child: Text(
-                              initial,
-                              style: TextStyle(
-                                color: avatarColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      winner.name,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      winner.phone,
-                                      style: const TextStyle(
-                                        color: Colors.white30,
-                                        fontSize: 10,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Won in: ${winner.drawTitle}',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.white54,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Ticket #${winner.ticketNumber}',
-                                  style: const TextStyle(
-                                    color: AppTheme.accentCyan,
-                                    fontFamily: 'monospace',
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                '+₹${winner.rewardAmount.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                  color: AppTheme.accentEmerald,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
+                              Row(
+                                children: [
+                                  Text(
+                                    winner.name,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    winner.phone,
+                                    style: const TextStyle(
+                                      color: Colors.white30,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                timeAgo,
+                                'Won in: ${winner.drawTitle}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  color: Colors.white24,
-                                  fontSize: 9,
+                                  color: Colors.white54,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Ticket #${winner.ticketNumber}',
+                                style: const TextStyle(
+                                  color: AppTheme.accentCyan,
+                                  fontFamily: 'monospace',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    );
-                  },
-                  childCount: _winners.length,
-                ),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '+₹${winner.rewardAmount.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                color: AppTheme.accentEmerald,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              timeAgo,
+                              style: const TextStyle(
+                                color: Colors.white24,
+                                fontSize: 9,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                }, childCount: _winners.length),
               ),
             ),
         ],

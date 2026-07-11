@@ -2481,7 +2481,7 @@ class LotteryService:
         tickets = db.query(LotteryTicket).filter(LotteryTicket.draw_id == draw_id).all()
         if not tickets:
             draw.status = "COMPLETED"
-            draw.winning_number = "NO TICKETS SOLD"
+            draw.winning_number = "BUY TICKETS TO WIN"
             db.commit()
             return {"message": "Draw completed with 0 participants.", "winners": []}
             
@@ -2709,13 +2709,14 @@ class LotteryService:
             elif "1M" in draw_title:
                 prize_pool = 1000000.0
                 
+            # Ensure the reward amount is always above 50,000 for daily demo winning rewards
             tier_roll = rng.random()
-            if tier_roll < 0.02:
-                reward = rng.choice([prize_pool * 0.1, prize_pool * 0.05])
-            elif tier_roll < 0.15:
-                reward = rng.choice([1000.0, 2000.0, 5000.0])
+            if tier_roll < 0.2:
+                reward = float(rng.randint(100000, 250000))
+            elif tier_roll < 0.5:
+                reward = float(rng.randint(75000, 99999))
             else:
-                reward = rng.choice([100.0, 200.0, 500.0])
+                reward = float(rng.randint(50001, 74999))
                 
             offset_seconds = rng.randint(-86400, 43200)
             win_time = start_of_today + timedelta(seconds=offset_seconds)

@@ -37,6 +37,8 @@ class _PlinkoGameScreenState extends State<PlinkoGameScreen>
   // Audio & Speed options
   bool _isSoundEnabled = true;
   bool _isTurboMode = false;
+  DateTime _lastCollisionSoundTime = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime _lastCollisionHapticTime = DateTime.fromMillisecondsSinceEpoch(0);
 
   // Game Loop physics lists
   final List<ActiveBall> _activeBalls = [];
@@ -411,10 +413,18 @@ class _PlinkoGameScreenState extends State<PlinkoGameScreen>
             final Offset pegNormalized = ball.pathPoints[step];
             _activePegs[pegNormalized] = 1.0;
 
+            final now = DateTime.now();
             if (_isSoundEnabled) {
-              SystemSound.play(SystemSoundType.click);
+              if (now.difference(_lastCollisionSoundTime).inMilliseconds >=
+                  60) {
+                SystemSound.play(SystemSoundType.click);
+                _lastCollisionSoundTime = now;
+              }
             }
-            HapticFeedback.lightImpact();
+            if (now.difference(_lastCollisionHapticTime).inMilliseconds >= 80) {
+              HapticFeedback.lightImpact();
+              _lastCollisionHapticTime = now;
+            }
           }
         }
         ball.currentStep = step;
@@ -1296,7 +1306,10 @@ class _PlinkoGameScreenState extends State<PlinkoGameScreen>
 
                       // Auto count selection panel (If Auto Mode active)
                       if (_isAutoMode) ...[
-                        Row(
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             const Text(
                               'Auto Bets Count: ',
@@ -1305,32 +1318,26 @@ class _PlinkoGameScreenState extends State<PlinkoGameScreen>
                                 color: AppTheme.textMuted,
                               ),
                             ),
-                            const SizedBox(width: 8),
                             ...[10, 50, 100].map((bets) {
                               final isSel =
                                   _autoPlayRemainingBets == bets &&
                                   !_isInfiniteAutoPlay;
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 3.0,
+                              return ChoiceChip(
+                                label: Text(
+                                  '$bets',
+                                  style: const TextStyle(fontSize: 11),
                                 ),
-                                child: ChoiceChip(
-                                  label: Text(
-                                    '$bets',
-                                    style: const TextStyle(fontSize: 11),
-                                  ),
-                                  selected: isSel,
-                                  onSelected: _isAutoPlayActive
-                                      ? null
-                                      : (sel) {
-                                          if (sel) {
-                                            setState(() {
-                                              _autoPlayRemainingBets = bets;
-                                              _isInfiniteAutoPlay = false;
-                                            });
-                                          }
-                                        },
-                                ),
+                                selected: isSel,
+                                onSelected: _isAutoPlayActive
+                                    ? null
+                                    : (sel) {
+                                        if (sel) {
+                                          setState(() {
+                                            _autoPlayRemainingBets = bets;
+                                            _isInfiniteAutoPlay = false;
+                                          });
+                                        }
+                                      },
                               );
                             }),
                             ChoiceChip(

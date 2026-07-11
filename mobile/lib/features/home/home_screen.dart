@@ -145,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
                               Text(
-                                'Welcome back, ${user?.phone ?? ""}',
+                                'Welcome back, ${user?.name ?? ""}',
                                 style: const TextStyle(
                                   fontSize: 8,
                                   color: AppTheme.textMuted,
@@ -779,10 +779,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Positioned.fill(
                     child: Opacity(
                       opacity: 0.18,
-                      child: Image.asset(
-                        backgroundImage,
-                        fit: BoxFit.cover,
-                      ),
+                      child: Image.asset(backgroundImage, fit: BoxFit.cover),
                     ),
                   ),
                 Padding(
@@ -815,7 +812,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                Text(emoji, style: const TextStyle(fontSize: 18)),
+                                Text(
+                                  emoji,
+                                  style: const TextStyle(fontSize: 18),
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   title,
