@@ -828,7 +828,7 @@ class LotteryDrawCreate(BaseModel):
     ticket_price: float
     prize_pool: float
     draw_time: datetime
-    max_tickets: Optional[int] = 10000000
+    max_tickets: Optional[int] = 100000
     win_percentage: Optional[float] = 0.01
     forced_winning_number: Optional[str] = None
 

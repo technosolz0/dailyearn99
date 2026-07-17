@@ -64,7 +64,8 @@ class _LotteryCountdownDialogState extends State<LotteryCountdownDialog> {
   @override
   Widget build(BuildContext context) {
     final double fillPercentage = widget.draw.maxTickets > 0
-        ? widget.draw.joinedTickets / widget.draw.maxTickets
+        // ? widget.draw.joinedTickets / widget.draw.maxTickets
+        ? widget.draw.displayJoinedTickets / widget.draw.maxTickets
         : 0.0;
 
     return Dialog(
@@ -318,7 +319,7 @@ class _LotteryCountdownDialogState extends State<LotteryCountdownDialog> {
                               ),
                             ),
                             Text(
-                              '${widget.draw.joinedTickets}/${widget.draw.maxTickets}',
+                              '${widget.draw.displayJoinedTickets}/${widget.draw.maxTickets}',
                               style: GoogleFonts.inter(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,

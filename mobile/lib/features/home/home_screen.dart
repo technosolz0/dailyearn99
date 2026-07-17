@@ -467,6 +467,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const Color(0xFF2E1A47),
                               ],
                               borderColor: AppTheme.accentPurple,
+                              backgroundImage: 'assets/images/imagep_bg.png',
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -492,6 +493,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const Color(0xFF132A44),
                               ],
                               borderColor: AppTheme.accentCyan,
+                              backgroundImage: 'assets/images/word_bg.png',
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -517,6 +519,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const Color(0xFF4A190C),
                               ],
                               borderColor: const Color(0xFFFF4500),
+                              backgroundImage: 'assets/images/fruits_bg.png',
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -542,6 +545,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const Color(0xFF140F2D),
                               ],
                               borderColor: const Color(0xFFFF9900),
+                              backgroundImage: 'assets/images/arrow_bg.png',
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -658,6 +662,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required List<Color> colors,
     required Color borderColor,
     required VoidCallback onTap,
+    String? backgroundImage,
   }) {
     return Card(
       margin: EdgeInsets.zero,
@@ -672,68 +677,80 @@ class _HomeScreenState extends State<HomeScreen> {
           onTap: onTap,
           child: Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: colors,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: backgroundImage != null
+                  ? null
+                  : LinearGradient(
+                      colors: colors,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
             ),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12.0,
-              vertical: 10.0,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Stack(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
+                if (backgroundImage != null)
+                  Positioned.fill(
+                    child: Image.asset(backgroundImage, fit: BoxFit.cover),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12.0,
+                    vertical: 10.0,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: borderColor.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              tag,
+                              style: TextStyle(
+                                fontSize: 7.5,
+                                color: borderColor,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          Text(emoji, style: const TextStyle(fontSize: 18)),
+                        ],
                       ),
-                      decoration: BoxDecoration(
-                        color: borderColor.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(6),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            desc,
+                            style: const TextStyle(
+                              fontSize: 9,
+                              color: AppTheme.textMuted,
+                              height: 1.15,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
-                      child: Text(
-                        tag,
-                        style: TextStyle(
-                          fontSize: 7.5,
-                          color: borderColor,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                    Text(emoji, style: const TextStyle(fontSize: 18)),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      desc,
-                      style: const TextStyle(
-                        fontSize: 9,
-                        color: AppTheme.textMuted,
-                        height: 1.15,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -767,20 +784,19 @@ class _HomeScreenState extends State<HomeScreen> {
           onTap: onTap,
           child: Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: colors,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: backgroundImage != null
+                  ? null
+                  : LinearGradient(
+                      colors: colors,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
             ),
             child: Stack(
               children: [
                 if (backgroundImage != null)
                   Positioned.fill(
-                    child: Opacity(
-                      opacity: 0.18,
-                      child: Image.asset(backgroundImage, fit: BoxFit.cover),
-                    ),
+                    child: Image.asset(backgroundImage, fit: BoxFit.cover),
                   ),
                 Padding(
                   padding: const EdgeInsets.all(14),
@@ -832,7 +848,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               desc,
                               style: const TextStyle(
                                 fontSize: 9.5,
-                                color: AppTheme.textMuted,
+                                color: Colors.white,
                               ),
                             ),
                           ],

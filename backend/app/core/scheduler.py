@@ -30,11 +30,11 @@ def lottery_scheduler_loop():
                     
                     # We check if these 5 lotteries already exist for this draw time.
                     configs = [
-                        {"title_prefix": "🎟️ Daily Bumper ₹50K (₹50)", "price": 50.0, "prize": 50000.0},
-                        {"title_prefix": "💥 Daily Bumper ₹100K (₹100)", "price": 100.0, "prize": 100000.0},
-                        {"title_prefix": "💎 Daily Bumper ₹200K (₹200)", "price": 200.0, "prize": 200000.0},
-                        {"title_prefix": "🔥 Daily Bumper ₹500K (₹500)", "price": 500.0, "prize": 500000.0},
-                        {"title_prefix": "👑 Daily Bumper ₹1M (₹1000)", "price": 1000.0, "prize": 1000000.0},
+                        {"title_prefix": "🎟️ Daily Bumper ₹50000 (₹50)", "price": 50.0, "prize": 50000.0},
+                        {"title_prefix": "💥 Daily Bumper ₹100000 (₹100)", "price": 100.0, "prize": 100000.0},
+                        {"title_prefix": "💎 Daily Bumper ₹200000 (₹200)", "price": 200.0, "prize": 200000.0},
+                        {"title_prefix": "🔥 Daily Bumper ₹500000 (₹500)", "price": 500.0, "prize": 500000.0},
+                        {"title_prefix": "👑 Daily Bumper ₹1000000 (₹1000)", "price": 1000.0, "prize": 1000000.0},
                     ]
                     
                     draw_date_str = target_draw_ist.strftime("%d/%m/%Y")
@@ -52,7 +52,7 @@ def lottery_scheduler_loop():
                                 ticket_price=cfg["price"],
                                 prize_pool=cfg["prize"],
                                 draw_time=naive_target_draw_utc,
-                                max_tickets=10000000,
+                                max_tickets=100000,
                                 win_percentage=0.0,
                                 joined_tickets=0,
                                 status="OPEN"
@@ -66,8 +66,8 @@ def lottery_scheduler_loop():
                                 from app.core.notifications import send_push_to_all_background
                                 send_push_to_all_background(
                                     db,
-                                    title="🎟️ New Daily Bumper Draw!",
-                                    body=f"Join '{new_draw.title}' now! Ticket price: ₹{new_draw.ticket_price:.2f}. Win pool: ₹{new_draw.prize_pool:.2f}!",
+                                    title=f"New Daily Bumper: {cfg['title_prefix']}",
+                                    body=f"Join '{new_draw.title}' now! Ticket price: ₹{new_draw.ticket_price:.0f}. Win pool: ₹{new_draw.prize_pool:.0f}!",
                                     data={"type": "lottery_created", "draw_id": str(new_draw.id)}
                                 )
                             except Exception as ne:

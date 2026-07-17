@@ -245,7 +245,8 @@ class _LotteryLobbyScreenState extends State<LotteryLobbyScreen>
   Widget _buildDrawCard(LotteryDrawModel draw) {
     final remaining = draw.drawTime.difference(DateTime.now());
     final isDrawClosed = remaining.isNegative;
-    final fillPercentage = draw.joinedTickets / draw.maxTickets;
+    ////final fillPercentage = draw.joinedTickets / draw.maxTickets;
+    final fillPercentage = draw.displayJoinedTickets / draw.maxTickets;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -303,7 +304,8 @@ class _LotteryLobbyScreenState extends State<LotteryLobbyScreen>
                 ),
                 _buildMetricBlock(
                   'TICKETS SOLD',
-                  '${draw.joinedTickets}/${draw.maxTickets}',
+                  // '${draw.joinedTickets}/${draw.maxTickets}',
+                  '${draw.displayJoinedTickets}/${draw.maxTickets}',
                   Colors.orangeAccent,
                 ),
               ],

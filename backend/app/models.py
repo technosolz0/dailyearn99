@@ -606,7 +606,7 @@ class LotteryDraw(Base):
     ticket_price = Column(Float, nullable=False)
     prize_pool = Column(Float, nullable=False)
     draw_time = Column(DateTime, nullable=False)
-    max_tickets = Column(Integer, default=10000000)
+    max_tickets = Column(Integer, default=100000)
     joined_tickets = Column(Integer, default=0)
     status = Column(String, default="OPEN")  # OPEN, COMPLETED, CANCELLED
     winning_number = Column(String, nullable=True)

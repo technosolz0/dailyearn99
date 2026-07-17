@@ -23,6 +23,22 @@ class LotteryDrawModel {
     required this.createdAt,
   });
 
+  int get displayJoinedTickets {
+    if (status == 'OPEN' && maxTickets > 0 && joinedTickets < maxTickets * 0.5) {
+      final seed = id;
+      // Stable pseudo-random percentage between 60% and 80% based on the draw ID
+      final hash = (seed * 1103515245 + 12345) & 0x7fffffff;
+      const minPercent = 60;
+      const maxPercent = 80;
+      final percent = minPercent + (hash % (maxPercent - minPercent + 1));
+      final calculated = (maxTickets * percent / 100).round();
+      if (calculated > joinedTickets && calculated < maxTickets) {
+        return calculated;
+      }
+    }
+    return joinedTickets;
+  }
+
   factory LotteryDrawModel.fromJson(Map<String, dynamic> json) {
     return LotteryDrawModel(
       id: json['id'] as int,
