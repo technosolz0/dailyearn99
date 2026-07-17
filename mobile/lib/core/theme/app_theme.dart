@@ -89,6 +89,74 @@ class AppTheme {
           ),
         ),
       ),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CustomPageTransitionsBuilder(),
+          TargetPlatform.iOS: CustomPageTransitionsBuilder(),
+          TargetPlatform.macOS: CustomPageTransitionsBuilder(),
+          TargetPlatform.windows: CustomPageTransitionsBuilder(),
+          TargetPlatform.linux: CustomPageTransitionsBuilder(),
+        },
+      ),
+    );
+  }
+}
+
+class CustomPageTransitionsBuilder extends PageTransitionsBuilder {
+  const CustomPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    // Premium slide & fade transition
+    final slideIn = Tween<Offset>(
+      begin: const Offset(0.08, 0.0),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      ),
+    );
+
+    final fadeIn = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(
+      CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      ),
+    );
+
+    // Subtle slide out for exiting screens
+    final slideOut = Tween<Offset>(
+      begin: Offset.zero,
+      end: const Offset(-0.04, 0.0),
+    ).animate(
+      CurvedAnimation(
+        parent: secondaryAnimation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      ),
+    );
+
+    return SlideTransition(
+      position: slideOut,
+      child: SlideTransition(
+        position: slideIn,
+        child: FadeTransition(
+          opacity: fadeIn,
+          child: child,
+        ),
+      ),
     );
   }
 }

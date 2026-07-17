@@ -97,14 +97,16 @@ class _CustomButtonState extends State<CustomButton>
                 _isTapped = true;
               });
               FocusManager.instance.primaryFocus?.unfocus();
-              Future.delayed(const Duration(milliseconds: 100), () {
+              if (widget.onPressed != null) {
+                widget.onPressed!();
+              }
+              // Reset the _isTapped flag after a 400ms debounce window to prevent accidental double taps,
+              // while keeping the initial click reaction completely instant.
+              Future.delayed(const Duration(milliseconds: 400), () {
                 if (mounted) {
                   setState(() {
                     _isTapped = false;
                   });
-                  if (widget.onPressed != null) {
-                    widget.onPressed!();
-                  }
                 }
               });
             }

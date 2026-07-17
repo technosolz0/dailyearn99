@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dailyearn99/core/theme/app_theme.dart';
 import 'package:dailyearn99/core/widgets/custom_button.dart';
+import 'package:dailyearn99/core/widgets/countdown_text.dart';
 import 'package:dailyearn99/features/lottery/models/lottery_models.dart';
 
 class LotteryCountdownDialog extends StatefulWidget {
@@ -23,44 +24,6 @@ class LotteryCountdownDialog extends StatefulWidget {
 }
 
 class _LotteryCountdownDialogState extends State<LotteryCountdownDialog> {
-  Timer? _timer;
-  late Duration _remaining;
-
-  @override
-  void initState() {
-    super.initState();
-    _updateRemaining();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        setState(() {
-          _updateRemaining();
-        });
-      }
-    });
-  }
-
-  void _updateRemaining() {
-    _remaining = widget.draw.drawTime.difference(DateTime.now());
-    if (_remaining.isNegative) {
-      _remaining = Duration.zero;
-      _timer?.cancel();
-    }
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  String _formatDuration(Duration duration) {
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes % 60;
-    final seconds = duration.inSeconds % 60;
-
-    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final double fillPercentage = widget.draw.maxTickets > 0
@@ -195,20 +158,18 @@ class _LotteryCountdownDialogState extends State<LotteryCountdownDialog> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                            _formatDuration(_remaining),
+                          CountdownText(
+                            targetTime: widget.draw.drawTime,
+                            closedText: "00:00:00",
+                            closedColor: AppTheme.accentOrange,
                             style: GoogleFonts.shareTechMono(
                               fontSize: 34,
                               fontWeight: FontWeight.bold,
-                              color: _remaining.inSeconds > 0
-                                  ? AppTheme.accentCyan
-                                  : AppTheme.accentOrange,
+                              color: AppTheme.accentCyan,
                               letterSpacing: 1.5,
                               shadows: [
                                 Shadow(
-                                  color: _remaining.inSeconds > 0
-                                      ? AppTheme.accentCyan.withOpacity(0.5)
-                                      : AppTheme.accentOrange.withOpacity(0.5),
+                                  color: AppTheme.accentCyan.withOpacity(0.5),
                                   blurRadius: 10,
                                 ),
                               ],

@@ -21,6 +21,7 @@ import 'package:dailyearn99/features/update/update_required_screen.dart';
 import 'package:dailyearn99/features/splash/splash_screen.dart';
 import 'package:safe_device/safe_device.dart';
 import 'package:dailyearn99/firebase_options.dart';
+import 'package:dailyearn99/core/widgets/animated_indexed_stack.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
@@ -395,7 +396,7 @@ class _MainNavigationLayoutState extends State<MainNavigationLayout> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: AnimatedIndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: AppTheme.borderCol, width: 1)),

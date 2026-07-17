@@ -6,6 +6,7 @@ import 'package:dailyearn99/core/utils/dependency_injection.dart';
 import 'package:dailyearn99/features/app_bloc.dart';
 import 'package:dailyearn99/core/theme/app_theme.dart';
 import 'package:dailyearn99/core/widgets/custom_button.dart';
+import 'package:dailyearn99/core/widgets/countdown_text.dart';
 import '../models/lottery_models.dart';
 import '../repository/lottery_repository.dart';
 
@@ -20,7 +21,6 @@ class _LotteryLobbyScreenState extends State<LotteryLobbyScreen>
     with SingleTickerProviderStateMixin {
   late final LotteryRepository _repository;
   late final TabController _tabController;
-  Timer? _countdownTimer;
 
   List<LotteryDrawModel> _draws = [];
   List<LotteryTicketModel> _myTickets = [];
@@ -40,13 +40,6 @@ class _LotteryLobbyScreenState extends State<LotteryLobbyScreen>
     _tabController.addListener(_handleTabSelection);
 
     _refreshAll();
-
-    // Start a periodic timer to update countdowns every second
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        setState(() {});
-      }
-    });
   }
 
   void _handleTabSelection() {
@@ -62,7 +55,6 @@ class _LotteryLobbyScreenState extends State<LotteryLobbyScreen>
 
   @override
   void dispose() {
-    _countdownTimer?.cancel();
     _tabController.dispose();
     super.dispose();
   }
@@ -143,21 +135,7 @@ class _LotteryLobbyScreenState extends State<LotteryLobbyScreen>
     }
   }
 
-  String _getCountdownText(DateTime targetTime) {
-    final difference = targetTime.difference(DateTime.now());
-    if (difference.isNegative) {
-      return "Processing Draw...";
-    }
-    final days = difference.inDays;
-    final hours = difference.inHours % 24;
-    final minutes = difference.inMinutes % 60;
-    final seconds = difference.inSeconds % 60;
 
-    if (days > 0) {
-      return "$days days, ${hours.toString().padLeft(2, '0')}h ${minutes.toString().padLeft(2, '0')}m";
-    }
-    return "${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}";
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -338,13 +316,13 @@ class _LotteryLobbyScreenState extends State<LotteryLobbyScreen>
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      _getCountdownText(draw.drawTime),
-                      style: TextStyle(
+                    CountdownText(
+                      targetTime: draw.drawTime,
+                      closedText: "Processing Draw...",
+                      closedColor: Colors.orangeAccent,
+                      style: const TextStyle(
                         fontSize: 12,
-                        color: isDrawClosed
-                            ? Colors.orangeAccent
-                            : Colors.white,
+                        color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
